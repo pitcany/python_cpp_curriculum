@@ -1,0 +1,20 @@
+{
+  "name": "notion-curriculum-sync",
+  "version": "1.0.0",
+  "description": "Sync Notion curriculum to GitHub as Markdown",
+  "type": "module",
+  "scripts": {
+    "export": "node scripts/export-notion.js",
+    "export:dry-run": "DRY_RUN=true node scripts/export-notion.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.14",
+    "notion-to-md": "^3.1.1"
+  },
+  "devDependencies": {},
+  "author": "Yannik",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,91 @@
+name: Sync Notion Curriculum
+
+on:
+  # Run weekly on Sundays at 6 AM UTC
+  schedule:
+    - cron: '0 6 * * 0'
+  
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      force_commit:
+        description: 'Force commit even if no changes'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Prevent concurrent runs
+concurrency:
+  group: notion-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Required to push commits
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better diffs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Export Notion page
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+        run: npm run export
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add -A
+          if git diff --staged --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git diff --staged --stat
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changed == 'true' || inputs.force_commit == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create commit message with date and summary
+          COMMIT_MSG="Sync Notion curriculum $(date -u +%Y-%m-%d)"
+          
+          # Add change summary to commit body
+          CHANGES=$(git diff --staged --stat | tail -1)
+          
+          git commit -m "$COMMIT_MSG" -m "Automated sync from Notion" -m "$CHANGES"
+          git push
+
+      - name: Summary
+        run: |
+          echo "## Notion Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.changes.outputs.changed }}" == "true" ]; then
+            echo "✅ Changes detected and committed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Files changed:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            git diff HEAD~1 --stat >> $GITHUB_STEP_SUMMARY || echo "First sync" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ No changes detected - curriculum is up to date" >> $GITHUB_STEP_SUMMARY
+          fi
