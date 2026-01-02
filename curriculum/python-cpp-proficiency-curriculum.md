@@ -2,8 +2,8 @@
 title: "2-Week Python & C++ Proficiency for Statisticians and Data Scientists"
 source: Notion
 notion_url: https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2db342cf7cc8815a97e5d434dbabf57c
-last_synced: 2026-01-02T05:17:50.913Z
-last_edited_in_notion: 2026-01-02T04:18:00.000Z
+last_synced: 2026-01-02T07:21:11.105Z
+last_edited_in_notion: 2026-01-02T07:04:00.000Z
 ---
 
 
@@ -19,6 +19,245 @@ Week 1 covers Python. Week 2 covers C++. Capstones require cross-language compar
 ---
 
 
+# Day 0: Environment Setup
+
+
+**Goal**: Verify you have working Python and C++ development environments. This should take 15-20 minutes.
+
+
+## Python Setup
+
+
+### Installation
+
+- **Required version**: Python 3.10 or newer
+- Download from [python.org](http://python.org/) or use your system package manager
+- Verify installation:
+
+    ```bash
+    python3 --version  # Should show 3.10+
+    ```
+
+
+### Virtual Environment
+
+
+Create an isolated environment for this course:
+
+
+```bash
+python3 -m venv stats_env
+source stats_env/bin/activate  # On Windows: stats_env\Scripts\activate
+
+```
+
+
+### Required Packages
+
+
+Install core dependencies:
+
+
+```bash
+pip install --upgrade pip
+pip install numpy pandas scipy matplotlib seaborn pytest hypothesis ipython
+
+```
+
+
+### Verification Script
+
+
+Save as `verify_`[`python.py`](http://python.py/) and run:
+
+
+```python
+import sys
+import numpy as np
+import pandas as pd
+
+print(f"Python: {sys.version}")
+print(f"NumPy: {np.__version__}")
+print(f"Pandas: {pd.__version__}")
+
+# Test modern RNG
+rng = np.random.default_rng(42)
+data = rng.normal(0, 1, 100)
+print(f"Generated {len(data)} random values")
+print("✓ Python environment ready")
+
+```
+
+
+Expected output: All imports succeed, versions displayed, no errors.
+
+
+## C++ Setup
+
+
+### Compiler Installation
+
+
+**Linux (Ubuntu/Debian)**:
+
+
+```bash
+sudo apt update
+sudo apt install build-essential cmake gdb
+g++ --version  # Should show 9.0+
+
+```
+
+
+**macOS**:
+
+
+```bash
+xcode-select --install  # Installs clang
+clang++ --version  # Should show 12.0+
+
+```
+
+
+**Windows**:
+
+- Option 1: Install [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) with "Desktop development with C++"
+- Option 2: Install [MSYS2](https://msys2.org/) and run: `pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake`
+
+### Build Tools
+
+- **CMake**: Version 3.16+ ([cmake.org](http://cmake.org/))
+- Verify: `cmake --version`
+
+### Sanitizers Support
+
+
+Verify AddressSanitizer works:
+
+
+```bash
+g++ -fsanitize=address -o test_asan test.cpp
+
+# On macOS with clang:
+clang++ -fsanitize=address -o test_asan test.cpp
+
+```
+
+
+### Verification Program
+
+
+Save as `verify_cpp.cpp`:
+
+
+```c++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+int main() {
+    std::vector<double> data(100);
+    std::iota(data.begin(), data.end(), 0.0);
+    
+    double sum = std::accumulate(data.begin(), data.end(), 0.0);
+    std::cout << "Sum: " << sum << std::endl;
+    
+    auto mean = sum / data.size();
+    std::cout << "Mean: " << mean << std::endl;
+    
+    std::cout << "✓ C++ environment ready" << std::endl;
+    return 0;
+}
+
+```
+
+
+Compile and run:
+
+
+```bash
+
+# Verify C++17 support
+g++ -std=c++17 -Wall -Wextra -o verify_cpp verify_cpp.cpp
+./verify_cpp
+
+# Verify sanitizers
+g++ -std=c++17 -fsanitize=address -g -o verify_cpp_asan verify_cpp.cpp
+./verify_cpp_asan
+
+```
+
+
+Expected output: Program compiles with no warnings, prints sum and mean, no sanitizer errors.
+
+
+## Troubleshooting
+
+
+**Python: "numpy not found"**
+
+- Ensure virtual environment is activated
+- Try: `pip install --force-reinstall numpy`
+
+**C++: "g++: command not found"**
+
+- Linux: Install build-essential package
+- macOS: Run `xcode-select --install`
+- Windows: Ensure compiler is in PATH
+
+**C++: Sanitizer not available**
+
+- Some older compilers lack sanitizer support
+- Minimum versions: g++ 9.0, clang 12.0
+- On Windows, sanitizers may require clang or recent MSVC
+
+**CMake: "cmake: command not found"**
+
+- Download from [cmake.org](http://cmake.org/) or use package manager
+- macOS: `brew install cmake`
+- Linux: `sudo apt install cmake`
+
+## Quick Reference
+
+
+**Python commands you'll use daily:**
+
+
+```bash
+source stats_env/bin/activate  # Activate environment
+python script.py               # Run a script
+pytest test_file.py           # Run tests
+python -m cProfile script.py  # Profile code
+
+```
+
+
+**C++ commands you'll use daily:**
+
+
+```bash
+g++ -std=c++17 -Wall -Wextra -O2 -o program program.cpp  # Compile optimized
+g++ -std=c++17 -g -fsanitize=address -o program program.cpp  # Debug build
+gdb ./program                  # Debug with gdb
+make                          # Build with Makefile
+cmake --build build/          # Build with CMake
+
+```
+
+
+## Ready to Start
+
+
+Once both verification scripts run successfully, you're ready for Week 1. If you encounter issues not covered in troubleshooting, check:
+
+- Python: [docs.python.org/3/using](http://docs.python.org/3/using)
+- C++ Compiler: Your platform's documentation
+- CMake: [cmake.org/getting-started](http://cmake.org/getting-started)
+
+---
+
+
 # Week 1: Python
 
 
@@ -28,16 +267,233 @@ Week 1 covers Python. Week 2 covers C++. Capstones require cross-language compar
 ### Concepts
 
 
-Python functions are first-class objects. This has consequences: functions can be passed as arguments, returned from other functions, and stored in data structures. Understand the difference between `def` and `lambda`, and when each is appropriate.
+**Functions as first-class objects**
 
 
-Module structure matters for maintainability. The distinction between a script and a module hinges on `if __name__ == "__main__":`. Understand why circular imports fail and how to restructure code to avoid them.
+In Python, functions are objects just like integers, strings, or lists. This means you can:
+
+- **Pass functions as arguments** to other functions (higher-order functions)
+- **Return functions** from other functions (factory pattern)
+- **Store functions** in data structures like lists or dictionaries
+- **Assign functions** to variables
+
+Example:
 
 
-Idiomatic Python favors readability over cleverness. List comprehensions replace explicit loops when the intent is clear. Generator expressions defer computation. The `itertools` module provides composable iteration primitives.
+```python
+def apply_twice(func, x):
+    return func(func(x))
+
+def add_one(n):
+    return n + 1
+
+result = apply_twice(add_one, 5)  # Returns 7
+
+```
 
 
-Understand `*args` and `**kwargs` for variadic functions. Understand default argument pitfalls: mutable defaults are shared across calls.
+**`def`** **vs** **`lambda`**:
+
+- `def` creates a named function with a full statement block. Use for any function that needs multiple lines, docstrings, or will be reused.
+- `lambda` creates an anonymous function limited to a single expression. Use for short, throwaway functions passed to higher-order functions.
+
+```python
+
+# def: multi-line, documented
+def compute_zscore(x, mean, std):
+    """Standardize a value."""
+    return (x - mean) / std
+
+# lambda: inline, single expression
+data.sort(key=lambda x: x[1])  # Sort by second element
+
+```
+
+
+**Style guidance**: Prefer `def` for clarity unless the function is trivial and used once.
+
+
+**Module structure and the** **`if __name__ == "__main__":`** **pattern**
+
+
+Python files serve two roles:
+
+1. **Module**: Imported by other code to use its functions/classes
+2. **Script**: Run directly as a program
+
+When Python imports a file, it executes all top-level code. The `if __name__ == "__main__":` guard distinguishes between these cases:
+
+- When **imported**: `__name__` is set to the module name, so the guard block doesn't run
+- When **run directly**: `__name__` is `"__main__"`, so the guard block executes
+
+```python
+
+# mymodule.py
+def useful_function():
+    return 42
+
+if __name__ == "__main__":
+    # This only runs when executing: python mymodule.py
+    # Does NOT run when: import mymodule
+    print("Testing:", useful_function())
+
+```
+
+
+**Why this matters**: Without the guard, test code, examples, or script logic would execute on import, causing side effects and slowing down imports.
+
+
+**Circular imports**
+
+
+A circular import occurs when module A imports module B, and module B imports module A (directly or transitively). Python handles this by creating a partially initialized module object, which often leads to `AttributeError` when code tries to access names that haven't been defined yet.
+
+
+Example of the problem:
+
+
+```python
+
+# a.py
+from b import bar
+def foo(): return bar()
+
+# b.py  
+from a import foo
+def bar(): return foo()
+
+# When you import a, it tries to import b,
+
+# which tries to import a (not yet finished), crash!
+
+```
+
+
+**Solutions**:
+
+1. **Restructure**: Extract shared code into a third module
+2. **Late import**: Move import statements inside functions
+3. **Import module, not names**: Use `import a` instead of `from a import foo`, then call [`a.foo`](http://a.foo/)`()`
+
+**Idiomatic Python: Readability and comprehensions**
+
+
+Python philosophy (PEP 20): "Readability counts" and "Explicit is better than implicit."
+
+
+**List comprehensions** replace simple loops with a more declarative syntax:
+
+
+```python
+
+# Explicit loop (verbose)
+squares = []
+for x in range(10):
+    squares.append(x ** 2)
+
+# List comprehension (clear intent)
+squares = [x ** 2 for x in range(10)]
+
+# With filter
+evens = [x for x in range(10) if x % 2 == 0]
+
+```
+
+
+**When to use comprehensions**: When the operation is simple and fits on one line. If you need multiple statements or complex logic, use an explicit loop.
+
+
+**Generator expressions** use the same syntax but with parentheses instead of brackets. They don't create the entire list in memory—they yield values one at a time:
+
+
+```python
+
+# List comprehension: creates full list in memory
+squares_list = [x**2 for x in range(1_000_000)]  # Uses ~8MB
+
+# Generator expression: lazy evaluation
+squares_gen = (x**2 for x in range(1_000_000))   # Uses ~128 bytes
+print(next(squares_gen))  # Computes on demand
+
+```
+
+
+Use generators when you don't need all values at once, especially for large datasets or infinite sequences.
+
+
+**`itertools`** **module** provides building blocks for iteration:
+
+- `itertools.chain(*iterables)`: concatenate iterables
+- `itertools.islice(it, start, stop)`: slice an iterator
+- `itertools.groupby(it, key)`: group consecutive elements
+- `itertools.product(A, B)`: Cartesian product
+
+**Variadic functions:** **`*args`** **and `**kwargs`
+
+
+`*args` collects positional arguments into a tuple. `**kwargs` collects keyword arguments into a dictionary.
+
+
+```python
+def flexible_function(required, *args, **kwargs):
+    print(f"Required: {required}")
+    print(f"Extra positional: {args}")     # tuple
+    print(f"Extra keyword: {kwargs}")       # dict
+
+flexible_function(1, 2, 3, x=10, y=20)
+
+# Required: 1
+
+# Extra positional: (2, 3)
+
+# Extra keyword: {'x': 10, 'y': 20}
+
+```
+
+
+**Common use case**: Wrapper functions that forward arguments:
+
+
+```python
+def logged_function(func):
+    def wrapper(*args, **kwargs):
+        print(f"Calling {func.__name__}")
+        return func(*args, **kwargs)  # Forward all arguments
+    return wrapper
+
+```
+
+
+**Mutable default argument pitfall**
+
+
+Default arguments are evaluated **once** when the function is defined, not each time it's called. Mutable defaults (lists, dicts) are shared across all calls:
+
+
+```python
+
+# WRONG: Mutable default
+def append_to_list(item, lst=[]):
+    lst.append(item)
+    return lst
+
+print(append_to_list(1))  # [1]
+print(append_to_list(2))  # [1, 2]  ← Same list!
+
+# CORRECT: Use None as sentinel
+def append_to_list(item, lst=None):
+    if lst is None:
+        lst = []  # Create new list each call
+    lst.append(item)
+    return lst
+
+print(append_to_list(1))  # [1]
+print(append_to_list(2))  # [2]  ← Separate lists
+
+```
+
+
+**Why this happens**: The empty list `[]` is created when Python parses the `def` statement. The same list object is reused on every call. Use `None` as a default and create the mutable object inside the function.
 
 
 ### Exercises
@@ -458,6 +914,79 @@ The `__array_interface__` protocol exposes memory addresses. Use `arr.__array_in
 Memory alignment affects vectorization. Unaligned access is slower on some architectures. NumPy allocates aligned memory by default.
 
 
+### Deep Dive: Understanding Views and Memory Layout
+
+
+**Why this matters**: Views enable zero-copy operations that are 10-100x faster than creating copies. Understanding when operations create views vs. copies is essential for writing performant NumPy code and avoiding subtle bugs from aliasing.
+
+
+**Mental model**: Think of a NumPy array as a **data buffer** (the actual numbers in memory) plus **metadata** (shape, strides, dtype). A view shares the data buffer with the original array but has its own metadata. Modifying data through a view affects the original because they point to the same memory.
+
+
+```javascript
+Original array X:     View Y = X[::2, ::2]:
+Buffer: [1,2,3,4...]  Buffer: [same memory]
+Shape: (100, 100)     Shape: (50, 50)
+Strides: (800, 8)     Strides: (1600, 16)  # doubled
+
+```
+
+
+**Worked example**: Slicing vs. boolean indexing
+
+
+```python
+import numpy as np
+
+# Create a 2D array
+X = np.arange(12).reshape(3, 4)
+print("Original X:")
+print(X)
+
+# [[0  1  2  3]
+
+#  [4  5  6  7]
+
+#  [8  9 10 11]]
+
+# Slicing creates a VIEW (strides change, no copy)
+Y = X[::2, :]  # Every other row
+print("\nY is a view:", not Y.flags['OWNDATA'])
+print("Shares memory:", np.shares_memory(X, Y))
+
+# Modify the view
+Y[0, 0] = 999
+print("\nAfter Y[0,0] = 999:")
+print("X[0,0] =", X[0,0])  # Also changed! They share memory.
+
+# Boolean indexing creates a COPY (non-contiguous selection)
+Z = X[X > 5]
+print("\nZ is a copy:", Z.flags['OWNDATA'])
+print("Shares memory:", np.shares_memory(X, Z))
+
+# Modifying the copy doesn't affect original
+Z[0] = -1
+print("After Z[0] = -1:")
+print("X (unchanged):", X[X > 5])  # Original values preserved
+
+```
+
+
+**Key insight**: The difference comes from **memory layout**:
+
+- **Slice** `X[::2, :]`: Selects every other row. Still contiguous in memory (or can be described with strides). Result: view.
+- **Boolean mask** `X[X > 5]`: Selects scattered elements (6, 7, 8, 9, 10, 11). Cannot be described with simple strides. Result: must copy into new contiguous array.
+
+**Rule of thumb**:
+
+- Regular slicing with `start:stop:step` → usually a view
+- Boolean indexing `arr[mask]` → always a copy
+- Fancy indexing `arr[[0, 2, 5]]` → always a copy
+- Arithmetic operations `arr * 2` → always a copy (new result)
+
+When in doubt: check with `np.shares_memory(a, b)` or `a.flags['OWNDATA']`.
+
+
 ### Exercises
 
 
@@ -809,19 +1338,329 @@ if __name__ == "__main__":
 ### Concepts
 
 
-Broadcasting rules: arrays with different shapes are compatible if, for each dimension (aligned from the right), the sizes are equal or one of them is 1. A dimension of size 1 is stretched to match the other.
+**Broadcasting: automatic array shape alignment**
 
 
-Vectorized operations eliminate Python loop overhead. The performance difference is often 10-100x. This is because NumPy delegates to compiled C/Fortran code operating on contiguous memory.
+Broadcasting is NumPy's rule for performing operations on arrays with different shapes. It enables elegant, vectorized code without explicit loops or array replication.
 
 
-Broadcasting enables operations that would otherwise require explicit replication. Example: subtracting row means from a matrix requires understanding that a `(n,)` array broadcasts against a `(m, n)` array along axis 1.
+**The broadcasting rules** (applied dimension-by-dimension from right to left):
+
+1. If arrays have different numbers of dimensions, prepend 1s to the shape of the smaller array
+2. For each dimension, sizes are compatible if:
+    - They are equal, OR
+    - One of them is 1 (that dimension is "stretched" to match)
+3. If any dimension is incompatible, broadcasting fails with a `ValueError`
+
+Example of compatible shapes:
 
 
-Common pitfalls: broadcasting can silently produce unintended results if shapes are accidentally compatible. A `(3,)` array and a `(3, 1)` array broadcast to `(3, 3)`, which may not be intended.
+```python
+A: (3, 4, 5)
+B: (   4, 5)  → prepended to (1, 4, 5)
+
+```
 
 
-Know when broadcasting fails and how to reshape arrays to enable it.
+Dimension-by-dimension check:
+
+- Axis 0: 3 vs 1 → compatible (1 stretches to 3)
+- Axis 1: 4 vs 4 → compatible (equal)
+- Axis 2: 5 vs 5 → compatible (equal)
+
+Result shape: (3, 4, 5)
+
+
+**Why broadcasting matters: performance**
+
+
+Vectorized operations using broadcasting are **10-100x faster** than Python loops because:
+
+1. **No Python interpreter overhead**: Loops execute in compiled C/Fortran code
+2. **Contiguous memory access**: Cache-friendly sequential reads
+3. **SIMD vectorization**: Modern CPUs process multiple elements per instruction
+4. **No temporary arrays**: Broadcasting doesn't actually copy data—it adjusts indexing logic
+
+Example comparison:
+
+
+```python
+import numpy as np
+
+# Slow: Python loop
+X = np.random.rand(1000, 100)
+means = X.mean(axis=0)
+result = np.zeros_like(X)
+for i in range(X.shape[0]):
+    result[i] = X[i] - means  # ~10ms
+
+# Fast: Broadcasting
+result = X - means  # ~0.1ms (100x faster!)
+
+```
+
+
+**Common broadcasting patterns**
+
+1. **Centering data** (subtract column means):
+
+```python
+X = np.random.rand(1000, 50)  # (1000, 50)
+means = X.mean(axis=0)         # (50,) → broadcasts to (1, 50) → (1000, 50)
+X_centered = X - means
+
+```
+
+1. **Pairwise distances** (expand dimensions to enable broadcasting):
+
+```python
+X = np.random.rand(100, 3)  # 100 points in 3D
+
+# Compute all pairwise distances
+X_i = X[:, np.newaxis, :]  # (100, 1, 3)
+X_j = X[np.newaxis, :, :]  # (1, 100, 3)
+diff = X_i - X_j           # (100, 100, 3) via broadcasting
+dist = np.sqrt((diff**2).sum(axis=2))  # (100, 100)
+
+```
+
+1. **Outer operations**:
+
+```python
+a = np.array([1, 2, 3])       # (3,)
+b = np.array([10, 20, 30, 40]) # (4,)
+
+# Outer product
+outer = a[:, np.newaxis] * b[np.newaxis, :]  # (3, 1) * (1, 4) → (3, 4)
+
+```
+
+
+**Understanding dimension expansion**
+
+
+Use `np.newaxis` (or `None`) to insert new axes of size 1:
+
+
+```python
+a = np.array([1, 2, 3])  # Shape: (3,)
+print(a.shape)           # (3,)
+
+print(a[:, np.newaxis].shape)  # (3, 1) - column vector
+print(a[np.newaxis, :].shape)  # (1, 3) - row vector
+
+# Equivalent to:
+print(a.reshape(3, 1).shape)   # (3, 1)
+print(a.reshape(1, 3).shape)   # (1, 3)
+
+```
+
+
+**When broadcasting fails**
+
+
+Incompatible shapes raise `ValueError`:
+
+
+```python
+A = np.random.rand(3, 4)
+B = np.random.rand(3, 5)  # Different size in axis 1
+
+try:
+    C = A + B  # Error!
+except ValueError as e:
+    print(e)  # "operands could not be broadcast together with shapes (3,4) (3,5)"
+
+```
+
+
+**Fix: reshape to make compatible**:
+
+
+```python
+
+# If you want to add each row of A to each row of B:
+A_expanded = A[:, :, np.newaxis]  # (3, 4, 1)
+B_expanded = B[:, np.newaxis, :]  # (3, 1, 5)
+C = A_expanded + B_expanded        # (3, 4, 5)
+
+```
+
+
+**Common pitfalls and debugging**
+
+
+**Pitfall 1: Accidental broadcasting**
+
+
+```python
+a = np.array([1, 2, 3])      # Shape: (3,)
+b = np.array([[1], [2], [3]]) # Shape: (3, 1)
+
+result = a + b  # (3,) + (3, 1) → (1, 3) + (3, 1) → (3, 3)
+print(result.shape)  # (3, 3) - probably not what you wanted!
+
+```
+
+
+You expected element-wise addition of two length-3 vectors, but got a 3×3 matrix from outer sum.
+
+
+**Fix: Ensure shapes match explicitly**:
+
+
+```python
+assert a.shape == b.flatten().shape
+result = a + b.flatten()  # Now (3,) + (3,) = (3,)
+
+```
+
+
+**Pitfall 2: Wrong axis for reduction**
+
+
+```python
+X = np.random.rand(100, 50)  # 100 samples, 50 features
+
+# WRONG: subtracting row means instead of column means
+row_means = X.mean(axis=1)  # Shape: (100,)
+X_wrong = X - row_means     # (100, 50) - (100,) → broadcasts to (100, 50)
+
+# But this subtracts row_means[i] from ALL columns in row i!
+
+# CORRECT: subtract column means
+col_means = X.mean(axis=0)  # Shape: (50,)
+X_centered = X - col_means  # (100, 50) - (50,) → correct broadcasting
+
+```
+
+
+**Pitfall 3: Missing keepdims**
+
+
+```python
+X = np.random.rand(10, 20, 30)
+
+# WRONG: loses dimension
+means = X.mean(axis=1)  # Shape: (10, 30) - axis 1 removed
+
+# Now broadcasting fails:
+try:
+    X - means  # (10, 20, 30) vs (10, 30) - axis 1 incompatible!
+except ValueError:
+    pass
+
+# CORRECT: keep dimension with size 1
+means = X.mean(axis=1, keepdims=True)  # Shape: (10, 1, 30)
+X_centered = X - means  # (10, 20, 30) - (10, 1, 30) → broadcasts correctly
+
+```
+
+
+**Debugging broadcasting: use** **`.shape`**
+
+
+When broadcasting doesn't work as expected, print shapes:
+
+
+```python
+print(f"A: {A.shape}")
+print(f"B: {B.shape}")
+print(f"A + B: {(A + B).shape}")
+
+```
+
+
+**The power of broadcasting: avoiding explicit loops**
+
+
+Without broadcasting (slow):
+
+
+```python
+X = np.random.rand(1000, 100)
+result = np.zeros((1000, 1000))
+for i in range(1000):
+    for j in range(1000):
+        result[i, j] = np.sum((X[i] - X[j])**2)  # Very slow!
+
+```
+
+
+With broadcasting (fast):
+
+
+```python
+X_i = X[:, np.newaxis, :]  # (1000, 1, 100)
+X_j = X[np.newaxis, :, :]  # (1, 1000, 100)
+result = ((X_i - X_j)**2).sum(axis=2)  # (1000, 1000) - 100x faster!
+
+```
+
+
+**Memory considerations**
+
+
+Broadcasting doesn't create copies during the operation, but the **result** may be large:
+
+
+```python
+a = np.random.rand(1000, 1)     # 8 KB
+b = np.random.rand(1, 1000)     # 8 KB
+c = a + b                        # (1000, 1000) = 8 MB!
+
+```
+
+
+The operation is memory-efficient (no intermediate copies of `a` or `b`), but the output is large.
+
+
+**Vectorization: eliminating Python loops**
+
+
+**Vectorized** = operations applied element-wise to entire arrays, no Python loops.
+
+
+Example: Standardizing data
+
+
+```python
+
+# Non-vectorized (slow)
+def standardize_slow(X):
+    result = np.zeros_like(X)
+    for i in range(X.shape[1]):  # For each column
+        mean = np.mean(X[:, i])
+        std = np.std(X[:, i])
+        for j in range(X.shape[0]):  # For each row
+            result[j, i] = (X[j, i] - mean) / std
+    return result
+
+# Vectorized (fast)
+def standardize_fast(X):
+    means = X.mean(axis=0)  # Vectorized mean
+    stds = X.std(axis=0)    # Vectorized std
+    return (X - means) / stds  # Vectorized arithmetic + broadcasting
+
+# Performance: 100x speedup for large X
+
+```
+
+
+**When to use broadcasting vs explicit operations**
+
+- **Use broadcasting** when shapes are compatible and intent is clear
+- **Be explicit** when broadcasting might cause confusion or silent bugs
+- **Add asserts** in critical code to verify shape compatibility
+
+```python
+def safe_subtract_means(X):
+    """Subtract column means from X."""
+    means = X.mean(axis=0)
+    assert means.shape == (X.shape[1],), f"Expected shape ({X.shape[1]},), got {means.shape}"
+    return X - means
+
+```
 
 
 ### Exercises
@@ -1627,16 +2466,525 @@ def rolling_regression_numpy(x, y, window):
 ### Concepts
 
 
-Testable code separates concerns. Functions that do I/O are harder to test than functions that transform data. Dependency injection enables testing: pass file handles rather than filenames, pass random generators rather than calling `np.random` globally.
+**The foundation of testable code: separation of concerns**
 
 
-Unit tests verify individual functions. Property-based tests verify invariants across many inputs. Hypothesis generates test cases automatically.
+Testable code separates computation from side effects. Side effects (I/O, randomness, global state) make testing hard because they depend on external state or introduce non-determinism.
 
 
-Reusable code has clear interfaces. Type hints document expected inputs and outputs. Docstrings explain behavior, parameters, and return values. NumPy-style docstrings are standard in scientific Python.
+**Key principle**: Pure functions (same input → same output, no side effects) are trivially testable. Impure functions (I/O, network, randomness) require test doubles, mocking, or dependency injection.
 
 
-Avoid global state. Avoid mutable default arguments. Prefer pure functions where possible.
+Example of hard-to-test code:
+
+
+```python
+import numpy as np
+
+def analyze_file():
+    # Hard to test: hardcoded filename, global random state, prints output
+    data = np.loadtxt('data.csv')  # Side effect: file I/O
+    np.random.seed(42)              # Side effect: global state
+    noise = np.random.randn(len(data))  # Non-deterministic
+    result = (data + noise).mean()
+    print(f"Result: {result}")      # Side effect: I/O
+    return result
+
+```
+
+
+**Why this is hard to test**:
+
+- Requires `data.csv` to exist
+- Global `np.random.seed` affects other tests
+- Cannot verify printed output easily
+- Cannot inject different data without creating files
+
+**Refactored for testability**:
+
+
+```python
+import numpy as np
+
+def analyze_data(data, rng):
+    """Pure computation: data in, result out."""
+    noise = rng.randn(len(data))
+    return (data + noise).mean()
+
+def load_data(filepath):
+    """I/O separated into its own function."""
+    return np.loadtxt(filepath)
+
+def main():
+    """Orchestration: glue together I/O and computation."""
+    data = load_data('data.csv')
+    rng = np.random.default_rng(42)
+    result = analyze_data(data, rng)
+    print(f"Result: {result}")
+
+```
+
+
+**Now easy to test**:
+
+
+```python
+import pytest
+import numpy as np
+
+def test_analyze_data():
+    # Test with controlled inputs, no file I/O needed
+    data = np.array([1.0, 2.0, 3.0])
+    rng = np.random.default_rng(42)  # Deterministic
+    result = analyze_data(data, rng)
+    
+    # Deterministic result we can verify
+    expected_noise = rng.randn(3)
+    rng = np.random.default_rng(42)  # Reset
+    expected = (data + rng.randn(3)).mean()
+    assert np.isclose(result, expected)
+
+```
+
+
+**Dependency injection: pass dependencies as parameters**
+
+
+Instead of functions accessing global state or hardcoded resources, pass them as arguments.
+
+
+**Bad: Global state**:
+
+
+```python
+CONFIG = {'threshold': 0.5}  # Global
+
+def classify(x):
+    return x > CONFIG['threshold']  # Depends on global
+
+```
+
+
+**Good: Inject dependency**:
+
+
+```python
+def classify(x, threshold):
+    return x > threshold  # Explicit dependency
+
+```
+
+
+**Bad: Hardcoded file path**:
+
+
+```python
+def process():
+    with open('/tmp/data.txt') as f:  # Hardcoded
+        return f.read()
+
+```
+
+
+**Good: Inject file handle**:
+
+
+```python
+def process(file_handle):
+    return file_handle.read()  # Testable with StringIO
+
+```
+
+
+**Bad: Global random state**:
+
+
+```python
+import random
+
+def sample_data():
+    return random.choice([1, 2, 3])  # Global state
+
+```
+
+
+**Good: Inject RNG**:
+
+
+```python
+def sample_data(rng):
+    return rng.choice([1, 2, 3])  # Explicit, testable
+
+```
+
+
+**Unit tests: verify individual functions in isolation**
+
+
+Unit tests test a single function or method with known inputs and expected outputs.
+
+
+**Example**:
+
+
+```python
+import pytest
+import numpy as np
+
+def standardize(data, axis=0):
+    """Standardize to mean=0, std=1."""
+    mean = np.mean(data, axis=axis, keepdims=True)
+    std = np.std(data, axis=axis, ddof=1, keepdims=True)
+    return (data - mean) / std
+
+def test_standardize_1d():
+    data = np.array([1, 2, 3, 4, 5])
+    result = standardize(data)
+    assert np.allclose(result.mean(), 0, atol=1e-10)
+    assert np.allclose(result.std(ddof=1), 1, atol=1e-10)
+
+def test_standardize_2d_axis0():
+    data = np.array([[1, 2], [3, 4], [5, 6]])
+    result = standardize(data, axis=0)
+    # Each column should have mean=0, std=1
+    assert np.allclose(result.mean(axis=0), 0, atol=1e-10)
+    assert np.allclose(result.std(axis=0, ddof=1), 1, atol=1e-10)
+
+def test_standardize_constant():
+    # Edge case: all values the same
+    data = np.array([5, 5, 5])
+    with pytest.raises(RuntimeWarning) or np.allclose(standardize(data), 0):
+        # Division by zero creates NaN or warning
+        pass
+
+```
+
+
+**Property-based testing: verify invariants across many inputs**
+
+
+Instead of manually writing test cases, describe properties that should hold for _all_ valid inputs. Hypothesis generates hundreds of test cases automatically.
+
+
+**Example: Testing a** **`normalize`** **function**
+
+
+```python
+from hypothesis import given, strategies as st
+from hypothesis.extra.numpy import arrays
+import numpy as np
+
+def normalize(v):
+    """Normalize vector to unit length."""
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        raise ValueError("Cannot normalize zero vector")
+    return v / norm
+
+# Traditional unit test: specific example
+def test_normalize_example():
+    v = np.array([3, 4])
+    result = normalize(v)
+    expected = np.array([0.6, 0.8])
+    assert np.allclose(result, expected)
+
+# Property-based test: invariant holds for ANY valid input
+@given(arrays(np.float64, shape=st.integers(1, 100), 
+               elements=st.floats(-1000, 1000)))
+def test_normalize_unit_length(v):
+    # Skip zero vectors (invalid input)
+    if np.linalg.norm(v) < 1e-10:
+        return
+    
+    result = normalize(v)
+    
+    # PROPERTY: Result should have unit length
+    assert np.isclose(np.linalg.norm(result), 1.0, atol=1e-10)
+    
+    # PROPERTY: Result should point in same direction
+    assert np.allclose(result * np.linalg.norm(v), v, atol=1e-10)
+
+```
+
+
+**Why property-based testing is powerful**:
+
+- Hypothesis generates edge cases you wouldn't think of (very large numbers, very small, arrays with one element, etc.)
+- Finds bugs in corner cases
+- Documents invariants clearly ("output should always have unit norm")
+
+**Hypothesis automatically shrinks failing examples** to minimal reproducible cases:
+
+
+```python
+@given(st.integers())
+def test_bad_assumption(x):
+    assert x < 100  # Fails!
+
+# Hypothesis tries: x=0 (pass), x=1000 (fail), x=500 (fail), ...
+
+# Finally reports: "Falsifying example: x=100" (minimal failing case)
+
+```
+
+
+**Clear interfaces: type hints and docstrings**
+
+
+**Type hints** (PEP 484) document expected types:
+
+
+```python
+from typing import List, Optional, Tuple
+import numpy as np
+import numpy.typing as npt
+
+def compute_statistics(
+    data: npt.NDArray[np.float64],
+    weights: Optional[npt.NDArray[np.float64]] = None,
+    ddof: int = 1
+) -> Tuple[float, float]:
+    """Compute mean and standard deviation.
+    
+    Args:
+        data: 1D array of values
+        weights: Optional weights for each value
+        ddof: Degrees of freedom for std (0 for population, 1 for sample)
+    
+    Returns:
+        Tuple of (mean, std)
+    
+    Raises:
+        ValueError: If data is empty or weights have wrong shape
+    """
+    if len(data) == 0:
+        raise ValueError("Cannot compute statistics of empty array")
+    
+    if weights is not None:
+        if weights.shape != data.shape:
+            raise ValueError(f"Weights shape {weights.shape} != data shape {data.shape}")
+        mean = np.average(data, weights=weights)
+        variance = np.average((data - mean)**2, weights=weights)
+        std = np.sqrt(variance * len(data) / (len(data) - ddof))
+    else:
+        mean = np.mean(data)
+        std = np.std(data, ddof=ddof)
+    
+    return mean, std
+
+```
+
+
+**Benefits of type hints**:
+
+- Self-documenting code
+- IDEs provide better autocomplete
+- Static analysis with `mypy` catches type errors
+- Helps refactoring (changing a type signature shows all places that break)
+
+**NumPy-style docstrings** (PEP 257 + numpydoc conventions):
+
+
+```python
+def bootstrap_ci(data, statistic, n_bootstrap, ci_level, rng):
+    """Compute bootstrap confidence interval for a statistic.
+    
+    Uses percentile method to estimate confidence interval by resampling
+    with replacement from the data.
+    
+    Parameters
+    ----------
+    data : array_like
+        1D array of observed data
+    statistic : callable
+        Function that computes statistic from data, signature: stat(data) -> float
+    n_bootstrap : int
+        Number of bootstrap samples to generate
+    ci_level : float
+        Confidence level (e.g., 0.95 for 95% CI)
+    rng : numpy.random.Generator
+        Random number generator for reproducibility
+    
+    Returns
+    -------
+    lower : float
+        Lower bound of confidence interval
+    upper : float
+        Upper bound of confidence interval
+    
+    Examples
+    --------
+    >>> rng = np.random.default_rng(42)
+    >>> data = np.array([1, 2, 3, 4, 5])
+    >>> lower, upper = bootstrap_ci(data, np.mean, 1000, 0.95, rng)
+    >>> print(f"95% CI: [{lower:.2f}, {upper:.2f}]")
+    95% CI: [2.20, 3.80]
+    
+    Notes
+    -----
+    The percentile method may have poor coverage for small samples or
+    skewed distributions. Consider BCa (bias-corrected and accelerated)
+    bootstrap for better coverage.
+    
+    References
+    ----------
+    .. [1] Efron, B., & Tibshirani, R. J. (1994). An introduction to the
+           bootstrap. CRC press.
+    """
+    data = np.asarray(data)
+    bootstrap_stats = np.empty(n_bootstrap)
+    
+    for i in range(n_bootstrap):
+        sample = rng.choice(data, size=len(data), replace=True)
+        bootstrap_stats[i] = statistic(sample)
+    
+    alpha = 1 - ci_level
+    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
+    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+    
+    return lower, upper
+
+```
+
+
+**Sections in NumPy-style docstrings**:
+
+- Brief summary (one line)
+- Extended description (optional)
+- `Parameters`: Each parameter with type and description
+- `Returns`: Return values with types
+- `Raises`: Exceptions that may be raised
+- `Examples`: Doctests or usage examples
+- `Notes`: Implementation details, caveats
+- `References`: Citations
+
+**Avoiding common pitfalls**
+
+
+**Pitfall 1: Mutable default arguments**
+
+
+```python
+
+# WRONG: Default list is created once, shared across calls
+def append_to(item, lst=[]):
+    lst.append(item)
+    return lst
+
+print(append_to(1))  # [1]
+print(append_to(2))  # [1, 2]  ← Same list!
+
+# CORRECT: Use None as sentinel
+def append_to(item, lst=None):
+    if lst is None:
+        lst = []  # New list each call
+    lst.append(item)
+    return lst
+
+```
+
+
+**Pitfall 2: Global state**
+
+
+```python
+
+# WRONG: Global counter affects all calls
+counter = 0
+
+def increment():
+    global counter
+    counter += 1
+    return counter
+
+# Tests interfere with each other!
+
+# CORRECT: Explicit state
+class Counter:
+    def __init__(self):
+        self.count = 0
+    
+    def increment(self):
+        self.count += 1
+        return self.count
+
+```
+
+
+**Pitfall 3: Hidden side effects**
+
+
+```python
+
+# WRONG: Function modifies input
+def normalize(data):
+    mean = data.mean()
+    data -= mean  # Modifies input!
+    return data
+
+# Caller's data is changed unexpectedly
+
+# CORRECT: Explicit about mutation or return new array
+def normalize(data):
+    """Return normalized copy."""
+    return data - data.mean()
+
+def normalize_inplace(data):
+    """Normalize data in-place. Modifies input."""
+    data -= data.mean()
+    return data
+
+```
+
+
+**Pure functions: the gold standard**
+
+
+A pure function:
+
+1. Same inputs always produce same outputs (deterministic)
+2. No side effects (doesn't modify external state, no I/O)
+
+**Benefits**:
+
+- Trivially testable
+- Can be memoized (cache results)
+- Safe to parallelize
+- Easy to reason about
+
+**Example: Pure function**
+
+
+```python
+def zscore(data, ddof=1):
+    """Pure: same input → same output, no side effects."""
+    mean = np.mean(data)
+    std = np.std(data, ddof=ddof)
+    return (data - mean) / std
+
+```
+
+
+**Reusable code checklist**:
+
+- [ ] Pure functions for computation (separate from I/O)
+- [ ] Dependency injection (pass RNG, file handles, config)
+- [ ] Type hints for all public functions
+- [ ] Docstrings with Parameters, Returns, Examples
+- [ ] Unit tests for typical cases
+- [ ] Property-based tests for invariants
+- [ ] No mutable default arguments
+- [ ] No global state
+- [ ] Clear naming (verb functions, noun classes)
+- [ ] Single Responsibility Principle (each function does one thing)
+
+**When to break the rules**:
+
+- **Scripts and notebooks**: Purity and testing are less critical for one-off analyses
+- **Performance-critical code**: Side effects (in-place operations) may be necessary
+- **Prototyping**: Get it working first, refactor for testability later
+
+But production code, libraries, and repeated analyses should follow these principles.
 
 
 ### Exercises
@@ -2332,16 +3680,549 @@ def test_fit_returns_self(EstimatorClass):
 ### Concepts
 
 
-Reproducibility requires controlling all sources of randomness. NumPy's legacy `np.random.seed()` sets global state, which is problematic for parallel code and testing. Prefer `numpy.random.Generator` instances created via `np.random.default_rng(seed)`.
+**Why reproducibility matters**
 
 
-Pass RNG instances explicitly. This enables: (a) reproducible tests, (b) independent random streams for parallel workers, (c) clear documentation of stochastic dependencies.
+Reproducible research means that someone else (including future you) can run your code and get the same results. This is essential for:
+
+- **Scientific integrity**: Others can verify your findings
+- **Debugging**: You can reproduce bugs reliably
+- **Collaboration**: Team members can build on your work
+- **Production systems**: ML models must give consistent predictions
+
+Reproducibility has two main components:
+
+1. **Controlling randomness**: Ensure stochastic algorithms produce the same results
+2. **Controlling environment**: Ensure dependencies and runtime are consistent
+
+**The problem with global random state:** **`np.random.seed()`**
 
 
-Environment reproducibility matters: pin package versions, use virtual environments, document Python version. `requirements.txt` or `pyproject.toml` should specify exact versions for critical dependencies.
+NumPy's legacy random number generator uses global state:
 
 
-Floating-point non-determinism exists: different BLAS implementations, different hardware, reordering of parallel reductions. True bitwise reproducibility across machines is difficult.
+```python
+import numpy as np
+
+# BAD: Global state
+np.random.seed(42)
+print(np.random.rand())  # 0.3745401188473625
+
+np.random.seed(42)
+print(np.random.rand())  # 0.3745401188473625 (same)
+
+```
+
+
+**Why this is problematic**:
+
+1. **Test interference**: Tests that run in different orders produce different results
+
+```python
+np.random.seed(42)
+
+def test_a():
+    x = np.random.rand()  # Consumes random state
+    assert x > 0
+
+def test_b():
+    y = np.random.rand()  # Gets different value depending on whether test_a ran first
+    # If test_a ran: y is second random number
+    # If test_b runs first: y is first random number
+    assert y < 1
+
+```
+
+1. **Parallel execution breaks**: Multiple workers share the same global RNG, causing race conditions
+
+```python
+from multiprocessing import Pool
+
+np.random.seed(42)  # All workers see the same seed!
+
+def worker(i):
+    return np.random.rand()  # Race condition: order determines results
+
+with Pool(4) as pool:
+    results = pool.map(worker, range(100))
+    # Results are non-deterministic due to worker scheduling
+
+```
+
+1. **Hidden dependencies**: Function modifies global state, affecting unrelated code
+
+```python
+np.random.seed(42)
+
+def my_function():
+    noise = np.random.randn(100)  # Consumes 100 random numbers from global state
+    return data + noise
+
+my_function()
+
+# Global state has advanced by 100 numbers
+
+# Any subsequent np.random calls get different values than expected
+
+```
+
+
+**The modern solution:** **`numpy.random.Generator`**
+
+
+Create explicit RNG instances that are independent:
+
+
+```python
+import numpy as np
+
+# Create an explicit RNG instance
+rng = np.random.default_rng(42)
+
+print(rng.random())  # 0.7739560485559633
+
+# Create another independent RNG with the same seed
+rng2 = np.random.default_rng(42)
+print(rng2.random())  # 0.7739560485559633 (same)
+
+# But they don't interfere with each other
+print(rng.random())   # 0.4388784397520523
+print(rng2.random())  # 0.4388784397520523
+
+```
+
+
+**Key advantages**:
+
+1. **Explicit is better than implicit**: RNG is passed as a parameter
+
+```python
+
+# Good: RNG is explicit
+def bootstrap(data, n_samples, rng):
+    samples = []
+    for _ in range(n_samples):
+        sample = rng.choice(data, size=len(data), replace=True)
+        samples.append(np.mean(sample))
+    return samples
+
+# Usage
+rng = np.random.default_rng(42)
+result = bootstrap(data, 1000, rng)
+
+```
+
+1. **Tests are independent**: Each test creates its own RNG
+
+```python
+def test_a():
+    rng = np.random.default_rng(42)  # Local RNG
+    x = rng.random()
+    assert x > 0
+
+def test_b():
+    rng = np.random.default_rng(123)  # Different seed, independent
+    y = rng.random()
+    assert y < 1
+    # No interference with test_a!
+
+```
+
+1. **Parallel execution is deterministic**: Each worker gets independent stream
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+def worker(args):
+    i, seed = args
+    rng = np.random.default_rng(seed)  # Independent RNG per worker
+    return rng.random()
+
+parent_rng = np.random.default_rng(42)
+child_seeds = parent_rng.spawn(4)  # Create 4 independent child RNGs
+
+with ProcessPoolExecutor(4) as executor:
+    results = list(executor.map(worker, enumerate(child_seeds)))
+    # Results are deterministic!
+
+```
+
+
+**Spawning independent random streams**
+
+
+The `spawn()` method creates statistically independent RNG streams:
+
+
+```python
+parent_rng = np.random.default_rng(42)
+
+# Spawn 10 independent child RNGs
+child_rngs = parent_rng.spawn(10)
+
+# Each child produces independent sequences
+for i, child in enumerate(child_rngs[:3]):
+    print(f"Child {i}: {child.random()}")
+
+# Child 0: 0.9827210214922279
+
+# Child 1: 0.45994261649548054
+
+# Child 2: 0.8595412699969661
+
+```
+
+
+**Statistical independence**: Spawned RNGs produce sequences that are uncorrelated:
+
+
+```python
+parent = np.random.default_rng(42)
+child1, child2 = parent.spawn(2)
+
+samples1 = child1.normal(size=10000)
+samples2 = child2.normal(size=10000)
+
+correlation = np.corrcoef(samples1, samples2)[0, 1]
+print(correlation)  # ~0.01 (essentially zero, within statistical noise)
+
+```
+
+
+**Migrating from old to new API**
+
+
+Old (global state):
+
+
+```python
+import numpy as np
+np.random.seed(42)
+x = np.random.randn(100)
+y = np.random.choice([1, 2, 3], size=10)
+
+```
+
+
+New (explicit RNG):
+
+
+```python
+import numpy as np
+rng = np.random.default_rng(42)
+x = rng.standard_normal(100)  # Note: different method name
+y = rng.choice([1, 2, 3], size=10)  # Same method name
+
+```
+
+
+**Method name changes**:
+
+- `np.random.randn()` → `rng.standard_normal()`
+- `np.random.rand()` → `rng.random()`
+- Most other methods have the same name
+
+**Environment reproducibility: controlling dependencies**
+
+
+Reproducibility isn't just about random seeds—your code depends on:
+
+- Python version
+- Library versions (NumPy, pandas, scikit-learn, etc.)
+- Operating system
+- Hardware (CPU, GPU)
+- BLAS/LAPACK implementations
+
+**Pinning dependencies with** **`requirements.txt`**:
+
+
+```bash
+
+# Generate exact versions of all installed packages
+pip freeze > requirements.txt
+
+# requirements.txt:
+numpy==1.26.0
+pandas==2.1.0
+scikit-learn==1.3.0
+
+```
+
+
+**Recreate the environment**:
+
+
+```bash
+python -m venv myenv
+source myenv/bin/activate
+pip install -r requirements.txt
+
+```
+
+
+**Modern approach:** **`pyproject.toml`** **with Poetry or uv**:
+
+
+```toml
+[project]
+name = "my-analysis"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy==1.26.0",
+    "pandas==2.1.0",
+    "scipy==1.11.0",
+]
+
+```
+
+
+**Recording environment information in outputs**
+
+
+Always save environment info with your results:
+
+
+```python
+import sys
+import platform
+import numpy as np
+import pandas as pd
+from datetime import datetime
+import json
+
+def get_environment_info(seed=None):
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "numpy_version": np.__version__,
+        "pandas_version": pd.__version__,
+        "random_seed": seed,
+    }
+
+# Save with results
+SEED = 42
+rng = np.random.default_rng(SEED)
+results = run_analysis(data, rng)
+
+output = {
+    "environment": get_environment_info(SEED),
+    "results": results
+}
+
+with open("analysis_results.json", "w") as f:
+    json.dump(output, f, indent=2)
+
+```
+
+
+Example output:
+
+
+```json
+{
+  "environment": {
+    "timestamp": "2024-01-15T10:30:00.123456",
+    "python_version": "3.11.5 (main, Sep 11 2023, 13:54:46)",
+    "platform": "Linux-5.15.0-86-generic-x86_64",
+    "numpy_version": "1.26.0",
+    "pandas_version": "2.1.0",
+    "random_seed": 42
+  },
+  "results": {...}
+}
+
+```
+
+
+**Sources of non-determinism you can't always control**
+
+
+Even with perfect RNG and environment control, some operations may not be bitwise reproducible:
+
+1. **Floating-point arithmetic order**
+
+```python
+
+# Different order of operations can give different results due to rounding
+a = 1e16 + 1.0 - 1e16  # 1.0
+b = 1e16 - 1e16 + 1.0  # 1.0
+
+# But: (1e16 + 1.0 + 1.0) - 1e16 ≠ 1e16 + (1.0 + 1.0) - 1e16 in some cases
+
+```
+
+1. **Parallel reductions**
+
+```python
+
+# NumPy may use different reduction orders depending on number of threads
+import os
+os.environ['OMP_NUM_THREADS'] = '1'  # Force single-threaded
+
+result = large_array.sum()  # May differ slightly with different thread counts
+
+```
+
+1. **Different BLAS implementations**
+
+```python
+
+# Intel MKL vs OpenBLAS may give slightly different results
+import numpy as np
+print(np.show_config())  # Check which BLAS you're using
+
+A = np.random.randn(1000, 1000)
+B = np.random.randn(1000, 1000)
+C = A @ B  # Result may differ in last few bits between BLAS implementations
+
+```
+
+1. **Hash randomization**
+
+```python
+
+# Python randomizes hash seeds by default for security
+
+# This affects dictionary/set ordering (though dicts are insertion-ordered in Python 3.7+)
+import os
+os.environ['PYTHONHASHSEED'] = '0'  # Disable hash randomization
+
+# But better: don't rely on dict/set ordering for reproducibility
+
+```
+
+
+**Best practices for reproducibility**
+
+1. ✓ **Always use explicit RNG instances** (`np.random.default_rng(seed)`)
+2. ✓ **Pass RNG as a function parameter** (dependency injection)
+3. ✓ **Pin exact dependency versions** (`requirements.txt` or `pyproject.toml`)
+4. ✓ **Document Python version** in README
+5. ✓ **Save environment info** with results (see example above)
+6. ✓ **Use virtual environments** (never install packages globally)
+7. ✓ **Set number of threads** if using parallel libraries:
+
+    ```python
+    import os
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['OPENBLAS_NUM_THREADS'] = '1'
+    ```
+
+8. ✓ **Document hardware** if results are hardware-sensitive (GPU type, CPU architecture)
+9. ✓ **Test reproducibility** by running twice and comparing outputs:
+
+    ```python
+    result1 = run_analysis(seed=42)
+    result2 = run_analysis(seed=42)
+    assert np.array_equal(result1, result2), "Not reproducible!"
+    ```
+
+
+**When to relax reproducibility requirements**
+
+- **Exploratory analysis**: Exact reproducibility may not matter for quick investigations
+- **Hardware limitations**: Bitwise reproducibility across different GPUs is often impractical
+- **Performance trade-offs**: Forcing single-threaded execution may be too slow
+
+In these cases, focus on **statistical reproducibility** (results are similar within expected variation) rather than **bitwise reproducibility** (results are identical).
+
+
+**Example: Full reproducibility checklist**
+
+
+```python
+#!/usr/bin/env python3
+"""
+Reproducible analysis template.
+
+Usage:
+    python analysis.py --seed 42 --output results.json
+"""
+
+import numpy as np
+import pandas as pd
+import sys
+import json
+from datetime import datetime
+import argparse
+
+def get_env_info(seed):
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "python_version": sys.version,
+        "numpy_version": np.__version__,
+        "pandas_version": pd.__version__,
+        "seed": seed,
+    }
+
+def load_data(filepath):
+    """Load data (I/O separated from computation)."""
+    return pd.read_csv(filepath)
+
+def analyze(data, rng):
+    """Pure computation: data + RNG in, results out."""
+    # Reproducible analysis using explicit RNG
+    bootstrap_samples = []
+    for _ in range(1000):
+        sample_idx = rng.choice(len(data), size=len(data), replace=True)
+        sample = data.iloc[sample_idx]
+        bootstrap_samples.append(sample['value'].mean())
+    
+    return {
+        "mean": float(np.mean(bootstrap_samples)),
+        "ci_lower": float(np.percentile(bootstrap_samples, 2.5)),
+        "ci_upper": float(np.percentile(bootstrap_samples, 97.5)),
+    }
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--data', type=str, default='data.csv')
+    parser.add_argument('--output', type=str, default='results.json')
+    args = parser.parse_args()
+    
+    # Create explicit RNG
+    rng = np.random.default_rng(args.seed)
+    
+    # Load data
+    data = load_data(args.data)
+    
+    # Run analysis
+    results = analyze(data, rng)
+    
+    # Save with environment info
+    output = {
+        "environment": get_env_info(args.seed),
+        "results": results,
+    }
+    
+    with open(args.output, 'w') as f:
+        json.dump(output, f, indent=2)
+    
+    print(f"Results saved to {args.output}")
+
+if __name__ == '__main__':
+    main()
+
+```
+
+
+**Verification**:
+
+
+```bash
+
+# Run twice with same seed
+python analysis.py --seed 42 --output run1.json
+python analysis.py --seed 42 --output run2.json
+
+# Compare outputs (should be identical)
+diff run1.json run2.json  # No output = files are identical
+
+```
 
 
 ### Exercises
@@ -3138,17 +5019,446 @@ result = simulate(100, rng=42)
 ### Concepts
 
 
-Debugging strategies: `print` statements are crude but effective. `pdb` and `ipdb` enable interactive debugging. `breakpoint()` drops into the debugger at any point. Post-mortem debugging with [`pdb.pm`](http://pdb.pm/)`()` after an exception.
+**Debugging: From print statements to interactive debuggers**
 
 
-Profiling identifies bottlenecks. `cProfile` provides function-level timing. `line_profiler` provides line-level timing. `memory_profiler` tracks memory allocation. Profile before optimizing; intuition about bottlenecks is often wrong.
+Debugging is the process of identifying and fixing bugs. Python offers several debugging strategies, from simple to sophisticated:
 
 
-`timeit` measures execution time for small code snippets. For larger code, use profiling tools.
+**1. Print debugging**: The most basic approach
 
 
-Common performance issues: unnecessary copies, Python-level loops over arrays, repeated DataFrame operations that could be batched.
+```python
+def buggy_function(data):
+    print(f"DEBUG: data type = {type(data)}, len = {len(data)}")  # Debug output
+    result = []
+    for i in range(len(data)):
+        print(f"DEBUG: i = {i}, data[i] = {data[i]}")  # Track loop progress
+        result.append(data[i] * 2)
+    return result
 
+```
+
+
+**Pros**: Simple, works everywhere, no setup
+
+
+**Cons**: Clutters code, must remove before commit, doesn't let you inspect state interactively
+
+
+**2. Python debugger (pdb)**: Interactive debugging
+
+
+```python
+import pdb
+
+def buggy_function(data):
+    result = []
+    for i in range(len(data)):
+        pdb.set_trace()  # Execution pauses here
+        result.append(data[i] * 2)
+    return result
+
+```
+
+
+**Modern alternative**: Use `breakpoint()` (Python 3.7+) instead of `pdb.set_trace()`:
+
+
+```python
+def buggy_function(data):
+    result = []
+    for i in range(len(data)):
+        breakpoint()  # Cleaner syntax, same effect
+        result.append(data[i] * 2)
+    return result
+
+```
+
+
+**Common pdb commands**:
+
+- `n` (next): Execute current line, step over function calls
+- `s` (step): Step into function calls
+- `c` (continue): Continue execution until next breakpoint
+- `p variable` (print): Print value of variable
+- `pp variable` (pretty-print): Print with better formatting
+- `l` (list): Show source code around current line
+- `w` (where): Show stack trace
+- `q` (quit): Exit debugger
+
+**Example debugging session**:
+
+
+```python
+def compute_mean(data):
+    total = 0
+    for i in range(len(data) + 1):  # BUG: off-by-one
+        breakpoint()
+        total += data[i]
+    return total / len(data)
+
+compute_mean([1, 2, 3])
+
+```
+
+
+**In debugger**:
+
+
+```bash
+> compute_mean()
+-> total += data[i]
+(Pdb) p i
+0
+(Pdb) p len(data)
+3
+(Pdb) n
+> compute_mean()
+-> total += data[i]
+(Pdb) p i
+1
+(Pdb) c  # Continue to next iteration
+
+# Eventually: IndexError when i=3
+(Pdb) p i
+3
+(Pdb) p data[i]  # Error! Index out of range
+
+```
+
+
+**3. Post-mortem debugging**: Debug after a crash
+
+
+```python
+import pdb
+
+def buggy_code():
+    x = [1, 2, 3]
+    return x[10]  # IndexError
+
+try:
+    buggy_code()
+except:
+    pdb.post_mortem()  # Drop into debugger at point of exception
+
+```
+
+
+This lets you inspect the state when the exception occurred without re-running the code.
+
+
+**4. IPython debugger (ipdb)**: Enhanced pdb with syntax highlighting, tab completion
+
+
+```bash
+pip install ipdb
+
+```
+
+
+```python
+import ipdb
+ipdb.set_trace()  # Same as pdb but nicer interface
+
+```
+
+
+**Profiling: Finding performance bottlenecks**
+
+
+**Golden rule**: Profile before optimizing. Intuition about bottlenecks is often wrong.
+
+
+**Example of wrong intuition**:
+
+
+```python
+
+# Which is slower?
+def approach_a(data):
+    return [x ** 2 for x in data]  # List comprehension
+
+def approach_b(data):
+    result = []
+    for x in data:
+        result.append(x ** 2)  # Explicit loop
+    return result
+
+# Intuition: "List comprehension is optimized, must be way faster"
+
+# Reality: Only ~10% faster (both are Python loops)
+
+# Real bottleneck: Using Python loop instead of NumPy vectorization
+def approach_c(data):
+    return np.array(data) ** 2  # 10-100x faster!
+
+```
+
+
+**Profiling tools**:
+
+
+**1. timeit**: For micro-benchmarks (small code snippets)
+
+
+```python
+import timeit
+
+# Time a single statement
+time = timeit.timeit('sum(range(1000))', number=10000)
+print(f"{time:.4f} seconds for 10000 runs")
+
+# Compare alternatives
+setup = "import numpy as np; data = list(range(1000))"
+time_list = timeit.timeit('[x**2 for x in data]', setup=setup, number=1000)
+time_numpy = timeit.timeit('np.array(data)**2', setup=setup, number=1000)
+print(f"List comp: {time_list:.4f}s")
+print(f"NumPy: {time_numpy:.4f}s")
+print(f"Speedup: {time_list/time_numpy:.1f}x")
+
+```
+
+
+**2. cProfile**: Function-level profiling for entire programs
+
+
+```python
+import cProfile
+import pstats
+
+def slow_function():
+    total = 0
+    for i in range(1000000):
+        total += i ** 2
+    return total
+
+def fast_function():
+    return sum(i ** 2 for i in range(1000000))
+
+def main():
+    slow_function()
+    fast_function()
+
+# Profile the code
+cProfile.run('main()', 'profile_stats')
+
+# Analyze results
+stats = pstats.Stats('profile_stats')
+stats.sort_stats('cumulative')  # Sort by cumulative time
+stats.print_stats(10)  # Show top 10 functions
+
+```
+
+
+**Output interpretation**:
+
+
+```javascript
+ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1    0.150    0.150    0.200    0.200 script.py:3(slow_function)
+     1    0.080    0.080    0.080    0.080 script.py:9(fast_function)
+
+```
+
+- `ncalls`: Number of times function was called
+- `tottime`: Total time in function (excluding subcalls)
+- `cumtime`: Cumulative time (including subcalls)
+- `percall`: Time per call
+
+**3. line_profiler**: Line-by-line timing
+
+
+```bash
+pip install line_profiler
+
+```
+
+
+```python
+
+# Add @profile decorator to functions you want to profile
+@profile
+def analyze_data(data):
+    result = []  # Line 1
+    for item in data:  # Line 2
+        if item > 0:  # Line 3
+            result.append(item ** 2)  # Line 4
+    return result  # Line 5
+
+```
+
+
+```bash
+kernprof -l -v script.py
+
+```
+
+
+**Output**:
+
+
+```javascript
+Line #  Hits    Time     Per Hit   % Time  Line Contents
+=======================================================
+     1     1       2.0      2.0      0.0  result = []
+     2  1000     500.0      0.5      5.0  for item in data:
+     3  1000     800.0      0.8      8.0      if item > 0:
+     4   500    8700.0     17.4     87.0          result.append(item ** 2)
+     5     1       0.0      0.0      0.0  return result
+
+```
+
+
+This shows line 4 (the append) is the bottleneck (87% of time).
+
+
+**4. memory_profiler**: Track memory usage
+
+
+```bash
+pip install memory_profiler
+
+```
+
+
+```python
+from memory_profiler import profile
+
+@profile
+def memory_hog():
+    big_list = [0] * 10000000  # Allocates ~76MB
+    big_dict = {i: i**2 for i in range(1000000)}  # More memory
+    return big_list, big_dict
+
+```
+
+
+```bash
+python -m memory_profiler script.py
+
+```
+
+
+**Output**:
+
+
+```javascript
+Line #    Mem usage    Increment   Line Contents
+================================================
+     3     50.0 MiB     50.0 MiB   @profile
+     4     50.0 MiB      0.0 MiB   def memory_hog():
+     5    126.0 MiB     76.0 MiB       big_list = [0] * 10000000
+     6    202.0 MiB     76.0 MiB       big_dict = {i: i**2 for i in range(1000000)}
+     7    202.0 MiB      0.0 MiB       return big_list, big_dict
+
+```
+
+
+Shows memory growing from 50MB → 126MB → 202MB.
+
+
+**Common performance issues and how to find them**
+
+
+**Issue 1: Unnecessary copies**
+
+
+```python
+
+# BAD: Creates copy on every iteration
+for i in range(len(df)):
+    row = df.iloc[i].copy()  # Slow!
+    process(row)
+
+# GOOD: Iterate without copying
+for _, row in df.iterrows():  # Still not ideal, but no explicit copy
+    process(row)
+
+# BEST: Vectorize
+df['result'] = df['column'].apply(process)
+
+```
+
+
+**How to detect**: Use `line_profiler` to find slow lines, check for `.copy()` calls.
+
+
+**Issue 2: Python-level loops over arrays**
+
+
+```python
+
+# BAD: Python loop (slow)
+result = []
+for x in data:
+    result.append(x ** 2)
+
+# GOOD: NumPy vectorization (10-100x faster)
+result = np.array(data) ** 2
+
+```
+
+
+**How to detect**: `cProfile` will show your loop function taking lots of time. Convert to NumPy.
+
+
+**Issue 3: Repeated DataFrame operations**
+
+
+```python
+
+# BAD: Recomputes groupby each time (O(n) work repeated)
+for group_name in df['group'].unique():
+    subset = df[df['group'] == group_name]  # Scans whole df each time!
+    process(subset)
+
+# GOOD: Group once, iterate over groups
+for group_name, subset in df.groupby('group'):
+    process(subset)
+
+```
+
+
+**How to detect**: `cProfile` shows pandas grouping/filtering functions called many times.
+
+
+**Issue 4: Inefficient data structures**
+
+
+```python
+
+# BAD: List lookup is O(n)
+blacklist = ['spam', 'eggs', 'foo', 'bar']  # List
+if user_input in blacklist:  # O(n) search
+    reject()
+
+# GOOD: Set lookup is O(1)
+blacklist = {'spam', 'eggs', 'foo', 'bar'}  # Set
+if user_input in blacklist:  # O(1) search
+    reject()
+
+```
+
+
+**Profiling workflow**:
+
+1. **Measure first**: Run `cProfile` to get baseline and identify slow functions
+2. **Focus effort**: Only optimize functions that take >10% of total time (Amdahl's Law)
+3. **Drill down**: Use `line_profiler` on slow functions to find exact bottleneck lines
+4. **Optimize**: Apply vectorization, better algorithms, caching, etc.
+5. **Measure again**: Verify speedup matches prediction
+6. **Iterate**: Move to next bottleneck
+
+**Amdahl's Law**: If a function takes 20% of total time and you make it 10x faster, total speedup is only 1.22x. Focus on the biggest bottlenecks first.
+
+
+**When to stop optimizing**:
+
+- Code is fast enough for your use case
+- Further optimization requires major complexity increase
+- You're spending more time optimizing than the code will ever save
 
 ### Concepts: Capstone Preparation
 
@@ -4180,13 +6490,309 @@ with style_for_journal('nature'):
 # Week 2: C++
 
 
-## Day 8: Stack vs Heap, Compilation, and Tooling
+## Day 9: References, Pointers, and Ownership
 
 
 ### Concepts
 
 
-C++ distinguishes stack and heap allocation. Stack allocation is automatic: variables declared in a scope are destroyed when the scope exits. Heap allocation is manual: `new` allocates, `delete` frees. Failing to `delete` causes memory leaks. Deleting twice causes undefined behavior.
+**Pointers vs References: Two ways to refer to objects**
+
+
+Both pointers and references allow you to refer to an object without copying it. Understanding when to use each is fundamental to C++.
+
+
+**References** are aliases for existing objects:
+
+
+```c++
+int x = 10;
+int& ref = x;  // ref is an alias for x
+ref = 20;      // Modifies x through the reference
+std::cout << x;  // Prints 20
+
+```
+
+
+**Key properties of references**:
+
+- Must be initialized when declared (cannot be null)
+- Cannot be rebound to refer to a different object
+- No separate storage (just an alias)
+- Syntax is transparent (use like the original variable)
+
+**Pointers** store memory addresses:
+
+
+```c++
+int x = 10;
+int* ptr = &x;  // ptr stores the address of x
+*ptr = 20;      // Dereference: modifies x through the pointer
+std::cout << x;   // Prints 20
+
+```
+
+
+**Key properties of pointers**:
+
+- Can be null (`nullptr`)
+- Can be rebound to point to different objects
+- Have their own storage (store an address)
+- Require explicit dereferencing with `*`
+- Can do pointer arithmetic
+
+**When to use which**:
+
+- **Use references** for function parameters (avoiding copies) and return values when the object definitely exists
+- **Use pointers** when you need to represent "optional" (can be null), rebinding, or dynamic allocation
+
+**Pass by value vs reference vs pointer**:
+
+
+```c++
+// Pass by value: copies the vector (expensive!)
+void process_copy(std::vector<int> v) {
+    v[0] = 999;  // Modifies the copy, not the original
+}
+
+// Pass by reference: no copy, can modify original
+void process_ref(std::vector<int>& v) {
+    v[0] = 999;  // Modifies the original
+}
+
+// Pass by const reference: no copy, cannot modify (most common for read-only)
+void process_const_ref(const std::vector<int>& v) {
+    // v[0] = 999;  // Error: cannot modify const reference
+    std::cout << v[0];  // Can read
+}
+
+// Pass by pointer: can be null, explicit about indirection
+void process_ptr(std::vector<int>* v) {
+    if (v == nullptr) return;  // Can check for null
+    (*v)[0] = 999;  // Dereference to modify
+}
+
+```
+
+
+**Golden rule**: For function parameters, prefer `const T&` for input, `T&` for output/inout, and `T*` only when null is valid.
+
+
+**Ownership: Who is responsible for cleanup?**
+
+
+Ownership determines who is responsible for freeing memory. C++ requires explicit reasoning about ownership to avoid leaks and use-after-free bugs.
+
+
+**Raw pointers don't express ownership**:
+
+
+```c++
+int* ptr = new int(42);  // Who owns this?
+// Should the caller delete it?
+// Should the callee delete it?
+// Is it even heap-allocated?
+// Unclear!
+
+```
+
+
+**Smart pointers express ownership explicitly**:
+
+
+**`std::unique_ptr`****: Exclusive ownership**
+
+
+```c++
+#include <memory>
+
+// Create unique_ptr - owns the object exclusively
+std::unique_ptr<int> ptr = std::make_unique<int>(42);
+
+// Automatic cleanup when ptr goes out of scope
+// No need for delete!
+
+// Cannot copy (ownership is exclusive)
+// std::unique_ptr<int> ptr2 = ptr;  // Error!
+
+// But can move (transfer ownership)
+std::unique_ptr<int> ptr2 = std::move(ptr);
+// Now ptr is null, ptr2 owns the object
+
+```
+
+
+**When to use** **`unique_ptr`**:
+
+- Single owner is clear
+- Object lifetime matches the owning scope
+- Factory functions returning heap-allocated objects
+- Replacing raw `new`/`delete` patterns
+
+**`std::shared_ptr`****: Shared ownership**
+
+
+```c++
+#include <memory>
+
+// Create shared_ptr - multiple owners allowed
+std::shared_ptr<int> ptr1 = std::make_shared<int>(42);
+std::shared_ptr<int> ptr2 = ptr1;  // Both own the object
+
+std::cout << ptr1.use_count();  // 2 (reference count)
+
+// Object deleted when last shared_ptr is destroyed
+ptr1.reset();  // ptr1 no longer owns it
+std::cout << ptr2.use_count();  // 1
+// ptr2 goes out of scope -> object is deleted
+
+```
+
+
+**When to use** **`shared_ptr`**:
+
+- Multiple owners with unclear lifetimes
+- Shared resources (caches, pools)
+- Tree/graph structures with back-references
+
+**Cost**: Reference counting has overhead (atomic operations for thread safety)
+
+
+**Dangling pointers and references**
+
+
+A **dangling pointer** refers to memory that has been freed:
+
+
+```c++
+int* ptr = new int(42);
+delete ptr;
+int x = *ptr;  // UNDEFINED BEHAVIOR! Use-after-free
+
+```
+
+
+A **dangling reference** refers to an object that no longer exists:
+
+
+```c++
+int& get_local_ref() {
+    int x = 42;
+    return x;  // BUG! Returns reference to local variable
+}  // x is destroyed here
+
+int& ref = get_local_ref();
+int val = ref;  // UNDEFINED BEHAVIOR! x no longer exists
+
+```
+
+
+**Common dangling reference bugs**:
+
+
+```c++
+// BAD: Returning reference to temporary
+const std::string& get_name() {
+    return std::string("Alice");  // Temporary destroyed at end of statement!
+}
+
+// BAD: Returning reference to local
+int& increment(int x) {
+    x += 1;
+    return x;  // x dies when function returns!
+}
+
+// GOOD: Return by value (copy elision makes this efficient)
+std::string get_name() {
+    return std::string("Alice");  // Returned efficiently
+}
+
+```
+
+
+**Preventing dangling pointers**:
+
+- Use smart pointers (automatic cleanup)
+- Set pointers to `nullptr` after delete
+- Never return references to local variables
+- Use linters (clang-tidy warns about these)
+
+**Lifetime rules**:
+
+1. Stack objects live until the end of their scope
+2. Heap objects live until explicitly deleted (or smart pointer cleaned up)
+3. References/pointers must not outlive the object they refer to
+
+**Visual mental model**:
+
+
+```javascript
+Stack:                    Heap:
+┌─────────────┐          ┌──────────┐
+│ int x = 10  │          │  ???     │ ← Orphaned memory (leak)
+├─────────────┤          ├──────────┤
+│ int& r = x  │────┐     │  42      │ ← ptr points here
+├─────────────┤    │     └──────────┘
+│ int* ptr ────────┼──────────────┘
+└─────────────┘    │
+                   └──→ r is an alias for x
+
+```
+
+
+**The Rule of Zero**: If you use smart pointers and containers, you rarely need to write `delete` explicitly. Aim for:
+
+- No raw `new`/`delete` in user code
+- Use `std::vector`, `std::string`, smart pointers
+- Compiler-generated destructors "just work"
+
+**Modern C++ ownership guidelines**:
+
+
+```c++
+// RAW POINTERS (old C++ style) - DON'T DO THIS
+int* data = new int[1000];
+// ... use data ...
+delete[] data;  // Easy to forget!
+
+// SMART POINTERS (modern C++) - PREFER THIS
+auto data = std::make_unique<std::vector<int>>(1000);
+// ... use data ...
+// Automatic cleanup, no delete needed!
+
+// OR EVEN BETTER: Just use the container directly
+std::vector<int> data(1000);
+// ... use data ...
+// Automatic cleanup
+
+```
+
+
+**Passing smart pointers to functions**:
+
+
+```c++
+// GOOD: Pass by reference if not transferring ownership
+void process(const std::vector<int>& data) { /* read-only */ }
+void modify(std::vector<int>& data) { /* can modify */ }
+
+// BAD: Copying shared_ptr when you just need to read
+void process_bad(std::shared_ptr<std::vector<int>> data) {
+    // Copies the shared_ptr, increments ref count unnecessarily
+}
+
+// GOOD: Pass raw pointer or reference when not transferring ownership
+void process_good(const std::vector<int>* data) {
+    if (!data) return;
+    // Use data
+}
+
+// Transfer unique ownership: take by value
+void take_ownership(std::unique_ptr<Data> data) {
+    // Caller must std::move(data)
+}
+
+```
 
 
 The stack is fast (pointer arithmetic) but limited in size (typically 1-8 MB). The heap is slower (allocator overhead) but large. Choose based on object lifetime and size.
@@ -5152,6 +7758,97 @@ Ownership: who is responsible for freeing a resource? Raw pointers do not convey
 Dangling pointers/references occur when the referent is destroyed. This is undefined behavior. Sanitizers catch some cases; discipline catches others.
 
 
+### Deep Dive: Ownership and Lifetime
+
+
+**Why this matters**: C++ gives you manual control over memory, but with that power comes responsibility. Misunderstanding ownership is the #1 cause of memory bugs: leaks (forgot to free), double-frees (freed twice), and use-after-free (accessed after freeing). Smart pointers solve these problems by encoding ownership in the type system.
+
+
+**Mental model**: Every allocated object has an **owner**—the entity responsible for freeing it. Raw pointers don't indicate ownership; smart pointers do:
+
+- `unique_ptr<T>`: **Exclusive ownership**. Only one owner exists. When it goes out of scope, resource is freed. Cannot be copied (would create two owners), only moved (transfers ownership).
+- `shared_ptr<T>`: **Shared ownership**. Multiple owners via reference counting. Resource freed when last owner is destroyed.
+- `weak_ptr<T>`: **Observer**. Doesn't own, just watches. Breaks cycles in shared_ptr graphs.
+
+**Worked example**: Why raw pointers are dangerous
+
+
+```c++
+#include <iostream>
+#include <memory>
+
+void dangling_pointer_bug() {
+    int* ptr = new int(42);
+    delete ptr;          // Free the memory
+    // ptr still holds the address, but memory is freed
+    std::cout << *ptr;   // BUG: use-after-free (undefined behavior)
+}
+
+void double_free_bug() {
+    int* ptr = new int(42);
+    delete ptr;
+    delete ptr;          // BUG: freeing already-freed memory (crash)
+}
+
+void leak_bug() {
+    int* ptr = new int(42);
+    // Forgot to delete!
+    return;              // BUG: memory leaked
+}
+
+```
+
+
+**Solution: unique_ptr encodes ownership**
+
+
+```c++
+void safe_with_unique_ptr() {
+    std::unique_ptr<int> ptr = std::make_unique<int>(42);
+    std::cout << *ptr << std::endl;
+    // ptr goes out of scope here → destructor automatically calls delete
+    // No leak, no double-free, no use-after-free possible
+}
+
+void transfer_ownership() {
+    std::unique_ptr<int> owner1 = std::make_unique<int>(42);
+    std::unique_ptr<int> owner2 = std::move(owner1);  // Transfer ownership
+    
+    // owner1 is now nullptr (no longer owns)
+    // owner2 owns the resource
+    
+    // This would crash (accessing nullptr):
+    // std::cout << *owner1;  
+    
+    std::cout << *owner2 << std::endl;  // Works
+}
+
+```
+
+
+**Visualization of ownership transfer**:
+
+
+```javascript
+Before move:          After std::move(owner1):
+owner1 → [42]         owner1 → nullptr
+owner2 → (empty)      owner2 → [42]
+
+```
+
+
+**Key insight**: `unique_ptr` makes ownership **explicit** and **enforced**:
+
+- **Explicit**: The type tells you "this pointer owns the resource."
+- **Enforced**: Compiler prevents copying (which would violate uniqueness). Only moving is allowed, which clearly transfers ownership.
+
+**Rule of thumb for choosing**:
+
+- Default to **`unique_ptr`** for exclusive ownership (most common case)
+- Use **`shared_ptr`** only when multiple owners truly need to keep the object alive
+- Use **`weak_ptr`** to observe shared resources without extending lifetime (breaks cycles)
+- **Never use raw** **`new`****/****`delete`** in modern C++—use smart pointers or containers
+
 ### Exercises
 
 
@@ -5587,10 +8284,408 @@ g++ -fsanitize=address -g -o graph graph.cpp
 ---
 
 
-## Day 10: RAII and Resource Management
+## Day 10: RAII, Move Semantics, and Destructors
 
 
 ### Concepts
+
+
+**RAII: Resource Acquisition Is Initialization**
+
+
+RAII is C++'s fundamental idiom for resource management. The core idea: tie resource lifetime to object lifetime.
+
+
+**The principle**:
+
+- Acquire resources (memory, files, locks, sockets) in the constructor
+- Release resources in the destructor
+- The compiler guarantees destructors run when objects go out of scope
+
+**Why this matters**: No manual cleanup code. No forgotten cleanup. Exception-safe by design.
+
+
+**Example: File handling**
+
+
+```c++
+// BAD: Manual resource management (C-style)
+void process_file_bad(const char* filename) {
+    FILE* f = fopen(filename, "r");
+    if (!f) return;  // Error handling
+    
+    // ... process file ...
+    
+    fclose(f);  // Easy to forget!
+    // What if an exception is thrown? File never closed!
+}
+
+// GOOD: RAII (C++-style)
+void process_file_good(const std::string& filename) {
+    std::ifstream f(filename);  // Opens in constructor
+    if (!f) return;
+    
+    // ... process file ...
+    
+    // Destructor automatically closes file when f goes out of scope
+    // Works even if exception is thrown!
+}
+
+```
+
+
+**RAII guarantees**:
+
+1. **Automatic cleanup**: Destructor runs when scope ends (normal return, exception, early return)
+2. **Exception safety**: Resources released even during stack unwinding
+3. **No leaks**: Impossible to forget cleanup
+
+**Common RAII types in standard library**:
+
+- `std::unique_ptr`, `std::shared_ptr`: Manage heap memory
+- `std::vector`, `std::string`: Manage dynamic arrays
+- `std::ifstream`, `std::ofstream`: Manage files
+- `std::lock_guard`, `std::unique_lock`: Manage mutexes
+- `std::thread`: Manage threads (must join or detach)
+
+**Implementing RAII: The Rule of Five**
+
+
+If your class manages a resource, you need to implement five special member functions:
+
+1. **Destructor**: Release the resource
+2. **Copy constructor**: How to copy the resource
+3. **Copy assignment operator**: How to copy-assign
+4. **Move constructor**: How to transfer ownership
+5. **Move assignment operator**: How to move-assign
+
+**Example: Managing a dynamic array**
+
+
+```c++
+class DynamicArray {
+private:
+    int* data_;
+    size_t size_;
+
+public:
+    // Constructor: Acquire resource
+    explicit DynamicArray(size_t size) 
+        : data_(new int[size]), size_(size) {
+        std::cout << "Allocated " << size << " ints\n";
+    }
+    
+    // Destructor: Release resource
+    ~DynamicArray() {
+        delete[] data_;
+        std::cout << "Freed array\n";
+    }
+    
+    // Copy constructor: Deep copy
+    DynamicArray(const DynamicArray& other) 
+        : data_(new int[other.size_]), size_(other.size_) {
+        std::copy(other.data_, other.data_ + size_, data_);
+        std::cout << "Copied array\n";
+    }
+    
+    // Copy assignment: Deep copy with self-assignment check
+    DynamicArray& operator=(const DynamicArray& other) {
+        if (this != &other) {  // Self-assignment check
+            delete[] data_;  // Release old resource
+            data_ = new int[other.size_];  // Acquire new resource
+            size_ = other.size_;
+            std::copy(other.data_, other.data_ + size_, data_);
+            std::cout << "Copy-assigned array\n";
+        }
+        return *this;
+    }
+    
+    // Move constructor: Transfer ownership
+    DynamicArray(DynamicArray&& other) noexcept 
+        : data_(other.data_), size_(other.size_) {
+        other.data_ = nullptr;  // Leave source in valid state
+        other.size_ = 0;
+        std::cout << "Moved array\n";
+    }
+    
+    // Move assignment: Transfer ownership
+    DynamicArray& operator=(DynamicArray&& other) noexcept {
+        if (this != &other) {
+            delete[] data_;  // Release old resource
+            data_ = other.data_;  // Take ownership
+            size_ = other.size_;
+            other.data_ = nullptr;  // Leave source valid
+            other.size_ = 0;
+            std::cout << "Move-assigned array\n";
+        }
+        return *this;
+    }
+    
+    size_t size() const { return size_; }
+    int& operator[](size_t i) { return data_[i]; }
+};
+
+```
+
+
+**The Rule of Zero**: Prefer using existing RAII types
+
+
+If you can use standard library types, you don't need to implement the Rule of Five:
+
+
+```c++
+class BetterDynamicArray {
+private:
+    std::vector<int> data_;  // std::vector handles everything!
+
+public:
+    explicit BetterDynamicArray(size_t size) : data_(size) {}
+    
+    // No destructor, copy/move constructors needed!
+    // Compiler-generated versions use vector's implementations
+    
+    size_t size() const { return data_.size(); }
+    int& operator[](size_t i) { return data_[i]; }
+};
+
+```
+
+
+**Move semantics: Transferring ownership efficiently**
+
+
+**The problem**: Copying large objects is expensive
+
+
+```c++
+std::vector<int> create_vector() {
+    std::vector<int> v(1000000);
+    // ... fill vector ...
+    return v;  // Without move: copies 1M ints!
+}
+
+std::vector<int> result = create_vector();  // Expensive copy?
+
+```
+
+
+**The solution**: Move semantics transfer ownership instead of copying
+
+
+```c++
+std::vector<int> result = create_vector();  
+// With move: just transfers pointer, O(1) operation!
+
+```
+
+
+**Lvalues vs Rvalues**:
+
+- **Lvalue**: Has a name, has an address, persists beyond expression
+    - Examples: variables, function parameters, dereferences
+- **Rvalue**: Temporary, no name, dies at end of expression
+    - Examples: literals (42), temporary objects, function return values
+
+```c++
+int x = 42;        // x is lvalue, 42 is rvalue
+int y = x;         // y is lvalue, x is lvalue
+int z = x + y;     // z is lvalue, (x + y) is rvalue (temporary)
+
+std::string s1 = "hello";           // s1 is lvalue
+std::string s2 = s1;                // Copy: s1 is lvalue
+std::string s3 = std::string("hi"); // Move: temporary is rvalue
+std::string s4 = std::move(s1);     // Move: std::move casts to rvalue
+// s1 is now in "moved-from" state (valid but unspecified)
+
+```
+
+
+**`std::move`****: Casting to rvalue reference**
+
+
+`std::move` doesn't move anything—it just casts an lvalue to an rvalue reference, enabling move operations:
+
+
+```c++
+std::vector<int> v1(1000);
+std::vector<int> v2 = std::move(v1);  // Transfer ownership
+// v1 is now empty (moved-from state)
+// v2 owns the data
+
+std::cout << v1.size();  // 0 (valid but empty)
+std::cout << v2.size();  // 1000
+
+```
+
+
+**When moves happen automatically**:
+
+1. Returning local variables: `return local_var;` (copy elision or move)
+2. Passing temporaries: `func(std::vector<int>(100));`
+3. Initializing from temporary: `std::vector<int> v = create_vec();`
+
+**When to use** **`std::move`** **explicitly**:
+
+1. Moving into containers: `vec.push_back(std::move(large_obj));`
+2. Transferring ownership: `unique_ptr<T> p2 = std::move(p1);`
+3. Avoiding copies in algorithms: `std::sort(v.begin(), v.end());` (automatic)
+
+**Move semantics rules**:
+
+1. Move constructors/assignment should be `noexcept` (enables optimizations)
+2. Moved-from objects must be in a valid state (destructible, assignable)
+3. Don't use an object after moving from it (except to assign or destroy)
+
+**Perfect forwarding**: Preserving value category
+
+
+```c++
+template<typename T>
+void wrapper(T&& arg) {  // Universal reference
+    // Forward arg preserving its value category
+    real_function(std::forward<T>(arg));
+}
+
+```
+
+
+**Copy elision and RVO (Return Value Optimization)**
+
+
+Modern compilers elide copies entirely:
+
+
+```c++
+std::vector<int> create() {
+    std::vector<int> v(1000);
+    return v;  // No copy, no move—direct construction at call site!
+}
+
+std::vector<int> result = create();  // Zero-cost!
+
+```
+
+
+Since C++17, this is **guaranteed** for temporaries (not just an optimization).
+
+
+**Destructors: Cleanup guarantees**
+
+
+**When destructors run**:
+
+1. **Automatic objects**: End of scope
+2. **Dynamic objects**: When `delete` is called
+3. **During exception unwinding**: For all constructed objects on the stack
+
+```c++
+void example() {
+    Resource r1;  // Constructor runs
+    
+    if (condition) {
+        Resource r2;  // Constructor runs
+        // ...
+    }  // r2 destructor runs here
+    
+    throw std::runtime_error("error");
+    
+}  // r1 destructor runs during stack unwinding
+
+```
+
+
+**Destructor best practices**:
+
+1. **Never throw**: Destructors should be `noexcept` (it's the default)
+2. **Idempotent cleanup**: Safe to call even if resource already released
+3. **No complex logic**: Keep destructors simple
+4. **Virtual if inherited**: Base class destructors should be virtual
+
+```c++
+class Base {
+public:
+    virtual ~Base() = default;  // Virtual destructor for polymorphism
+};
+
+class Derived : public Base {
+private:
+    int* data_;
+public:
+    Derived() : data_(new int[100]) {}
+    ~Derived() override { delete[] data_; }  // Properly cleans up
+};
+
+// Safe polymorphic deletion:
+Base* ptr = new Derived();
+delete ptr;  // Calls Derived::~Derived() then Base::~Base()
+
+```
+
+
+**Exception safety and RAII**
+
+
+**The problem**: Exceptions can skip cleanup code
+
+
+```c++
+void unsafe() {
+    int* p = new int[100];
+    risky_operation();  // Might throw!
+    delete[] p;  // Never reached if exception thrown → LEAK
+}
+
+```
+
+
+**The solution**: RAII guarantees cleanup
+
+
+```c++
+void safe() {
+    std::unique_ptr<int[]> p(new int[100]);
+    risky_operation();  // Might throw!
+    // p's destructor runs even during unwinding → NO LEAK
+}
+
+```
+
+
+**The three exception safety guarantees**:
+
+1. **Basic guarantee**: Invariants preserved, no leaks
+2. **Strong guarantee**: Operation succeeds completely or has no effect (transactional)
+3. **Nothrow guarantee**: Operation never throws (marked `noexcept`)
+
+**RAII provides at least the basic guarantee automatically**.
+
+
+**Scope guards**: Running cleanup code at scope exit
+
+
+```c++
+// C++11 onwards (using lambda)
+template<typename F>
+struct ScopeGuard {
+    F func;
+    ~ScopeGuard() { func(); }
+};
+
+void example() {
+    FILE* f = fopen("file.txt", "r");
+    auto guard = ScopeGuard{[f](){ fclose(f); }};
+    
+    // ... use f ...
+    // May throw, may return early
+    
+    // Guard destructor always runs, closing file
+}
+
+```
+
+
+C++20 adds `std::scope_exit` for this pattern.
 
 
 RAII (Resource Acquisition Is Initialization) ties resource lifetime to object lifetime. The constructor acquires the resource; the destructor releases it. This guarantees cleanup even when exceptions occur.
@@ -5603,6 +8698,162 @@ Custom RAII classes wrap non-RAII resources. Pattern: constructor acquires, dest
 
 
 Exception safety levels: basic (no leaks, invariants maintained), strong (operation succeeds or has no effect), no-throw. RAII enables basic safety automatically.
+
+
+### Deep Dive: RAII and Deterministic Cleanup
+
+
+**Why this matters**: In C++, you don't have a garbage collector. RAII (Resource Acquisition Is Initialization) is the idiom that makes C++ memory management practical. It ties resource lifetime to object lifetime, guaranteeing cleanup even when exceptions are thrown. Every C++ standard library container and smart pointer uses RAII.
+
+
+**Mental model**: Think of RAII as **scope-based cleanup**. When an object goes out of scope, its destructor runs. Period. No matter how the scope exits—normal return, early return, exception—the destructor runs. This makes cleanup **deterministic** and **automatic**.
+
+
+```javascript
+void function() {
+    RAIIObject obj;  // Constructor acquires resource
+    
+    // Use obj...
+    
+}  // ← Scope ends: destructor releases resource automatically
+
+```
+
+
+Compare to manual cleanup (error-prone):
+
+
+```c++
+// Manual cleanup - FRAGILE
+void manual_way() {
+    FILE* f = fopen("data.txt", "r");  // Acquire
+    if (!f) return;                     // Error handling
+    
+    // ... use file ...
+    
+    if (error) {
+        fclose(f);  // Must remember to clean up here
+        return;
+    }
+    
+    // ... more code ...
+    
+    fclose(f);  // And here. Easy to forget!
+}
+
+```
+
+
+**RAII way (robust)**:
+
+
+```c++
+class FileHandle {
+    FILE* file;
+public:
+    FileHandle(const std::string& path, const std::string& mode) {
+        file = std::fopen(path.c_str(), mode.c_str());
+        if (!file) throw std::runtime_error("Failed to open");
+    }
+    
+    ~FileHandle() {  // Cleanup guaranteed
+        if (file) std::fclose(file);
+    }
+    
+    // Prevent copying
+    FileHandle(const FileHandle&) = delete;
+    FileHandle& operator=(const FileHandle&) = delete;
+};
+
+void raii_way() {
+    FileHandle f("data.txt", "r");  // Acquire in constructor
+    
+    // ... use file ...
+    
+    if (error) return;  // Cleanup happens automatically
+    
+    // ... more code ...
+    
+    throw std::exception();  // Cleanup happens automatically
+    
+}  // Cleanup happens automatically
+
+```
+
+
+**Worked example**: RAII ensures cleanup during exceptions
+
+
+```c++
+#include <iostream>
+#include <memory>
+
+class Resource {
+public:
+    Resource() { std::cout << "Resource acquired\n"; }
+    ~Resource() { std::cout << "Resource released\n"; }
+};
+
+void might_throw(bool should_throw) {
+    Resource r;  // RAII: acquired here
+    
+    std::cout << "Using resource...\n";
+    
+    if (should_throw) {
+        throw std::runtime_error("Error!");
+        // Destructor still called during stack unwinding
+    }
+    
+    std::cout << "Finished normally\n";
+}  // Destructor called here if no exception
+
+int main() {
+    std::cout << "=== Normal path ===";
+    might_throw(false);
+    
+    std::cout << "\n=== Exception path ===";
+    try {
+        might_throw(true);
+    } catch (...) {
+        std::cout << "Exception caught\n";
+    }
+    
+    return 0;
+}
+
+```
+
+
+**Output**:
+
+
+```javascript
+=== Normal path ===
+Resource acquired
+Using resource...
+Finished normally
+Resource released
+
+=== Exception path ===
+Resource acquired
+Using resource...
+Resource released      ← Cleanup happened despite exception!
+Exception caught
+
+```
+
+
+**Key insight**: RAII converts **manual bookkeeping** (must remember to call cleanup) into **compiler-enforced guarantees** (destructor always called). This eliminates an entire class of bugs.
+
+
+**Common RAII patterns**:
+
+- **Memory**: `std::unique_ptr`, `std::shared_ptr`, `std::vector` (manages its own buffer)
+- **Files**: `std::fstream` (closes on destruction)
+- **Locks**: `std::lock_guard`, `std::unique_lock` (unlocks on destruction)
+- **Custom resources**: Database connections, network sockets, GPU contexts
+
+Every time you acquire a resource, immediately wrap it in an RAII class.
 
 
 ### Exercises
@@ -6272,10 +9523,677 @@ g++ -std=c++17 -O2 -fsanitize=address -o pool_test pool.cpp
 ---
 
 
-## Day 11: STL Containers and Algorithms
+## Day 11: STL Containers, Algorithms, and Iterators
 
 
 ### Concepts
+
+
+**The Standard Template Library (STL): Three pillars**
+
+
+The STL is built on three fundamental components:
+
+1. **Containers**: Data structures that store objects (vector, map, set, etc.)
+2. **Algorithms**: Generic functions that operate on ranges (sort, find, transform, etc.)
+3. **Iterators**: The glue that connects containers and algorithms
+
+**Why the STL matters**: Write once, works with any container. Algorithms are highly optimized and well-tested.
+
+
+**Containers: Choosing the right data structure**
+
+
+**Sequence containers**: Maintain element order
+
+
+**`std::vector`**: Dynamic array, contiguous storage
+
+
+```c++
+#include <vector>
+
+std::vector<int> v = {1, 2, 3};
+v.push_back(4);        // Amortized O(1)
+v[2] = 10;             // O(1) random access
+v.insert(v.begin(), 0); // O(n) - shifts elements
+
+```
+
+
+**When to use**: Default choice for sequences. Fast random access, cache-friendly.
+
+
+**Cost**: Insertion/deletion in middle is O(n).
+
+
+**`std::deque`**: Double-ended queue
+
+
+```c++
+#include <deque>
+
+std::deque<int> d = {1, 2, 3};
+d.push_front(0);  // O(1) - unlike vector!
+d.push_back(4);   // O(1)
+
+```
+
+
+**When to use**: Need fast insertion at both ends.
+
+
+**Cost**: Slightly slower random access than vector (not contiguous), more memory overhead.
+
+
+**`std::list`**: Doubly-linked list
+
+
+```c++
+#include <list>
+
+std::list<int> l = {1, 2, 3};
+auto it = std::find(l.begin(), l.end(), 2);
+l.insert(it, 99);  // O(1) insertion if you have the iterator
+l.erase(it);       // O(1) deletion
+
+```
+
+
+**When to use**: Frequent insertion/deletion in middle, don't need random access.
+
+
+**Cost**: No random access (must traverse), poor cache locality, high memory overhead (pointers).
+
+
+**Associative containers**: Fast lookup by key
+
+
+**`std::map`**: Ordered key-value pairs (Red-Black tree)
+
+
+```c++
+#include <map>
+
+std::map<std::string, int> ages;
+ages["Alice"] = 30;      // Insert or update
+ages["Bob"] = 25;
+
+if (ages.count("Alice")) {  // Check existence: O(log n)
+    std::cout << ages["Alice"];  // Access: O(log n)
+}
+
+// Iterate in sorted order
+for (const auto& [name, age] : ages) {
+    std::cout << name << ": " << age << std::endl;
+}
+
+```
+
+
+**When to use**: Need sorted keys, or guaranteed iteration order.
+
+
+**Cost**: O(log n) lookup/insertion (slower than unordered_map).
+
+
+**`std::unordered_map`**: Hash table
+
+
+```c++
+#include <unordered_map>
+
+std::unordered_map<std::string, int> ages;
+ages["Alice"] = 30;  // O(1) average
+ages["Bob"] = 25;
+
+if (ages.find("Alice") != ages.end()) {  // O(1) average lookup
+    std::cout << ages["Alice"];
+}
+
+```
+
+
+**When to use**: Fast lookup is priority, don't need sorted order.
+
+
+**Cost**: O(n) worst case (hash collisions), no guaranteed order, slightly more memory.
+
+
+**`std::set`**: Ordered unique elements
+
+
+```c++
+#include <set>
+
+std::set<int> s = {3, 1, 4, 1, 5};  // Duplicates removed
+// s contains: {1, 3, 4, 5} - sorted
+
+s.insert(2);  // O(log n)
+if (s.count(3)) {  // O(log n) existence check
+    std::cout << "Found 3";
+}
+
+```
+
+
+**When to use**: Need unique elements in sorted order.
+
+
+**Cost**: O(log n) operations.
+
+
+**Container adapters**: Restricted interfaces
+
+
+**`std::stack`**: LIFO (Last In, First Out)
+
+
+```c++
+#include <stack>
+
+std::stack<int> s;
+s.push(1);
+s.push(2);
+std::cout << s.top();  // 2
+s.pop();
+std::cout << s.top();  // 1
+
+```
+
+
+**`std::queue`**: FIFO (First In, First Out)
+
+
+```c++
+#include <queue>
+
+std::queue<int> q;
+q.push(1);
+q.push(2);
+std::cout << q.front();  // 1
+q.pop();
+std::cout << q.front();  // 2
+
+```
+
+
+**Container comparison guide**:
+
+
+| Operation            | vector | deque  | list | map      | unordered_map |
+
+| -------------------- | ------ | ------ | ---- | -------- | ------------- |
+
+| Random access        | O(1)   | O(1)   | O(n) | -        | -             |
+
+| Insert/delete front  | O(n)   | O(1)   | O(1) | -        | -             |
+
+| Insert/delete back   | O(1)*  | O(1)   | O(1) | -        | -             |
+
+| Insert/delete middle | O(n)   | O(n)   | O(1) | -        | -             |
+
+| Lookup by key        | -      | -      | -    | O(log n) | O(1) avg      |
+
+| Sorted iteration     | -      | -      | -    | Yes      | No            |
+
+| Memory overhead      | Low    | Medium | High | Medium   | Medium        |
+
+
+_Amortized_  *If you have the iterator
+
+
+**Iterators: The universal pointer abstraction**
+
+
+**Iterator categories** (weakest to strongest):
+
+1. **Input/Output iterators**: Single-pass, read or write
+2. **Forward iterators**: Multi-pass, can read/write multiple times
+3. **Bidirectional iterators**: Can go forward and backward (`++`, `--`)
+4. **Random access iterators**: Can jump to any position (`+`, `-`, `[]`)
+
+**Example: Iterator usage**
+
+
+```c++
+std::vector<int> v = {1, 2, 3, 4, 5};
+
+// begin() and end() return iterators
+auto it = v.begin();   // Points to first element
+auto end = v.end();    // Points PAST last element
+
+while (it != end) {
+    std::cout << *it << " ";  // Dereference to access value
+    ++it;  // Move to next element
+}
+
+// Range-based for loop uses iterators internally
+for (int x : v) {  // Syntactic sugar for iterator loop
+    std::cout << x << " ";
+}
+
+```
+
+
+**Why iterators**: Algorithms work with any container through the iterator interface.
+
+
+```c++
+// Same algorithm works on vector, list, deque, etc.
+std::vector<int> v = {5, 2, 8, 1};
+std::sort(v.begin(), v.end());  // Requires random access iterators
+
+std::list<int> l = {5, 2, 8, 1};
+// std::sort(l.begin(), l.end());  // ERROR! list has bidirectional iterators
+l.sort();  // Use list's member function instead
+
+```
+
+
+**Iterator invalidation**: When containers reallocate, iterators may become invalid
+
+
+```c++
+std::vector<int> v = {1, 2, 3};
+auto it = v.begin();
+v.push_back(4);  // May reallocate!
+// *it is now UNDEFINED BEHAVIOR if vector reallocated
+
+// Safe pattern: use indices or refresh iterators
+for (size_t i = 0; i < v.size(); ++i) {
+    if (v[i] == 2) {
+        v.push_back(99);  // OK: using index, not iterator
+    }
+}
+
+```
+
+
+**Invalidation rules**:
+
+- **vector/deque**: Insertion/deletion may invalidate all iterators
+- **list/map/set**: Only erased elements' iterators are invalidated
+- **Always check documentation** for specific guarantees
+
+**Algorithms: Generic, composable, efficient**
+
+
+**The STL provides 100+ algorithms**. Key categories:
+
+
+**1. Non-modifying sequence operations**
+
+
+```c++
+#include <algorithm>
+#include <vector>
+
+std::vector<int> v = {1, 2, 3, 4, 5};
+
+// Find element
+auto it = std::find(v.begin(), v.end(), 3);
+if (it != v.end()) {
+    std::cout << "Found at index " << (it - v.begin());
+}
+
+// Count occurrences
+int count = std::count(v.begin(), v.end(), 2);  // Returns 1
+
+// Check if all elements satisfy condition
+bool all_positive = std::all_of(v.begin(), v.end(), 
+                                [](int x) { return x > 0; });
+
+// Check if any element satisfies condition
+bool has_even = std::any_of(v.begin(), v.end(),
+                            [](int x) { return x % 2 == 0; });
+
+```
+
+
+**2. Modifying sequence operations**
+
+
+```c++
+std::vector<int> v = {1, 2, 3, 4, 5};
+std::vector<int> dest(5);
+
+// Copy elements
+std::copy(v.begin(), v.end(), dest.begin());
+
+// Transform (apply function to each element)
+std::vector<int> squares(5);
+std::transform(v.begin(), v.end(), squares.begin(),
+               [](int x) { return x * x; });
+// squares = {1, 4, 9, 16, 25}
+
+// Fill with value
+std::fill(v.begin(), v.end(), 0);
+
+// Remove element (logical removal, use erase-remove idiom)
+v.erase(std::remove(v.begin(), v.end(), 3), v.end());
+
+```
+
+
+**Erase-remove idiom** (important!):
+
+
+```c++
+std::vector<int> v = {1, 2, 3, 2, 4};
+
+// WRONG: Only removes first occurrence
+v.erase(std::remove(v.begin(), v.end(), 2));
+
+// CORRECT: Removes all occurrences
+v.erase(std::remove(v.begin(), v.end(), 2), v.end());
+// v = {1, 3, 4}
+
+// Why: std::remove shifts elements, returns new logical end
+// You must erase from that point to the old end
+
+```
+
+
+**3. Sorting and related operations**
+
+
+```c++
+std::vector<int> v = {5, 2, 8, 1, 9};
+
+// Sort (ascending)
+std::sort(v.begin(), v.end());
+// v = {1, 2, 5, 8, 9}
+
+// Sort with custom comparator (descending)
+std::sort(v.begin(), v.end(), std::greater<int>());
+// v = {9, 8, 5, 2, 1}
+
+// Partial sort (only first k elements)
+std::partial_sort(v.begin(), v.begin() + 3, v.end());
+// First 3 elements are sorted, rest unspecified
+
+// Binary search (requires sorted range)
+if (std::binary_search(v.begin(), v.end(), 5)) {
+    std::cout << "Found 5";
+}
+
+// Lower/upper bound
+auto it = std::lower_bound(v.begin(), v.end(), 5);  // First >= 5
+auto it2 = std::upper_bound(v.begin(), v.end(), 5); // First > 5
+
+```
+
+
+**4. Numeric algorithms** (in `<numeric>`)
+
+
+```c++
+#include <numeric>
+
+std::vector<int> v = {1, 2, 3, 4, 5};
+
+// Sum
+int sum = std::accumulate(v.begin(), v.end(), 0);
+// sum = 15
+
+// Product
+int product = std::accumulate(v.begin(), v.end(), 1, std::multiplies<int>());
+// product = 120
+
+// Partial sums (running sum)
+std::vector<int> sums(5);
+std::partial_sum(v.begin(), v.end(), sums.begin());
+// sums = {1, 3, 6, 10, 15}
+
+// Inner product (dot product)
+std::vector<int> v2 = {1, 1, 1, 1, 1};
+int dot = std::inner_product(v.begin(), v.end(), v2.begin(), 0);
+// dot = 15
+
+```
+
+
+**Lambdas: Inline anonymous functions**
+
+
+Lambdas are critical for using STL algorithms effectively.
+
+
+**Basic syntax**:
+
+
+```c++
+// [capture](parameters) -> return_type { body }
+auto add = [](int a, int b) -> int { return a + b; };
+std::cout << add(2, 3);  // 5
+
+// Return type deduction
+auto square = [](int x) { return x * x; };  // return type deduced as int
+
+```
+
+
+**Capture modes**:
+
+
+```c++
+int factor = 10;
+
+// Capture by value (copy)
+auto f1 = [factor](int x) { return x * factor; };
+// factor is copied into lambda
+
+// Capture by reference
+auto f2 = [&factor](int x) { factor += x; return factor; };
+f2(5);  // Modifies the original factor
+
+// Capture all by value
+auto f3 = [=](int x) { return x * factor; };
+
+// Capture all by reference
+auto f4 = [&](int x) { factor += x; };
+
+// Mixed capture
+int a = 1, b = 2;
+auto f5 = [a, &b](int x) { b = a + x; return b; };
+// a captured by value, b by reference
+
+```
+
+
+**Common lambda usage with algorithms**:
+
+
+```c++
+std::vector<int> v = {1, 2, 3, 4, 5};
+
+// Count even numbers
+int even_count = std::count_if(v.begin(), v.end(),
+                               [](int x) { return x % 2 == 0; });
+
+// Transform with lambda
+std::transform(v.begin(), v.end(), v.begin(),
+               [](int x) { return x * 2; });
+// v = {2, 4, 6, 8, 10}
+
+// Sort by custom criteria
+struct Person { std::string name; int age; };
+std::vector<Person> people = {{"Alice", 30}, {"Bob", 25}};
+
+std::sort(people.begin(), people.end(),
+          [](const Person& a, const Person& b) {
+              return a.age < b.age;  // Sort by age
+          });
+
+```
+
+
+**Algorithm composition: Chaining operations**
+
+
+Algorithms can be composed to build complex operations:
+
+
+```c++
+std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+// Sum of squares of even numbers
+int sum_even_squares = std::accumulate(
+    v.begin(), v.end(), 0,
+    [](int acc, int x) {
+        return acc + (x % 2 == 0 ? x * x : 0);
+    }
+);
+// sum_even_squares = 4 + 16 + 36 + 64 + 100 = 220
+
+// More explicit multi-step approach
+std::vector<int> evens;
+std::copy_if(v.begin(), v.end(), std::back_inserter(evens),
+             [](int x) { return x % 2 == 0; });
+// evens = {2, 4, 6, 8, 10}
+
+std::transform(evens.begin(), evens.end(), evens.begin(),
+               [](int x) { return x * x; });
+// evens = {4, 16, 36, 64, 100}
+
+int sum = std::accumulate(evens.begin(), evens.end(), 0);
+// sum = 220
+
+```
+
+
+**Modern C++ ranges** (C++20): Composable views
+
+
+```c++
+// C++20 ranges (if available)
+#include <ranges>
+
+std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+// Lazy evaluation: operations don't execute until iterated
+auto result = v 
+    | std::views::filter([](int x) { return x % 2 == 0; })
+    | std::views::transform([](int x) { return x * x; });
+
+int sum = std::accumulate(result.begin(), result.end(), 0);
+// sum = 220
+
+// More readable than nested algorithm calls
+
+```
+
+
+**Performance considerations**
+
+
+**STL algorithms are highly optimized**:
+
+- Often use SIMD instructions
+- Inlining removes lambda overhead
+- Implementations are battle-tested
+
+**Benchmark: Custom loop vs STL algorithm**
+
+
+```c++
+// Custom loop
+auto start = std::chrono::high_resolution_clock::now();
+int sum = 0;
+for (int x : v) {
+    sum += x;
+}
+auto end = std::chrono::high_resolution_clock::now();
+// Time: ~10 ms for 10M elements
+
+// STL algorithm
+start = std::chrono::high_resolution_clock::now();
+sum = std::accumulate(v.begin(), v.end(), 0);
+end = std::chrono::high_resolution_clock::now();
+// Time: ~10 ms (similar, sometimes faster due to optimizations)
+
+```
+
+
+**When to use custom loops**:
+
+- Very simple operations where STL overhead isn't worth it
+- Complex logic that doesn't map well to existing algorithms
+- When debugging/profiling shows STL is the bottleneck (rare)
+
+**When to use STL algorithms** (prefer by default):
+
+- Standard operations (sort, find, transform, etc.)
+- Readability and maintainability matter
+- Portability across compilers/platforms
+- Future optimizations benefit from standard implementations
+
+**Common STL pitfalls**
+
+
+**Pitfall 1: Forgetting to check if iterator is valid**
+
+
+```c++
+std::vector<int> v = {1, 2, 3};
+auto it = std::find(v.begin(), v.end(), 5);
+std::cout << *it;  // UNDEFINED BEHAVIOR! 5 not found, it == v.end()
+
+// Correct:
+if (it != v.end()) {
+    std::cout << *it;
+}
+
+```
+
+
+**Pitfall 2: Using operator[] on map inserts default value**
+
+
+```c++
+std::map<std::string, int> m;
+std::cout << m["key"];  // Inserts {"key", 0} if not present!
+
+// Use find() if you don't want insertion:
+if (m.find("key") != m.end()) {
+    std::cout << m["key"];
+}
+
+```
+
+
+**Pitfall 3: Passing wrong type to accumulate**
+
+
+```c++
+std::vector<long> v = {1000000000, 1000000000, 1000000000};
+long sum = std::accumulate(v.begin(), v.end(), 0);  // WRONG! 0 is int
+// Overflow! Sum exceeds int range
+
+// Correct:
+long sum = std::accumulate(v.begin(), v.end(), 0L);  // 0L is long
+
+```
+
+
+**Best practices**
+
+1. **Prefer algorithms over raw loops** (more expressive, less error-prone)
+2. **Use range-based for when you don't need index** (cleaner syntax)
+3. **Reserve capacity for vectors if size is known** (`v.reserve(n)`)
+4. **Use const references in range-based for for large objects**:
+
+    ```c++
+    for (const auto& item : large_vector) { ... }  // No copy
+    ```
+
+5. **Use emplace over push for in-place construction**:
+
+    ```c++
+    v.emplace_back(args...);  // Constructs in-place
+    v.push_back(T(args...));  // Constructs temporary, then moves
+    ```
 
 
 `std::vector` is the default container: contiguous memory, amortized O(1) append, O(1) random access. Know the difference between `size()` and `capacity()`. Know that `push_back` may invalidate iterators and references.
@@ -6291,6 +10209,169 @@ STL algorithms operate on iterator ranges. Examples: `std::sort`, `std::transfor
 
 
 Lambdas provide inline function objects for algorithms. Capture by value `[=]` or by reference `[&]`. Prefer explicit captures `[x, &y]` for clarity.
+
+
+### Deep Dive: Iterators and Algorithm Composition
+
+
+**Why this matters**: STL algorithms operate on **iterator ranges**, not specific containers. This means you write `std::sort(v.begin(), v.end())` once and it works on vectors, arrays, deques, or even your custom containers. Understanding iterators enables you to compose powerful operations from simple building blocks without writing explicit loops.
+
+
+**Mental model**: An **iterator** is a generalized pointer that knows how to traverse a container. Think of it as a **cursor** that can:
+
+- Point to an element: `*it` (dereference)
+- Move forward: `++it` (increment)
+- Compare positions: `it1 == it2`
+
+STL algorithms take **iterator pairs** `[begin, end)` that define a **half-open range**: includes `begin`, excludes `end`.
+
+
+```javascript
+Vector: [10, 20, 30, 40, 50]
+         ↑              ↑
+      begin           end
+         └──────────────┘
+         Range to process
+
+```
+
+
+**Worked example**: Composing algorithms without loops
+
+
+**Task**: Given a vector of integers, compute the sum of squares of even numbers.
+
+
+```c++
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <iostream>
+
+// BEFORE: Explicit loop (verbose, error-prone)
+int sum_squares_even_loop(const std::vector<int>& v) {
+    int sum = 0;
+    for (size_t i = 0; i < v.size(); i++) {  // Off-by-one risk
+        if (v[i] % 2 == 0) {                  // Easy to mistype
+            sum += v[i] * v[i];
+        }
+    }
+    return sum;
+}
+
+// AFTER: Algorithm composition (declarative, composable)
+int sum_squares_even_stl(const std::vector<int>& v) {
+    return std::accumulate(
+        v.begin(), v.end(), 
+        0,  // Initial value
+        [](int acc, int x) {  // Lambda: accumulator function
+            if (x % 2 == 0) {
+                return acc + x * x;
+            }
+            return acc;
+        }
+    );
+}
+
+int main() {
+    std::vector<int> data = {1, 2, 3, 4, 5, 6};
+    
+    std::cout << "Sum of squares of evens: " 
+              << sum_squares_even_stl(data) << std::endl;
+    // 2² + 4² + 6² = 4 + 16 + 36 = 56
+    
+    return 0;
+}
+
+```
+
+
+**Even better: Chain operations**
+
+
+```c++
+// Step by step with intermediate results
+int sum_squares_even_pipeline(const std::vector<int>& v) {
+    std::vector<int> evens;
+    
+    // Step 1: Filter to evens
+    std::copy_if(
+        v.begin(), v.end(), 
+        std::back_inserter(evens),
+        [](int x) { return x % 2 == 0; }  // Predicate
+    );
+    
+    // Step 2: Transform to squares
+    std::transform(
+        evens.begin(), evens.end(), 
+        evens.begin(),  // In-place transformation
+        [](int x) { return x * x; }
+    );
+    
+    // Step 3: Sum
+    return std::accumulate(evens.begin(), evens.end(), 0);
+}
+
+```
+
+
+**Lambda captures explained**:
+
+
+```c++
+void lambda_captures() {
+    int threshold = 10;
+    int count = 0;
+    
+    std::vector<int> v = {5, 15, 3, 20, 8};
+    
+    // Capture by value [threshold]: lambda gets a COPY
+    auto above_threshold = std::count_if(
+        v.begin(), v.end(),
+        [threshold](int x) {  // threshold copied into lambda
+            return x > threshold;
+        }
+    );
+    // Result: 2 elements (15, 20)
+    
+    // Capture by reference [&count]: lambda can MODIFY original
+    std::for_each(
+        v.begin(), v.end(),
+        [&count](int x) {  // count is a reference
+            if (x > 10) count++;
+        }
+    );
+    std::cout << "Count: " << count << std::endl;  // count was modified: 2
+    
+    // Mixed captures [threshold, &count]: explicit is clearest
+    std::for_each(
+        v.begin(), v.end(),
+        [threshold, &count](int x) {
+            if (x > threshold) count++;
+        }
+    );
+}
+
+```
+
+
+**Key insight**: STL algorithms eliminate **incidental complexity** (loop indexing, bounds checking, initialization) and leave only **essential complexity** (the actual logic: filter evens, square, sum). The result is:
+
+- **Less code** (no loop boilerplate)
+- **Fewer bugs** (no off-by-one errors)
+- **Clearer intent** ("transform then sum" vs. "loop with accumulator")
+- **Optimization opportunities** (algorithms can use parallel execution, vectorization)
+
+**Common algorithm patterns**:
+
+- **Transform**: `std::transform(in, in+n, out, func)` — apply function to each element
+- **Filter**: `std::copy_if(in, in+n, out, predicate)` — keep elements matching predicate
+- **Reduce**: `std::accumulate(in, in+n, init, op)` — combine elements into single value
+- **Search**: `std::find_if(in, in+n, predicate)` — find first matching element
+- **Sort**: `std::sort(in, in+n, comparator)` — order elements
+- **Partition**: `std::partition(in, in+n, predicate)` — reorder so matches come first
+
+Master these patterns and you'll rarely need to write explicit loops.
 
 
 ### Exercises
