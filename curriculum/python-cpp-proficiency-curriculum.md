@@ -2,7 +2,7 @@
 title: "2-Week Python & C++ Proficiency for Statisticians and Data Scientists"
 source: Notion
 notion_url: https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2db342cf7cc8815a97e5d434dbabf57c
-last_synced: 2026-01-02T05:01:57.456Z
+last_synced: 2026-01-02T05:17:50.913Z
 last_edited_in_notion: 2026-01-02T04:18:00.000Z
 ---
 
