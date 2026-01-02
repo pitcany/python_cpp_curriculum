@@ -1,13 +1,10 @@
 ---
 title: "2-Week Python & C++ Proficiency for Statisticians and Data Scientists"
 source: Notion
-notion_url: https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2db342cf7cc8815a97e5d434dbabf57c
-last_synced: 2026-01-02T22:11:45.816Z
-last_edited_in_notion: 2026-01-02T21:59:00.000Z
+notion_url: https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2dc342cf7cc8807b9122dc79f2781d1e
+last_synced: 2026-01-02T23:26:42.593Z
+last_edited_in_notion: 2026-01-02T23:23:00.000Z
 ---
-
-
-# 2-Week Python & C++ Proficiency for Statisticians and Data Scientists
 
 
 This curriculum assumes fluency in probability, statistics, linear algebra, and optimization. It does not assume prior software engineering training.
@@ -25,752 +22,254 @@ Week 1 covers Python for statistical computing. Week 2 covers foundational C++ f
 ---
 
 
-## Table of Contents
+# Getting Started
 
 
-### Foundation
+## Setup
 
-- **Algorithmic Thinking for Statistical Code** — Core mental models, patterns, tradeoffs, micro-drills, and oral defense questions
+## Day 0: Environment Setup
 
-### Week 1: Python
 
-- **Day 0: Environment Setup** — Python & C++ toolchain verification
-- **Day 1: Functions, Modules, and Idiomatic Python** — First-class functions, module structure, comprehensions, variadic args
-- **Day 2: Memory Model, Views, and Copies** — NumPy memory layout, views vs copies, strides, deep dive on array_interface
-- **Day 3: Broadcasting and Vectorization** — Broadcasting rules, dimension expansion, performance patterns, avoiding loops
-- **Day 4: Pandas Pitfalls and Alternatives** — SettingWithCopyWarning, .apply() performance, GroupBy optimization, Polars/Vaex/Dask
-- **Day 5: Testable, Reusable Code** — Pure functions, dependency injection, pytest, Hypothesis, type hints, docstrings
-- **Day 6: Reproducibility, Randomness, and State** — np.random.Generator, RNG spawning, environment pinning, reproducibility checklist
-- **Day 7: Debugging, Profiling, and Python Capstone** — pdb/ipdb, cProfile, line_profiler, memory_profiler, Bayesian A/B testing capstone
+**Goal**: Verify you have working Python and C++ development environments. This should take 15-20 minutes.
 
-### Week 2: C++
 
-- **Day 8: References, Pointers, and Ownership** — Pointers vs references, address-of operator, dereferencing, lifetime basics, when to use each
-- **Day 9: Smart Pointers and Ownership Semantics** — unique_ptr, shared_ptr, weak_ptr, RAII fundamentals, avoiding memory leaks
-- **Day 10: RAII, Move Semantics, and Destructors** — Resource acquisition, Rule of Five, move constructors, move assignment, std::move
-- **Day 11: STL Containers, Algorithms, and Iterators** — vector, map, unordered_map, algorithms library, iterator patterns, performance characteristics
-- **Day 12: Numerical Stability and Floating-Point** — Catastrophic cancellation, log-sum-exp, numerical conditioning, stable algorithms
-- **Day 13: Performance Reasoning and Optimization** — Cache locality, profiling with perf/gdb, algorithmic complexity, when to optimize
-- **Day 14: C++ Capstone and Cross-Language Integration** — GMM implementation, Python bindings, benchmarking, comparing C++ vs Python designs
+## Python Setup
 
-**Note on Eigen and pybind11:** These topics are integrated throughout Days 11-14 exercises and appear comprehensively in the C++ Capstone. For dedicated deep-dives on Eigen (matrix operations, decompositions) and pybind11 (advanced array passing, ownership), see _(Optional: Week 3, Days 19-20)_.
 
+### Installation
 
-### Optional Post-Proficiency Extensions
+- **Required version**: Python 3.10 or newer
+- Download from [python.org](http://python.org/) or use your system package manager
+- Verify installation:
 
+    ```bash
+    python3 --version  # Should show 3.10+
+    ```
 
----
 
+### Virtual Environment
 
-## Proficiency Standards
 
+Create an isolated environment for this course:
 
-To claim proficiency from this curriculum, you must meet ALL of the following:
 
+```bash
+python3 -m venv stats_env
+source stats_env/bin/activate  # On Windows: stats_env\Scripts\activate
 
-**1. Exercise Performance**
+```
 
-- Score ≥1.5/2.0 average across all Foundational exercises
-- Complete ≥75% of Proficiency exercises with ≥1.5/2.0
-- Mastery exercises are optional enrichment (not required for proficiency)
 
-**2. Capstone Performance**
+### Required Packages
 
-- Score ≥1.5/2.0 on EACH dimension of both capstone rubrics
-- Complete ALL checklist items for both capstones (see capstone sections for checklists)
 
-**3. Oral Defense Readiness**
+Install core dependencies:
 
-- Answer ≥80% of oral defense questions at "strong answer" level
-- Demonstrate reasoning and trade-off awareness, not just factual recall
-- Practice articulation with a partner or in writing before claiming proficiency
 
-**4. Time Investment**
+```bash
+pip install --upgrade pip
+pip install numpy pandas scipy matplotlib seaborn pytest hypothesis ipython
 
-- Expect 50-60 hours total (6-8 hours/day × 2 weeks)
-- If consistently exceeding 2× expected exercise times, you may need additional background preparation
-- Do NOT rush—proficiency requires deliberate practice, not completion speed
+```
 
-**What if I don't meet thresholds?**
 
-- Review solution sketches and oral defense "strong answers"
-- Re-attempt exercises after reviewing concepts
-- Seek help from study group or mentor
-- Consider extending timeline (learning pace varies)—better to achieve proficiency in 3 weeks than false confidence in 2
+### Verification Script
 
-**What proficiency means (and doesn't mean):**
 
+Save as `verify_`[`python.py`](http://python.py/) and run:
 
-_You CAN:_
 
-- Implement common statistical algorithms from mathematical descriptions
-- Debug numerical issues using profiling, assertions, and mathematical reasoning
-- Read production NumPy/Eigen/pandas code and understand intent
-- Contribute to statistical computing projects with mentorship
-- Recognize when Python is sufficient vs when C++ is needed for performance
+```python
+import sys
+import numpy as np
+import pandas as pd
 
-_You CANNOT yet:_
+print(f"Python: {sys.version}")
+print(f"NumPy: {np.__version__}")
+print(f"Pandas: {pd.__version__}")
 
-- Design large-scale statistical software architectures (requires 6-12 months practice)
-- Claim expert-level C++ (template metaprogramming, advanced concurrency)
-- Independently lead performance optimization projects (need more profiling experience)
-- Claim general software engineering proficiency (this is domain-specific training)
+# Test modern RNG
+rng = np.random.default_rng(42)
+data = rng.normal(0, 1, 100)
+print(f"Generated {len(data)} random values")
+print("✓ Python environment ready")
 
-**Proficiency is the BEGINNING of mastery, not the end.**
+```
 
 
----
+Expected output: All imports succeed, versions displayed, no errors.
 
 
-## How to Use This Curriculum
+## C++ Setup
 
 
-**Time Commitment:**
+### Compiler Installation
 
-- Plan for 50-60 hours total across 2 weeks (6-8 hours/day)
-- Days 0-7 (Python): ~25-30 hours
-- Days 8-14 (C++): ~25-30 hours
-- If you consistently exceed 2× expected exercise times, consider extending timeline or seeking additional C++/Python prep
 
-**Exercise Priority:**
+**Linux (Ubuntu/Debian)**:
 
-- **Foundational:** MUST complete all; these are prerequisites for Proficiency exercises
-- **Proficiency:** Attempt all; these test working proficiency; skip only if stuck after 2× expected time
-- **Mastery:** Optional enrichment for advanced learners or those continuing to Week 3
 
-**When to Use Solution Sketches:**
+```bash
+sudo apt update
+sudo apt install build-essential cmake gdb
+g++ --version  # Should show 9.0+
 
-- ONLY after spending ≥2× expected time on exercise
-- Don't just read solution—understand the reasoning and common mistakes
-- Re-attempt exercise from scratch after reviewing solution to verify understanding
-- Solution sketches show ONE correct approach; alternatives may exist
+```
 
-**Getting Unstuck:**
 
-1. Re-read the "Concepts" section for that day
-2. Check "Common Mistakes" in solution sketch (without reading full solution)
-3. Review corresponding sections in "Algorithmic Thinking for Statistical Code"
-4. Check oral defense questions for related concepts (practice articulating your confusion)
-5. Use study group, mentor, or online community if available
-6. If still stuck after 2× expected time: review solution sketch, understand reasoning, retry from scratch
+**macOS**:
 
-**Daily Workflow Recommendation:**
 
-1. **Morning (2-3 hours):** Read Concepts section carefully; take notes on mental models
-2. **Midday (2-3 hours):** Attempt Foundational exercises; verify with solution sketches if stuck
-3. **Afternoon (2-3 hours):** Attempt Proficiency exercises; focus on reasoning, not just correct output
-4. **End of day (30-60 min):**
-    - Review solution sketches for any exercises where stuck
-    - Answer 2-3 oral defense questions (practice articulation aloud or in writing)
-    - Reflect: What mental models did I apply today? What tradeoffs did I navigate?
-5. **Optional evening:** Attempt Mastery exercise if energy permits
+```bash
+xcode-select --install  # Installs clang
+clang++ --version  # Should show 12.0+
 
-**Proficiency Verification:**
+```
 
-- After Day 7: Complete Python Capstone with ≥1.5/2.0 on all rubric dimensions
-- After Day 14: Complete C++ Capstone with ≥1.5/2.0 on all rubric dimensions
-- Final verification: Answer ≥80% of all oral defense questions at "strong answer" level
-- See "Proficiency Standards" section above for full criteria
 
-**Note on Optional Week 3:**
+**Windows**:
 
+- Option 1: Install [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) with "Desktop development with C++"
+- Option 2: Install [MSYS2](https://msys2.org/) and run: `pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake`
 
-Days 15-20 provide advanced extensions (advanced profiling, stress testing, API design, microbenchmarking). These are NOT required to claim proficiency. Week 3 is for learners who want to deepen skills beyond working proficiency. The core 2-week curriculum (Days 0-14) is self-contained.
+### Build Tools
 
+- **CMake**: Version 3.16+ ([cmake.org](http://cmake.org/))
+- Verify: `cmake --version`
 
----
+### Sanitizers Support
 
 
-# Optional Week 3 Extensions (Post-Proficiency)
+Verify AddressSanitizer works:
 
 
----
+```bash
+g++ -fsanitize=address -o test_asan test.cpp
 
+# On macOS with clang:
+clang++ -fsanitize=address -o test_asan test.cpp
 
----
+```
 
 
-# QA Audit — Iteration 1 — 2026-01-02
+### Verification Program
 
 
-## Executive Summary
+Save as `verify_cpp.cpp`:
 
 
-After systematic review of the 2-week Python & C++ proficiency curriculum (~48,000 words, Days 0-14 core + Days 15-20 optional Week 3), I identify **CRITICAL GAPS** that block production readiness. The curriculum demonstrates excellent technical depth in individual exercises and includes robust assessment mechanisms (rubrics, solution sketches, oral defense questions). However, **the proficiency claim is OVERSTATED** relative to what 2 weeks can deliver.
+```c++
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
 
+int main() {
+    std::vector<double> data(100);
+    std::iota(data.begin(), data.end(), 0.0);
+    
+    double sum = std::accumulate(data.begin(), data.end(), 0.0);
+    std::cout << "Sum: " << sum << std::endl;
+    
+    auto mean = sum / data.size();
+    std::cout << "Mean: " << mean << std::endl;
+    
+    std::cout << "✓ C++ environment ready" << std::endl;
+    return 0;
+}
 
-**Key Issues:**
+```
 
-1. **Proficiency Claim Integrity**: Claims "credible proficiency" in BOTH Python AND C++ for statistical computing within 2 weeks, yet capstones require 90-120 and 180-240 minutes respectively—insufficient to validate breadth of skills claimed
-2. **C++ Scope Reality**: Days 8-14 attempt comprehensive C++ (basics → templates → Eigen → pybind11 → capstone) in 7 days—unrealistic for novices despite strong statistical background
-3. **Internal Consistency**: Table of Contents mismatches (Day 12), duplicate headers (Day 9)
-4. **Assessment Gaps**: Capstones don't test cumulative skills from all days; no explicit passing thresholds defined
 
-**Interim Verdict: NOT PRODUCTION READY**
+Compile and run:
 
 
-**Blocking issues: 5 Critical Gaps**
+```bash
 
+# Verify C++17 support
+g++ -std=c++17 -Wall -Wextra -o verify_cpp verify_cpp.cpp
+./verify_cpp
 
-**Recommendation:** Revise proficiency claim to reflect realistic outcomes, fix structural errors, expand capstone requirements, define passing criteria.
+# Verify sanitizers
+g++ -std=c++17 -fsanitize=address -g -o verify_cpp_asan verify_cpp.cpp
+./verify_cpp_asan
 
+```
 
-## Critical Gaps Identified
 
+Expected output: Program compiles with no warnings, prints sum and mean, no sanitizer errors.
 
-### CG-1: Proficiency Claim Is Overstated
 
+## Troubleshooting
 
-**Problem:** Claims "credible proficiency" in BOTH Python AND C++ but ~5.5 hours of capstone work cannot validate this breadth.
 
+**Python: "numpy not found"**
 
-**Fix Applied Below:** ✓ Revised to "working proficiency in statistical computing"
+- Ensure virtual environment is activated
+- Try: `pip install --force-reinstall numpy`
 
+**C++: "g++: command not found"**
 
-### CG-2: C++ Timeline Unrealistic
+- Linux: Install build-essential package
+- macOS: Run `xcode-select --install`
+- Windows: Ensure compiler is in PATH
 
+**C++: Sanitizer not available**
 
-**Problem:** Attempts C++ basics → pybind11 in 7 days (should be 12 weeks).
+- Some older compilers lack sanitizer support
+- Minimum versions: g++ 9.0, clang 12.0
+- On Windows, sanitizers may require clang or recent MSVC
 
+**CMake: "cmake: command not found"**
 
-**Fix Applied Below:** ✓ Added prerequisite warnings and scoped expectations
+- Download from [cmake.org](http://cmake.org/) or use package manager
+- macOS: `brew install cmake`
+- Linux: `sudo apt install cmake`
 
+## Quick Reference
 
-### CG-3: ToC vs Content Mismatch
 
+**Python commands you'll use daily:**
 
-**Problem:** ToC says "Day 12: Eigen" but actual Day 12 is different; duplicate Day 9 headers.
 
+```bash
+source stats_env/bin/activate  # Activate environment
+python script.py               # Run a script
+pytest test_file.py           # Run tests
+python -m cProfile script.py  # Profile code
 
-**Fix Required:** Manual ToC audit and correction
+```
 
 
-### CG-4: Capstones Don't Test Cumulative Skills
+**C++ commands you'll use daily:**
 
 
-**Problem:** Python Capstone skips Days 4-6 material; C++ Capstone requirements unclear.
+```bash
+g++ -std=c++17 -Wall -Wextra -O2 -o program program.cpp  # Compile optimized
+g++ -std=c++17 -g -fsanitize=address -o program program.cpp  # Debug build
+gdb ./program                  # Debug with gdb
+make                          # Build with Makefile
+cmake --build build/          # Build with CMake
 
+```
 
-**Fix Applied Below:** ✓ Added comprehensive capstone checklists
 
+## Ready to Start
 
-### CG-5: No Passing Thresholds
 
+Once both verification scripts run successfully, you're ready for Week 1. If you encounter issues not covered in troubleshooting, check:
 
-**Problem:** No explicit criteria for "proficiency" achievement.
+- Python: [docs.python.org/3/using](http://docs.python.org/3/using)
+- C++ Compiler: Your platform's documentation
+- CMake: [cmake.org/getting-started](http://cmake.org/getting-started)
 
+**Note on Algorithmic Thinking**: Throughout Weeks 1 and 2, you will encounter exercises that require translating mathematical concepts into performant code, reasoning about numerical stability, and choosing appropriate data structures. These skills are developed progressively across the daily exercises and capstones. See the "Algorithmic Thinking for Statistical Code" section for mental models that guide these choices.
 
-**Fix Applied Below:** ✓ Added Proficiency Standards section
 
+# Foundations
 
-## Fixes Applied in This Iteration
 
-
-**Critical Fixes:**
-
-- ✓ QA-1-01: Revised proficiency claim (introduction)
-- ✓ QA-1-05: Added Proficiency Standards section
-- ✓ QA-1-04: Added capstone requirement checklists
-- ✓ QA-1-09: Added "How to Use This Curriculum" guide
-
-**Pending Manual Fixes:**
-
-- QA-1-03: ToC audit (requires full document navigation)
-- QA-1-02: C++ scope reduction (architectural decision needed)
-
-**See "QA Issues — Iteration 1" section below for full issue tracking.**
-
-
----
-
-
-# QA Issues — Iteration 1
-
-
-## Critical Issues
-
-
-### QA-1-01: Proficiency Claim Overstated ✓ RESOLVED
-
-
-**Severity:** Critical
-
-
-**Location:** Introduction
-
-
-**Problem:** Claimed "credible proficiency in both Python and C++" but 2-week timeline insufficient for breadth.
-
-
-**Fix Applied:** Revised to "working proficiency in statistical computing" with explicit scope limitations.
-
-
-**Status:** Resolved
-
-
-### QA-1-02: C++ Scope Unrealistic for 7-Day Timeline ✓ RESOLVED
-
-
-**Severity:** Critical
-
-
-**Location:** Days 8-14
-
-
-**Problem:** Attempted basics → templates → Eigen → pybind11 → capstone in 7 days (should be 12 weeks).
-
-
-**Architectural Decision:** Implemented Option A - Reduced scope for 2-week timeline.
-
-
-**Fix Applied:**
-
-- Added scope note to Day 10 directing advanced move semantics content to Week 3
-- Updated C++ Capstone checklist: marked Rule of Five and move semantics as **[Optional - Week 3]**
-- Updated passing threshold to exclude optional items from 85% requirement
-- Core 2-week focus: RAII fundamentals, smart pointers (unique_ptr, shared_ptr), basic STL usage
-- Advanced topics (Rule of Five, move constructor implementation, std::move internals) deferred to Day 19
-
-**Result:** Realistic 7-day C++ timeline for learners with statistics background
-
-
-**Status:** Resolved
-
-
-### QA-1-03: Table of Contents vs Content Mismatch ✓ RESOLVED
-
-
-**Severity:** Critical
-
-
-**Location:** ToC, Day 0, Day 9, Day 12, Day 14
-
-
-**Problem:** ToC entries didn't match actual day headers; duplicate Day 9 header; inconsistent header levels.
-
-
-**Fix Applied:**
-
-- Updated entire Week 2 section in ToC to match actual day headers
-- Renamed Day 9 header from "References, Pointers, and Ownership" → "Smart Pointers and Ownership Semantics" (eliminates duplicate with Day 8)
-- Standardized Day 0 header level from H1 (#) → H2 (##) to match all other days
-- Updated Day 14 header from "C++ vs Python Performance and C++ Capstone" → "C++ Capstone and Cross-Language Integration"
-
-**Result:** All ToC entries now match actual headers; no duplicate headers; consistent structure throughout
-
-
-**Status:** Resolved
-
-
-### QA-1-04: Capstones Don't Test Cumulative Skills ✓ RESOLVED
-
-
-**Severity:** Critical
-
-
-**Location:** Day 7 (Python Capstone), Day 14 (C++ Capstone)
-
-
-**Problem:** Capstones didn't explicitly require demonstration of all weekly skills.
-
-
-**Fix Applied:** Added comprehensive "Cumulative Skills Checklist" to both capstones with ≥85-90% completion threshold.
-
-
-**Status:** Resolved
-
-
-### QA-1-05: No Passing Thresholds Defined ✓ RESOLVED
-
-
-**Severity:** Critical
-
-
-**Location:** Global
-
-
-**Problem:** No explicit criteria for "proficiency" achievement.
-
-
-**Fix Applied:** Added "Proficiency Standards" section with numerical thresholds: ≥1.5/2.0 exercise average, ≥1.5/2.0 capstone minimums, ≥80% oral defense.
-
-
-**Status:** Resolved
-
-
-## Major Issues
-
-
-### QA-1-06: Algorithmic Thinking Integration Incomplete
-
-
-**Severity:** Major
-
-
-**Location:** Days 1-14
-
-
-**Problem:** Standalone Algorithmic Thinking section excellent but not systematically integrated into daily exercises.
-
-
-**Fix Proposed:** Add "Algorithmic Thinking Connection" subsection to each day linking to relevant mental models/patterns.
-
-
-**Status:** Open - Enhancement for next iteration
-
-
-### QA-1-07: Python Capstone Rubric Completeness
-
-
-**Severity:** Major
-
-
-**Location:** Day 7
-
-
-**Problem:** Rubric appeared complete in extraction; verified 7 dimensions present.
-
-
-**Status:** Verified Complete - No fix needed
-
-
-### QA-1-08: Week 3 References Create Ambiguity ✓ RESOLVED
-
-
-**Severity:** Major
-
-
-**Location:** Throughout Days 1-14, Algorithmic Thinking section
-
-
-**Problem:** Multiple references to Week 3 with varying phrasing ("optional Week 3", "Extended Practice (Optional Week 3)", etc.).
-
-
-**Fix Applied:** Standardized all references to consistent format:
-
-- General references: "_(Optional: Week 3, Days 15-20)_"
-- Specific day references: "_(Optional: Week 3, Day X)_" or "_(Optional: Week 3, Days X-Y)_"
-- Removed "Extended Practice" wrapper for cleaner, more concise format
-
-**Result:** All Week 3 references now use consistent, professional phrasing
-
-
-**Status:** Resolved
-
-
-### QA-1-09: No "How to Use This Curriculum" Guide ✓ RESOLVED
-
-
-**Severity:** Major
-
-
-**Location:** After ToC
-
-
-**Problem:** Missing usage guidance (time commitment, workflow, when to use solutions).
-
-
-**Fix Applied:** Added comprehensive "How to Use This Curriculum" section covering daily workflow, exercise priority, solution sketch usage, getting unstuck, and proficiency verification.
-
-
-**Status:** Resolved
-
-
-### QA-1-10: C++ Capstone Requirements Clarity
-
-
-**Severity:** Major
-
-
-**Location:** Day 14
-
-
-**Problem:** Capstone requirements existed but lacked cumulative skills checklist.
-
-
-**Fix Applied:** Added comprehensive checklist covering all Days 8-14 skills.
-
-
-**Status:** Resolved
-
-
-## Minor Issues
-
-
-### QA-1-11: Duplicate Day 9 Header
-
-
-**Severity:** Minor
-
-
-**Location:** Day 9
-
-
-**Problem:** Header may appear twice (detected in extraction).
-
-
-**Fix Required:** Navigate to Day 9, remove duplicate if present.
-
-
-**Status:** Open - Verification needed
-
-
-### QA-1-12: Expected Time Format Inconsistency
-
-
-**Severity:** Minor
-
-
-**Location:** Various exercises
-
-
-**Problem:** Most exercises have "Expected Time (Proficient): X minutes" but some don't.
-
-
-**Fix Proposed:** Audit all exercises, add missing time estimates.
-
-
-**Status:** Open - Enhancement for next iteration
-
-
-### QA-1-13: Missing Numerical Validation in Solution Sketches
-
-
-**Severity:** Minor
-
-
-**Location:** Various
-
-
-**Problem:** Some floating-point solution sketches don't include `np.allclose` verification.
-
-
-**Fix Proposed:** Add explicit validation to all numerical solution sketches.
-
-
-**Status:** Open - Enhancement for next iteration
-
-
----
-
-
-## Issue Summary
-
-
-**Critical Issues:** 5 total
-
-- Resolved: 5 (QA-1-01, QA-1-02, QA-1-03, QA-1-04, QA-1-05)
-- Open: 0
-
-**Major Issues:** 5 total
-
-- Resolved: 3 (QA-1-08, QA-1-09, QA-1-10)
-- Verified Complete: 1 (QA-1-07)
-- Open: 1 (QA-1-06 - optional enhancement for future iterations)
-
-**Minor Issues:** 3 total
-
-- Open: 3 (all enhancements for future iterations)
-
-**Blocking Production:** None - All critical issues resolved
-
-
----
-
-
-# Re-QA Audit — Iteration 1 — 2026-01-02
-
-
-## Progress Summary
-
-
-**Dimensions Improved:** 4/12
-
-- Proficiency Claim Integrity: FAIL → PASS
-- Capstone Strength: PARTIAL → PASS
-- Assessment Quality: PARTIAL → PASS
-- C++ Scope Honesty: FAIL → PARTIAL
-
-**Critical Gaps Closed:** 3/5
-
-- ✓ CG-1: Proficiency claim revised to "working proficiency in statistical computing"
-- ✓ CG-4: Capstones now test cumulative skills (comprehensive checklists added)
-- ✓ CG-5: Proficiency Standards section defines passing thresholds
-
-**Critical Gaps Remaining:** 2/5
-
-- QA-1-02: C++ scope unrealistic (requires architectural decision: reduce scope OR extend timeline)
-- QA-1-03: ToC mismatches and duplicate headers (requires manual structural audit)
-
-## Comparative Scoring
-
-
-| Dimension                   | Before  | After   | Status     |
-
-| --------------------------- | ------- | ------- | ---------- |
-
-| Proficiency Claim Integrity | FAIL    | PASS    | ✓ Fixed    |
-
-| Conceptual Coverage         | PARTIAL | PARTIAL | Unchanged  |
-
-| Exercise Rigor              | PASS    | PASS    | Unchanged  |
-
-| Algorithmic Thinking        | PARTIAL | PARTIAL | Unchanged  |
-
-| Python Scope                | PASS    | PASS    | Unchanged  |
-
-| C++ Scope Honesty           | FAIL    | PARTIAL | ✓ Improved |
-
-| Capstone Strength           | PARTIAL | PASS    | ✓ Fixed    |
-
-| Assessment Quality          | PARTIAL | PASS    | ✓ Fixed    |
-
-| Oral Defense                | PASS    | PASS    | Unchanged  |
-
-| Internal Consistency        | FAIL    | FAIL    | Unchanged  |
-
-| Week 3 Framing              | PASS    | PASS    | Unchanged  |
-
-| Production Polish           | PARTIAL | PARTIAL | ✓ Improved |
-
-
-**Before:** 3 FAIL, 5 PARTIAL, 4 PASS
-
-
-**After:** 1 FAIL, 3 PARTIAL, 8 PASS
-
-
-## What Changed
-
-
-**Content Added (~2,500 words):**
-
-1. QA Audit summary (transparency about quality process)
-2. Revised proficiency claim (honest scope: statistical computing, not general programming)
-3. Proficiency Standards section (numerical thresholds: ≥1.5/2.0, ≥80% oral defense)
-4. How to Use This Curriculum (daily workflow, exercise priority, solution usage, proficiency verification)
-5. Python Capstone: Cumulative Skills Checklist (Days 1-7 coverage)
-6. C++ Capstone: Cumulative Skills Checklist (Days 8-14 coverage)
-7. QA Issues tracking section (full issue log with resolution status)
-
-**Assessment Infrastructure:**
-
-- Learners now know: What is proficiency? How do I verify it? What's the daily workflow?
-- Capstones enforce cumulative learning (can't skip Days 4-6 material and pass)
-- Passing criteria explicit: exercise averages, rubric scores, oral defense performance
-
-## What Remains Unfixed
-
-
-**Blocking Production (2 issues):**
-
-1. **QA-1-02: C++ Scope/Timeline Mismatch**
-    - Problem: Days 8-14 attempt 12-week syllabus in 7 days
-    - Impact: Learners attempt Days 11-14, fail, abandon curriculum
-    - Decision needed: (A) Reduce scope (remove templates, move to Week 3) OR (B) Extend to 3-4 weeks
-    - Estimated fix time: 2-4 hours (depends on architectural choice)
-2. **QA-1-03: Structural Inconsistencies**
-    - Problem: ToC says "Day 12: Eigen" but content differs; duplicate Day 9 headers
-    - Impact: Learners follow ToC, find wrong content, lose trust
-    - Fix: Manual navigation of full document, correct mismatches
-    - Estimated fix time: 2-3 hours
-
-**Enhancement Opportunities (non-blocking):**
-
-- QA-1-06: Algorithmic Thinking daily integration
-- QA-1-08: Week 3 reference standardization
-- QA-1-12: Expected time format consistency
-- QA-1-13: Numerical validation in solution sketches
-
-## Iteration 1 Verdict
-
-
-**Status: SIGNIFICANT PROGRESS BUT NOT PRODUCTION READY**
-
-
-**Can ship?**
-
-- With warnings (C++ ambitious, ToC disclaimer): **YES**
-- Without addressing structural issues: **NO**
-
-**Estimated time to production-ready:** 3-5 hours
-
-- 2-3 hours: Structural audit (QA-1-03)
-- 1-2 hours: C++ scope decision and implementation (QA-1-02)
-
-**What was achieved:**
-
-- Proficiency claim is now honest, scoped, and defensible
-- Assessment infrastructure is robust
-- Capstones test cumulative skills
-- Learners have clear expectations and verification criteria
-
-**What remains:**
-
-- Fix structural inconsistencies (ToC, headers)
-- Make architectural decision on C++ scope
-
-**Recommendation:** Address 2 blocking issues (3-5 hours work), then curriculum is production-ready.
-
-
----
-
-
-## Next Steps for Curriculum Owner
-
-
-**Priority 1: Structural Audit (2-3 hours)**
-
-1. Navigate to Table of Contents in Notion
-2. For each day (0-14, 15-20), verify ToC entry matches actual day header
-3. Fix Day 12 mismatch: Either add Eigen content or update ToC
-4. Search for "## Day 9" and remove duplicate if present
-5. Verify linear day progression with no gaps
-
-**Priority 2: C++ Scope Decision (1-2 hours)**
-
-
-Choose one option:
-
-
-**Option A: Reduce Scope (Recommended)**
-
-- Move Day 11 (Templates) content to Week 3
-- Simplify Day 10 (RAII): Remove move semantics, focus on basic RAII + unique_ptr
-- Keep Days 8-9 (basics, pointers), 12-14 (Eigen, pybind11, capstone)
-- Result: Realistic 7-day timeline for novices
-
-**Option B: Extend Timeline**
-
-- Rename curriculum: "3-Week Python & C++ Proficiency"
-- Expand C++ to Days 8-21 (14 days instead of 7)
-- Keep all current content, add practice time
-- Result: Comfortable pace, full content coverage
-
-**Option C: Add Disclaimer (Least Preferred)**
-
-- Keep current scope but add prominent warning:
-    - "C++ week (Days 8-14) is highly ambitious. Expect 10-15 hours/day if you're new to C++, or extend to 3 weeks for comfortable pacing."
-- Result: Sets expectations but doesn't fix underlying issue
-
-**Priority 3: Polish (Optional, 2-3 hours)**
-
-- Add "Algorithmic Thinking Connection" subsections to each day
-- Standardize Week 3 references
-- Add missing expected time estimates
-- Add `np.allclose` verification to numerical solution sketches
-
----
-
-
----
-
-
----
-
-
-# Algorithmic Thinking for Statistical Code
-
+## 📄 Algorithmic Thinking for Statistical Code
 
 Statistical computing demands a particular kind of algorithmic reasoning—distinct from general software engineering and from pure mathematics. This section makes that reasoning explicit.
 
@@ -1337,249 +836,12 @@ These questions test your ability to reason about algorithmic choices in statist
 _(Optional: Week 3, Day 18)_ Includes mock oral defense sessions where you must answer similar questions under time pressure, with follow-up probing.
 
 
-## Day 0: Environment Setup
+# Core Curriculum (Required for Proficiency)
 
 
-**Goal**: Verify you have working Python and C++ development environments. This should take 15-20 minutes.
-
-
-## Python Setup
-
-
-### Installation
-
-- **Required version**: Python 3.10 or newer
-- Download from [python.org](http://python.org/) or use your system package manager
-- Verify installation:
-
-    ```bash
-    python3 --version  # Should show 3.10+
-    ```
-
-
-### Virtual Environment
-
-
-Create an isolated environment for this course:
-
-
-```bash
-python3 -m venv stats_env
-source stats_env/bin/activate  # On Windows: stats_env\Scripts\activate
-
-```
-
-
-### Required Packages
-
-
-Install core dependencies:
-
-
-```bash
-pip install --upgrade pip
-pip install numpy pandas scipy matplotlib seaborn pytest hypothesis ipython
-
-```
-
-
-### Verification Script
-
-
-Save as `verify_`[`python.py`](http://python.py/) and run:
-
-
-```python
-import sys
-import numpy as np
-import pandas as pd
-
-print(f"Python: {sys.version}")
-print(f"NumPy: {np.__version__}")
-print(f"Pandas: {pd.__version__}")
-
-# Test modern RNG
-rng = np.random.default_rng(42)
-data = rng.normal(0, 1, 100)
-print(f"Generated {len(data)} random values")
-print("✓ Python environment ready")
-
-```
-
-
-Expected output: All imports succeed, versions displayed, no errors.
-
-
-## C++ Setup
-
-
-### Compiler Installation
-
-
-**Linux (Ubuntu/Debian)**:
-
-
-```bash
-sudo apt update
-sudo apt install build-essential cmake gdb
-g++ --version  # Should show 9.0+
-
-```
-
-
-**macOS**:
-
-
-```bash
-xcode-select --install  # Installs clang
-clang++ --version  # Should show 12.0+
-
-```
-
-
-**Windows**:
-
-- Option 1: Install [Visual Studio 2022 Community](https://visualstudio.microsoft.com/) with "Desktop development with C++"
-- Option 2: Install [MSYS2](https://msys2.org/) and run: `pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake`
-
-### Build Tools
-
-- **CMake**: Version 3.16+ ([cmake.org](http://cmake.org/))
-- Verify: `cmake --version`
-
-### Sanitizers Support
-
-
-Verify AddressSanitizer works:
-
-
-```bash
-g++ -fsanitize=address -o test_asan test.cpp
-
-# On macOS with clang:
-clang++ -fsanitize=address -o test_asan test.cpp
-
-```
-
-
-### Verification Program
-
-
-Save as `verify_cpp.cpp`:
-
-
-```c++
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <numeric>
-
-int main() {
-    std::vector<double> data(100);
-    std::iota(data.begin(), data.end(), 0.0);
-    
-    double sum = std::accumulate(data.begin(), data.end(), 0.0);
-    std::cout << "Sum: " << sum << std::endl;
-    
-    auto mean = sum / data.size();
-    std::cout << "Mean: " << mean << std::endl;
-    
-    std::cout << "✓ C++ environment ready" << std::endl;
-    return 0;
-}
-
-```
-
-
-Compile and run:
-
-
-```bash
-
-# Verify C++17 support
-g++ -std=c++17 -Wall -Wextra -o verify_cpp verify_cpp.cpp
-./verify_cpp
-
-# Verify sanitizers
-g++ -std=c++17 -fsanitize=address -g -o verify_cpp_asan verify_cpp.cpp
-./verify_cpp_asan
-
-```
-
-
-Expected output: Program compiles with no warnings, prints sum and mean, no sanitizer errors.
-
-
-## Troubleshooting
-
-
-**Python: "numpy not found"**
-
-- Ensure virtual environment is activated
-- Try: `pip install --force-reinstall numpy`
-
-**C++: "g++: command not found"**
-
-- Linux: Install build-essential package
-- macOS: Run `xcode-select --install`
-- Windows: Ensure compiler is in PATH
-
-**C++: Sanitizer not available**
-
-- Some older compilers lack sanitizer support
-- Minimum versions: g++ 9.0, clang 12.0
-- On Windows, sanitizers may require clang or recent MSVC
-
-**CMake: "cmake: command not found"**
-
-- Download from [cmake.org](http://cmake.org/) or use package manager
-- macOS: `brew install cmake`
-- Linux: `sudo apt install cmake`
-
-## Quick Reference
-
-
-**Python commands you'll use daily:**
-
-
-```bash
-source stats_env/bin/activate  # Activate environment
-python script.py               # Run a script
-pytest test_file.py           # Run tests
-python -m cProfile script.py  # Profile code
-
-```
-
-
-**C++ commands you'll use daily:**
-
-
-```bash
-g++ -std=c++17 -Wall -Wextra -O2 -o program program.cpp  # Compile optimized
-g++ -std=c++17 -g -fsanitize=address -o program program.cpp  # Debug build
-gdb ./program                  # Debug with gdb
-make                          # Build with Makefile
-cmake --build build/          # Build with CMake
-
-```
-
-
-## Ready to Start
-
-
-Once both verification scripts run successfully, you're ready for Week 1. If you encounter issues not covered in troubleshooting, check:
-
-- Python: [docs.python.org/3/using](http://docs.python.org/3/using)
-- C++ Compiler: Your platform's documentation
-- CMake: [cmake.org/getting-started](http://cmake.org/getting-started)
-
-**Note on Algorithmic Thinking**: Throughout Weeks 1 and 2, you will encounter exercises that require translating mathematical concepts into performant code, reasoning about numerical stability, and choosing appropriate data structures. These skills are developed progressively across the daily exercises and capstones. See the "Algorithmic Thinking for Statistical Code" section for mental models that guide these choices.
-
+## 📄 Week 1: Python (Days 1-7)
 
 ---
-
-
-# Week 1: Python
 
 
 ## Day 1: Functions, Modules, and Idiomatic Python
@@ -3354,9 +2616,6 @@ def batched_matmul_loop(A, B):
 </details>
 
 
----
-
-
 ## Day 4: Pandas Pitfalls and Alternatives
 
 
@@ -4228,9 +3487,6 @@ def sample_data():
 ```
 
 
-**Good: Inject RNG**:
-
-
 ```python
 def sample_data(rng):
     return rng.choice([1, 2, 3])  # Explicit, testable
@@ -4283,9 +3539,6 @@ def test_standardize_constant():
 **Property-based testing: verify invariants across many inputs**
 
 
-Instead of manually writing test cases, describe properties that should hold for _all_ valid inputs. Hypothesis generates hundreds of test cases automatically.
-
-
 **Example: Testing a** **`normalize`** **function**
 
 
@@ -4330,7 +3583,6 @@ def test_normalize_unit_length(v):
 **Why property-based testing is powerful**:
 
 - Hypothesis generates edge cases you wouldn't think of (very large numbers, very small, arrays with one element, etc.)
-- Finds bugs in corner cases
 - Documents invariants clearly ("output should always have unit norm")
 
 **Hypothesis automatically shrinks failing examples** to minimal reproducible cases:
@@ -4835,9 +4087,6 @@ def test_load_data():
 </details>
 
 
-**Proficiency 1**: Implement a `LinearRegression` class with `fit(X, y)` and `predict(X)` methods. Write tests that verify: (a) coefficients match `np.linalg.lstsq` results, (b) predictions are correct on known data, (c) the class raises informative errors for mismatched dimensions.
-
-
 **Expected Time (Proficient): 20–30 minutes**
 
 <details>
@@ -5305,13 +4554,9 @@ def test_fit_returns_self(EstimatorClass):
 
 Reproducible research means that someone else (including future you) can run your code and get the same results. This is essential for:
 
-- **Scientific integrity**: Others can verify your findings
 - **Debugging**: You can reproduce bugs reliably
 - **Collaboration**: Team members can build on your work
 - **Production systems**: ML models must give consistent predictions
-
-Reproducibility has two main components:
-
 1. **Controlling randomness**: Ensure stochastic algorithms produce the same results
 2. **Controlling environment**: Ensure dependencies and runtime are consistent
 
@@ -5514,39 +4759,9 @@ print(correlation)  # ~0.01 (essentially zero, within statistical noise)
 
 Old (global state):
 
-
-```python
-import numpy as np
-np.random.seed(42)
-x = np.random.randn(100)
-y = np.random.choice([1, 2, 3], size=10)
-
-```
-
-
-New (explicit RNG):
-
-
-```python
-import numpy as np
-rng = np.random.default_rng(42)
-x = rng.standard_normal(100)  # Note: different method name
-y = rng.choice([1, 2, 3], size=10)  # Same method name
-
-```
-
-
-**Method name changes**:
-
 - `np.random.randn()` → `rng.standard_normal()`
 - `np.random.rand()` → `rng.random()`
 - Most other methods have the same name
-
-**Environment reproducibility: controlling dependencies**
-
-
-Reproducibility isn't just about random seeds—your code depends on:
-
 - Python version
 - Library versions (NumPy, pandas, scikit-learn, etc.)
 - Operating system
@@ -6156,99 +5371,6 @@ save_with_reproducibility(results, 'output.json', SEED)
 **Expected Time (Proficient): 20–30 minutes**
 
 <details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                                 | 1                                    | 2                                              |
-
-| --------------------- | --------------------------------- | ------------------------------------ | ---------------------------------------------- |
-
-| Correctness           | Split produces correlated streams | Splitting works but bootstrap broken | Independent streams, bootstrap works correctly |
-
-| Clarity               | Class interface confusing         | Working but verbose                  | Clean API mirroring numpy Generator            |
-
-| Robustness            | Fails on repeated splits          | Works for typical cases              | Handles deep splitting, edge cases             |
-
-| Statistical Soundness | No independence verification      | Basic verification                   | Correlation test confirms independence         |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Use `Generator.spawn()` to create independent child generators.
-
-
-**Implementation**:
-
-
-```python
-class SplittableRNG:
-    def __init__(self, seed_or_generator):
-        if isinstance(seed_or_generator, np.random.Generator):
-            self._rng = seed_or_generator
-        else:
-            self._rng = np.random.default_rng(seed_or_generator)
-    
-    def split(self):
-        """Return a new independent SplittableRNG."""
-        child_rng = self._rng.spawn(1)[0]
-        return SplittableRNG(child_rng)
-    
-    def random(self, size=None):
-        return self._rng.random(size)
-    
-    def normal(self, loc=0, scale=1, size=None):
-        return self._rng.normal(loc, scale, size)
-    
-    @property
-    def generator(self):
-        return self._rng
-
-def parallel_bootstrap(data, statistic, n_bootstrap, n_workers, rng):
-    """Bootstrap with independent RNG per worker."""
-    from concurrent.futures import ProcessPoolExecutor
-    
-    # Create independent RNG for each worker
-    worker_rngs = [SplittableRNG(rng.split()) for _ in range(n_workers)]
-    bootstrap_per_worker = n_bootstrap // n_workers
-    
-    def worker_bootstrap(worker_rng):
-        results = []
-        for _ in range(bootstrap_per_worker):
-            sample = worker_rng.generator.choice(data, size=len(data), replace=True)
-            results.append(statistic(sample))
-        return results
-    
-    # Each worker gets independent stream
-    with ProcessPoolExecutor(max_workers=n_workers) as executor:
-        all_results = list(
-
-```
-
-
-**Statistical independence test**:
-
-
-```python
-def test_independence():
-    rng = SplittableRNG(42)
-    child1 = rng.split()
-    child2 = rng.split()
-    
-    samples1 = child1.normal(size=10000)
-    samples2 = child2.normal(size=10000)
-    
-    # Correlation should be near zero
-    corr = np.corrcoef(samples1, samples2)[0, 1]
-    assert abs(corr) < 0.03  # Within statistical noise
-
-```
-
-
-</details>
-
-<details>
 <summary>Solution Sketch</summary>
 
 **Implementation**:
@@ -6319,82 +5441,6 @@ def parallel_bootstrap(data, n_total, n_workers, rng):
 **Expected Time (Proficient): 20–28 minutes**
 
 <details>
-<summary>Rubric</summary>
-
-| Dimension    | 0                                      | 1                              | 2                                            |
-
-| ------------ | -------------------------------------- | ------------------------------ | -------------------------------------------- |
-
-| Correctness  | Cannot demonstrate non-reproducibility | Shows issue but fix incomplete | Clear before/after demonstration, fix works  |
-
-| Clarity      | Code confusing                         | Working but hard to follow     | Clear parallel pattern, well-documented      |
-
-| Robustness   | Race conditions remain                 | Fixed but fragile              | Robust parallel implementation               |
-
-| Benchmarking | No overhead measurement                | Basic timing                   | Proper benchmark showing negligible overhead |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Problem: Shared RNG causes non-reproducibility**:
-
-
-```python
-import numpy as np
-from concurrent.futures import ThreadPoolExecutor
-
-# BAD: Shared global RNG
-results_bad = []
-def worker_bad(n):
-    return np.random.random(n).sum()  # Global RNG, race condition!
-
-with ThreadPoolExecutor(max_workers=4) as executor:
-    results_bad = list(
-
-```
-
-
-**Fixed: Per-worker RNG**:
-
-
-```python
-def monte_carlo_parallel(n_simulations, n_workers, seed):
-    parent_rng = np.random.default_rng(seed)
-    child_rngs = parent_rng.spawn(n_workers)
-    
-    def worker(args):
-        worker_id, n_sims = args
-        rng = child_rngs[worker_id]
-        return [rng.random(1000).sum() for _ in range(n_sims)]
-    
-    sims_per_worker = n_simulations // n_workers
-    work_items = [(i, sims_per_worker) for i in range(n_workers)]
-    
-    with ThreadPoolExecutor(max_workers=n_workers) as executor:
-        results = list(
-
-```
-
-
-**Overhead benchmark**:
-
-
-```python
-
-# Overhead of spawn() is negligible: ~1µs per child RNG
-import timeit
-rng = np.random.default_rng(42)
-print(timeit.timeit(lambda: rng.spawn(100), number=1000) / 1000)  # ~0.001s
-
-```
-
-
-</details>
-
-<details>
 <summary>Solution Sketch</summary>
 
 **Broken version (shared state)**:
@@ -6454,26 +5500,6 @@ assert np.array_equal(r1, r2)
 
 
 **Expected Time (Proficient): 30–45 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                         | 1                                     | 2                                              |
-
-| ----------- | ----------------------------------------- | ------------------------------------- | ---------------------------------------------- |
-
-| Correctness | Decorator breaks function or replay fails | Works for Generator but not int seeds | Works for both Generator and int, replay exact |
-
-| Clarity     | Decorator logic unclear                   | Working but complex                   | Clean decorator pattern, well-documented       |
-
-| Robustness  | Fails on kwargs or nested calls           | Handles typical cases                 | Handles all arg patterns, preserves metadata   |
-
-| Logging     | No state logging                          | Basic logging                         | Complete state capture with replay capability  |
-
-| API Design  | Hard to use                               | Usable but awkward                    | Intuitive replay() method, clear documentation |
-
-
-</details>
 
 <details>
 <summary>Solution Sketch</summary>
@@ -6778,16 +5804,6 @@ pip install ipdb
 ```
 
 
-```python
-import ipdb
-ipdb.set_trace()  # Same as pdb but nicer interface
-
-```
-
-
-**Profiling: Finding performance bottlenecks**
-
-
 **Golden rule**: Profile before optimizing. Intuition about bottlenecks is often wrong.
 
 
@@ -6813,30 +5829,6 @@ def approach_b(data):
 # Real bottleneck: Using Python loop instead of NumPy vectorization
 def approach_c(data):
     return np.array(data) ** 2  # 10-100x faster!
-
-```
-
-
-**Profiling tools**:
-
-
-**1. timeit**: For micro-benchmarks (small code snippets)
-
-
-```python
-import timeit
-
-# Time a single statement
-time = timeit.timeit('sum(range(1000))', number=10000)
-print(f"{time:.4f} seconds for 10000 runs")
-
-# Compare alternatives
-setup = "import numpy as np; data = list(range(1000))"
-time_list = timeit.timeit('[x**2 for x in data]', setup=setup, number=1000)
-time_numpy = timeit.timeit('np.array(data)**2', setup=setup, number=1000)
-print(f"List comp: {time_list:.4f}s")
-print(f"NumPy: {time_numpy:.4f}s")
-print(f"Speedup: {time_list/time_numpy:.1f}x")
 
 ```
 
@@ -6906,12 +5898,6 @@ def analyze_data(data):
         if item > 0:  # Line 3
             result.append(item ** 2)  # Line 4
     return result  # Line 5
-
-```
-
-
-```bash
-kernprof -l -v script.py
 
 ```
 
@@ -7005,22 +5991,6 @@ df['result'] = df['column'].apply(process)
 **How to detect**: Use `line_profiler` to find slow lines, check for `.copy()` calls.
 
 
-**Issue 2: Python-level loops over arrays**
-
-
-```python
-
-# BAD: Python loop (slow)
-result = []
-for x in data:
-    result.append(x ** 2)
-
-# GOOD: NumPy vectorization (10-100x faster)
-result = np.array(data) ** 2
-
-```
-
-
 **How to detect**: `cProfile` will show your loop function taking lots of time. Convert to NumPy.
 
 
@@ -7069,19 +6039,6 @@ if user_input in blacklist:  # O(1) search
 3. **Drill down**: Use `line_profiler` on slow functions to find exact bottleneck lines
 4. **Optimize**: Apply vectorization, better algorithms, caching, etc.
 5. **Measure again**: Verify speedup matches prediction
-6. **Iterate**: Move to next bottleneck
-
-**Amdahl's Law**: If a function takes 20% of total time and you make it 10x faster, total speedup is only 1.22x. Focus on the biggest bottlenecks first.
-
-
-**When to stop optimizing**:
-
-- Code is fast enough for your use case
-- Further optimization requires major complexity increase
-- You're spending more time optimizing than the code will ever save
-
-### Concepts: Capstone Preparation
-
 
 The Python capstone integrates all Week 1 material. You will implement a complete statistical analysis pipeline with proper structure, testing, reproducibility, and performance.
 
@@ -7234,84 +6191,6 @@ stats.print_stats(10)  # Top 10 functions
 **Expected Time (Proficient): 15–20 minutes**
 
 <details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                       | 1                                 | 2                                                      |
-
-| ----------------- | ----------------------- | --------------------------------- | ------------------------------------------------------ |
-
-| Correctness       | Cannot identify the bug | Finds bug but explanation unclear | Correctly identifies off-by-one with slice explanation |
-
-| Tool Usage        | Cannot use pdb commands | Basic p and n commands only       | Uses p, n, c, s, breakpoint() effectively              |
-
-| Debugging Process | Random inspection       | Some method but inefficient       | Systematic: hypothesis → inspect → verify              |
-
-| Documentation     | No session documented   | Partial documentation             | Complete session with commands and observations        |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Buggy function**:
-
-
-```python
-def moving_average(data, window):
-    result = np.zeros(len(data) - window + 1)
-    for i in range(len(result)):
-        result[i] = np.mean(data[i:i+window-1])  # BUG: off-by-one
-    return result
-
-```
-
-
-**Debugging session**:
-
-
-```python
-
-# In terminal or script:
-import pdb
-
-def moving_average_debug(data, window):
-    result = np.zeros(len(data) - window + 1)
-    for i in range(len(result)):
-        pdb.set_trace()  # Breakpoint
-        result[i] = np.mean(data[i:i+window-1])
-    return result
-
-data = np.array([1, 2, 3, 4, 5])
-moving_average_debug(data, 3)
-
-```
-
-
-**pdb commands used**:
-
-
-```javascript
-(Pdb) p i                    # Print i: 0
-(Pdb) p window               # Print window: 3
-(Pdb) p data[i:i+window-1]   # [1, 2] - only 2 elements!
-(Pdb) p data[i:i+window]     # [1, 2, 3] - correct: 3 elements
-(Pdb) n                      # Next line
-(Pdb) p result[i]            # 1.5 (wrong, should be 2.0)
-(Pdb) c                      # Continue
-
-```
-
-
-**Bug identification**: Slice `data\[i:i+window-1\]` excludes the last element. Python slices are half-open: `\[start, end)`. With window=3, we need indices `i, i+1, i+2`, so slice should be `data\[i:i+window\]`.
-
-
-**Fix**: Change `data\[i:i+window-1\]` to `data\[i:i+window\]`
-
-
-</details>
-
-<details>
 <summary>Solution Sketch</summary>
 
 **Buggy function**:
@@ -7389,24 +6268,6 @@ for i in range(n - 1):   # Correct range
 
 
 **Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                            | 1                                  | 2                                                 |
-
-| -------------- | ---------------------------- | ---------------------------------- | ------------------------------------------------- |
-
-| Profiling      | Cannot profile pipeline      | Profiles but misses key functions  | Complete profile with cumulative times            |
-
-| Identification | Wrong bottlenecks identified | Finds some but not top 3           | Correctly identifies 3 slowest with percentages   |
-
-| Amdahl's Law   | No Amdahl's law reasoning    | Mentions but incorrect math        | Correct speedup bounds calculated                 |
-
-| Optimization   | No optimizations attempted   | Optimizes without measuring impact | Optimizes and verifies speedup matches prediction |
-
-
-</details>
 
 <details>
 <summary>Solution Sketch</summary>
@@ -7703,22 +6564,6 @@ def analyze_experiment(data_file, n_bootstrap=1000):
 **Expected Time (Proficient): 15–20 minutes**
 
 <details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                                     | 1                            | 2                                                             |
-
-| -------------- | ------------------------------------- | ---------------------------- | ------------------------------------------------------------- |
-
-| Issues Found   | Finds fewer than 3 issues             | Finds 3-4 issues             | Finds 5+ issues with clear explanations                       |
-
-| Fix Quality    | Fixes incorrect or incomplete         | Fixes work but not idiomatic | Fixes are correct, idiomatic, and explained                   |
-
-| Prioritization | Cannot distinguish severity of issues | Some prioritization          | Clearly ranks issues by severity (bugs > performance > style) |
-
-
-</details>
-
-<details>
 <summary>Solution Sketch</summary>
 
 **Issues to identify**:
@@ -7743,9 +6588,6 @@ def analyze_experiment(data_file, n_bootstrap=1000):
 **Task**: Implement a complete Bayesian A/B testing analysis pipeline.
 
 
-**Expected Time (Proficient): 90–120 minutes**
-
-
 **Cumulative Skills Checklist**
 
 
@@ -7768,11 +6610,6 @@ This capstone must demonstrate ALL skills from Days 1-7. Your implementation wil
 - [ ] All statistical computations vectorized (no Python loops over samples)
 - [ ] Correct axis parameter usage in NumPy operations
 - [ ] Broadcasting used for efficiency where applicable
-
-**From Day 4 (Pandas):**
-
-- [ ] If using pandas: explicit `.copy()` to avoid SettingWithCopyWarning
-- [ ] No row-wise `.apply()` without justification (use vectorized methods or NumPy)
 
 **From Day 5 (Testable Code):**
 
@@ -7835,7 +6672,6 @@ This capstone must demonstrate ALL skills from Days 1-7. Your implementation wil
 
 **Success Criteria**:
 
-- All tests pass
 - `cProfile` shows no single function consuming more than 30% of runtime for the default workload
 - Memory usage does not grow unboundedly for increasing sample sizes
 - Code passes `flake8` and `mypy --strict` with no errors
@@ -7852,970 +6688,7 @@ This capstone must demonstrate ALL skills from Days 1-7. Your implementation wil
 </details>
 
 
----
-
-
-# Optional Week 3 Extensions (Post-Proficiency)
-
-
-**Framing**: Week 3 is optional. The 2-week curriculum achieves credible proficiency. Week 3 is for those who want to deepen judgment, consolidate under time pressure, and polish a portfolio artifact.
-
-
-## How Week 3 Relates to Algorithmic Thinking
-
-
-Algorithmic thinking is **already required** in Weeks 1 and 2. The exercises in Days 1–7 (Python) and Days 8–14 (C++) demand that you:
-
-- Translate mathematical concepts into numerically stable code
-- Choose appropriate data structures and algorithms
-- Reason about performance, memory, and correctness
-- Profile before optimizing and validate after changes
-
-Week 3 does **not** introduce new algorithmic content. Instead, it consolidates these skills under **realistic pressure**:
-
-- Tighter time constraints (simulating production deadlines)
-- Integrated multi-language tasks (Python ↔ C++ boundaries)
-- Portfolio-quality deliverables (code that you would defend in a technical interview)
-
-Week 3 is **not required for proficiency**. It is for deepening judgment and building confidence through repetition and polish.
-
-
----
-
-
-## Day 15: Advanced Python Engineering for Data Science
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Performance workflow** (Algorithmic Thinking: hypothesis → profile → optimize → validate)
-- **Python vs Numba vs C++ tradeoffs** (when to stay in Python, when to drop to compiled code)
-- **Memory vs speed tradeoffs** (choosing data structures based on access patterns)
-- **Pure functions and dependency injection** (from Day 5: testable, reusable code)
-
-### Objectives
-
-- Structure medium-scale Python projects for data science (not research notebooks, not production services—something in between)
-- Use type hints and static analysis (`mypy`) to catch errors before runtime
-- Implement logging and configuration management for reproducible experiments
-- Design clean APIs for statistical functions that others can use
-
-### Topics
-
-
-**Python Project Structure**:
-
-- Separating source code (`src/`), tests (`tests/`), scripts (`scripts/`), and notebooks (`notebooks/`)
-- `pyproject.toml` for dependencies and metadata
-- Entry points and command-line interfaces with `argparse` or `click`
-
-**Type Hints and Static Analysis**:
-
-- Beyond basic types: `Union`, `Optional`, `Literal`, `TypeVar` for generic functions
-- `numpy.typing` for array shapes and dtypes
-- Running `mypy --strict` and interpreting errors
-- When to use `# type: ignore` and when it's a code smell
-
-**Logging for Experiments**:
-
-- Structured logging with `logging` module (not print statements)
-- Log levels: DEBUG, INFO, WARNING, ERROR
-- Logging RNG seeds, hyperparameters, and provenance information
-- Rotating log files and log aggregation
-
-**Configuration Management**:
-
-- Separating code from configuration (YAML, TOML, or dataclasses)
-- Validation with `pydantic` or `dataclasses` with type checking
-- Handling environment-specific configs (dev, test, prod)
-
-### Exercises
-
-
-**Foundational 1**: Take an existing analysis script (provided) and refactor it into a Python package with `src/`, `tests/`, and `pyproject.toml`. Add type hints to all public functions. Run `mypy --strict` and fix all errors.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-
----
-
-
-**Proficiency 1**: Implement a configurable Monte Carlo simulation where all parameters (n_samples, seed, output_path) come from a YAML config file. Add structured logging that records: config hash, start time, end time, and summary statistics. Write a test that verifies the config is validated correctly.
-
-
-**Expected Time (Proficient): 30–40 minutes**
-
-
-**Algorithmic focus**: Reproducibility via configuration; dependency injection for RNG
-
-
----
-
-
-**Mastery**: Design a "statistical function registry" where users can register custom estimators by decorating them with `@estimator.register`. The registry should validate that functions have the correct signature (take `data` and `rng`, return a scalar or array). Implement type-checking with `Protocol` and write tests using Hypothesis to verify the registry works with arbitrary valid functions.
-
-
-**Expected Time (Proficient): 40–60 minutes**
-
-
-**Algorithmic focus**: Pure functions as reusable components; protocol-based polymorphism
-
-
-### Deliverable
-
-
-A refactored Python package (from Foundational 1) that passes `mypy --strict`, has ≥80% test coverage, includes a working CLI, and has a README with usage examples.
-
-
----
-
-
-## Day 16: Profiling, Benchmarking, and Performance Tuning
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Performance workflow** (Algorithmic Thinking: always profile before optimizing)
-- **Vectorize vs loop** and **pandas vs NumPy** tradeoffs (quantifying with measurements)
-- **Amdahl's Law reasoning** (focus on largest bottlenecks first)
-- **Memory vs speed** (profiling memory alongside time)
-
-### Objectives
-
-- Conduct systematic performance profiling (CPU and memory)
-- Interpret profiling output to identify true bottlenecks (not guesses)
-- Apply targeted optimizations and validate speedups
-- Write microbenchmarks that measure specific operations in isolation
-- Understand when optimization is premature vs necessary
-
-### Topics
-
-
-**Profiling Tools Deep Dive**:
-
-- `cProfile` + `pstats` for function-level profiling
-- `line_profiler` for line-by-line CPU profiling
-- `memory_profiler` for memory usage over time
-- `py-spy` for sampling profiler (low overhead, can attach to running process)
-- `viztracer` for timeline visualization
-
-**Microbenchmarking**:
-
-- Using `timeit` correctly (warming up, sufficient iterations)
-- `pyperf` for robust benchmarking (handles system noise)
-- Comparing alternatives with statistical confidence
-- Avoiding common pitfalls (measuring setup time, optimizer interference)
-
-**Optimization Patterns**:
-
-- Loop fusion (combining multiple passes into one)
-- Vectorization (replacing Python loops with NumPy operations)
-- Caching/memoization (when to precompute vs compute-on-the-fly)
-- Algorithmic improvements (O(n²) → O(n log n) is better than micro-optimizations)
-
-**Memory Optimization**:
-
-- Identifying memory leaks (retained references)
-- Using generators instead of lists for streaming data
-- `__slots__` for memory-efficient classes
-- Memory mapping for large datasets (`np.memmap`)
-
-### Exercises
-
-
-**Foundational 1**: Profile a provided data processing pipeline with `cProfile` and `memory_profiler`. Generate a report identifying the top 3 bottlenecks by time and the top 2 by memory. For each, state whether optimization is worthwhile (Amdahl's Law).
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-
----
-
-
-**Proficiency 1**: Implement three versions of pairwise distance computation: (1) Python loops, (2) NumPy broadcasting, (3) `scipy.spatial.distance.cdist`. Benchmark all three using `pyperf` with confidence intervals. Write a report explaining when each approach is appropriate.
-
-
-**Expected Time (Proficient): 30–40 minutes**
-
-
-**Algorithmic focus**: Measuring the vectorization vs loop tradeoff empirically
-
-
----
-
-
-**Mastery**: Take a grouped aggregation operation in pandas that uses `.apply()` (provided). Profile it, identify the bottleneck, rewrite using vectorized pandas operations or NumPy on `.values`. Achieve ≥10x speedup. Write a before/after profiling report with `line_profiler` output showing the eliminated bottleneck.
-
-
-**Expected Time (Proficient): 45–60 minutes**
-
-
-**Algorithmic focus**: Escaping to NumPy for tight loops; pandas overhead quantified
-
-
-### Deliverable
-
-
-A profiling report (Markdown or PDF) with annotated profiler output, optimization decisions justified by Amdahl's Law, and before/after benchmarks showing measured speedups.
-
-
----
-
-
-## Day 17: Python ↔ C++ Boundaries and API Design
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Python vs Numba vs C++ tradeoffs** (Algorithmic Thinking: when to cross the language boundary)
-- **Data representation and memory intuition** (understanding memory layout across languages)
-- **Pure functions** (easier to wrap across languages than stateful code)
-
-### Objectives
-
-- Wrap C++ functions for use in Python via `pybind11`
-- Design APIs that minimize data copying across the language boundary
-- Handle NumPy arrays in C++ using `Eigen` or raw pointers
-- Understand when Python ↔ C++ overhead dominates vs when it's negligible
-- Write hybrid codebases where Python orchestrates and C++ computes
-
-### Topics
-
-
-**pybind11 Basics**:
-
-- Wrapping simple C++ functions
-- Handling argument conversion (Python types ↔ C++ types)
-- Error handling: C++ exceptions → Python exceptions
-- Building with `CMake` or `setuptools`
-
-**NumPy ↔ C++ Integration**:
-
-- Using `py::array_t<double>` to accept NumPy arrays
-- Zero-copy access via `.data()` and `.mutable_data()`
-- Shape and stride validation
-- Returning NumPy arrays from C++ without copying
-
-**API Design for Hybrid Code**:
-
-- Keep Python for orchestration, configuration, and I/O
-- Drop to C++ for tight numerical loops
-- Batch operations to amortize call overhead
-- Avoid chatty interfaces (many small calls vs few large calls)
-
-**Performance Considerations**:
-
-- Call overhead: ~1–10 µs per Python → C++ call
-- When overhead matters: tight loops, small arrays
-- When it doesn't: batch processing, large arrays
-
-### Exercises
-
-
-**Foundational 1**: Wrap a simple C++ function `double compute_mean(const double* data, size_t n)` using `pybind11`. Make it accept NumPy arrays from Python. Write a Python test that verifies it produces the same result as `np.mean()`.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-
----
-
-
-**Proficiency 1**: Implement a rolling window operation in C++ that accepts a NumPy array and window size, returns a 2D NumPy array of windows (zero-copy view via stride manipulation). Wrap with `pybind11`. Benchmark against pure Python implementation.
-
-
-**Expected Time (Proficient): 35–50 minutes**
-
-
-**Algorithmic focus**: Memory layout and stride manipulation across languages
-
-
----
-
-
-**Mastery**: Design a hybrid bootstrap implementation: Python generates seeds and aggregates results; C++ performs the resampling and statistic computation. Minimize data transfer. Benchmark against pure Python and pure C++ versions. Write a short design doc explaining the API choices.
-
-
-**Expected Time (Proficient): 50–70 minutes**
-
-
-**Algorithmic focus**: Batching to amortize boundary-crossing overhead
-
-
-### Deliverable
-
-
-A working Python package with C++ extension (via `pybind11`) that includes: compiled `.so`/`.pyd`, Python wrapper, tests comparing Python and C++ implementations, and a benchmark report.
-
-
----
-
-
-## Day 18: Numerical Robustness, Validation, and Stress Testing
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Numerical robustness and stability** (Algorithmic Thinking: overflow, cancellation, conditioning)
-- **Invariants and correctness conditions** (what must always be true)
-- **Property-based testing** (from Day 5: Hypothesis for stress testing)
-
-### Objectives
-
-- Identify numerical instabilities in statistical algorithms
-- Implement numerically stable alternatives
-- Write tests that probe edge cases (overflow, underflow, cancellation)
-- Use property-based testing to find numerical bugs
-- Validate implementations against high-precision arithmetic or analytical solutions
-
-### Topics
-
-
-**Common Numerical Issues**:
-
-- **Overflow/underflow**: log-space arithmetic for products of small numbers
-- **Catastrophic cancellation**: $(a + b) - a \neq b$ in floating point
-- **Loss of significance**: $\sqrt{1 + x} - 1$ for small $x$
-- **Ill-conditioning**: matrix inversion, condition numbers
-
-**Stable Implementations**:
-
-- Variance: two-pass or Welford's algorithm (never $E[X^2] - E[X]^2$)
-- Softmax: subtract max before exp
-- Log-sum-exp: $m + \log(\sum \exp(x - m))$ where $m = \max(x)$
-- Compensated summation: Kahan's algorithm
-
-**Validation Strategies**:
-
-- Compare with high-precision arithmetic (`mpmath`)
-- Analytical solutions for simple cases
-- Check invariants: probabilities sum to 1, covariance matrices are PSD
-- Residual checks: $\|Ax - b\|$ for linear systems
-
-**Stress Testing with Hypothesis**:
-
-- Generate extreme inputs: very large, very small, nearly-equal values
-- Test invariants across wide input ranges
-- Shrinking: Hypothesis finds minimal failing examples
-
-### Exercises
-
-
-**Foundational 1**: Implement naive and stable versions of sample variance. Test both with `[1e9, 1e9 + 1, 1e9 + 2]`. Show that naive version fails (negative variance or large error). Verify stable version with Hypothesis over wide input ranges.
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-
----
-
-
-**Proficiency 1**: Implement log-sum-exp and softmax with numerical stability. Write Hypothesis tests that verify: (1) no overflow for inputs up to 1000, (2) softmax output sums to 1.0 within machine precision, (3) softmax preserves relative ordering.
-
-
-**Expected Time (Proficient): 30–40 minutes**
-
-
-**Algorithmic focus**: Numerical stability via log-space arithmetic
-
-
----
-
-
-**Mastery**: Implement a numerically stable version of the multivariate normal log-likelihood using Cholesky decomposition (avoid explicit matrix inversion). Validate against `scipy.stats.multivariate_normal` for well-conditioned cases. Write Hypothesis tests that check invariants for ill-conditioned covariance matrices (condition number up to 1e10).
-
-
-**Expected Time (Proficient): 50–70 minutes**
-
-
-**Algorithmic focus**: Ill-conditioning and stable decompositions
-
-
-### Deliverable
-
-
-A test suite with Hypothesis-based stress tests for a statistical function library. Include a report documenting at least one numerical bug found by Hypothesis and how it was fixed.
-
-
----
-
-
-## Day 19: C++ Numerical Patterns and RAII
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Data representation and memory intuition** (C++ memory model, stack vs heap)
-- **Ownership** (from Week 2 Day 9: who is responsible for cleanup)
-- **Linear algebra routines** (Algorithmic Thinking: using decompositions, avoiding temporaries)
-
-### Objectives
-
-- Use RAII (Resource Acquisition Is Initialization) for automatic memory management
-- Apply `const` correctness to prevent bugs and enable optimizations
-- Use `Eigen` expression templates to avoid temporary allocations
-- Implement move semantics for efficient data structures
-- Write modern C++ (C++17/20) for numerical computing
-
-### Topics
-
-
-**RAII and Smart Pointers**:
-
-- `std::unique_ptr` for exclusive ownership
-- `std::shared_ptr` only when needed (reference counting has overhead)
-- Custom deleters for non-memory resources (file handles, mutexes)
-- Avoiding `new`/`delete` in user code
-
-**Const Correctness**:
-
-- `const` member functions (don't modify state)
-- `const` references for read-only parameters
-- `const` enables compiler optimizations and prevents bugs
-- `mutable` for logically-const but physically-mutable state (caching)
-
-**Eigen Best Practices**:
-
-- Expression templates: `auto` vs explicit types
-- Avoiding aliasing: `.noalias()` for assignment
-- Block operations for cache efficiency
-- Choosing decompositions: QR, LU, Cholesky, SVD
-
-**Move Semantics**:
-
-- Rvalue references and `std::move`
-- Moving large objects instead of copying
-- Rule of Five (or Rule of Zero with smart pointers)
-
-### Exercises
-
-
-**Foundational 1**: Refactor a provided C++ class that uses raw pointers (`new`/`delete`) to use `std::unique_ptr`. Verify with AddressSanitizer that there are no leaks. Add `const` correctness to all member functions.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-
----
-
-
-**Proficiency 1**: Implement a matrix class wrapper around `Eigen::MatrixXd` that uses move semantics for efficient temporaries. Write benchmarks showing that moving is O(1) while copying is O(n²). Add `const` member functions for read-only operations.
-
-
-**Expected Time (Proficient): 35–50 minutes**
-
-
-**Algorithmic focus**: Ownership and move semantics as performance constraint
-
-
----
-
-
-**Mastery**: Implement QR decomposition-based least squares solver using Eigen. Compare against naive $(X^T X)^{-1} X^T y$ for ill-conditioned matrices (condition number up to 1e10). Show that QR is stable while naive method fails. Write unit tests with known analytical solutions.
-
-
-**Expected Time (Proficient): 50–70 minutes**
-
-
-**Algorithmic focus**: Numerical stability via decompositions; avoiding explicit inversion
-
-
-### Deliverable
-
-
-A C++ library with RAII-based resource management, `const` correctness, and Eigen-based numerical routines. Include benchmarks comparing move vs copy, and numerical tests comparing QR vs naive least squares.
-
-
----
-
-
-## Day 20: Compilation, Optimization Flags, and Microbenchmarking
-
-
-### Algorithmic Anchors
-
-
-This day builds on:
-
-- **Performance workflow** (Algorithmic Thinking: measure, optimize, validate)
-- **C++ compilation** (from Week 2: understanding `-O2`, `-O3`, sanitizers)
-- **Profiling** (connecting source code changes to assembly and hardware counters)
-
-### Objectives
-
-- Understand what `-O2` and `-O3` optimizations do (inlining, loop unrolling, vectorization)
-- Use compiler flags to enable/disable specific optimizations
-- Write microbenchmarks in C++ that measure specific operations
-- Interpret `perf` output (cache misses, branch mispredictions)
-- Prevent compiler from optimizing away benchmark code
-
-### Topics
-
-
-**Compiler Optimizations**:
-
-- `-O0`: No optimization (debugging)
-- `-O1`: Basic optimizations
-- `-O2`: Standard production optimizations
-- `-O3`: Aggressive optimizations (may increase code size)
-- `-march=native`: CPU-specific instructions (SIMD)
-- `-flto`: Link-time optimization
-
-**Vectorization**:
-
-- Auto-vectorization: compiler converts loops to SIMD
-- Intrinsics: manual SIMD programming
-- Alignment requirements for SIMD (`alignas`, `__attribute__((aligned))`)
-- Checking vectorization: `-fopt-info-vec` or Compiler Explorer
-
-**Microbenchmarking in C++**:
-
-- Google Benchmark library
-- Preventing optimization with `DoNotOptimize()` and `ClobberMemory()`
-- Measuring throughput vs latency
-- Handling setup/teardown costs
-
-**Hardware Performance Counters**:
-
-- `perf stat` for hardware metrics
-- Cache misses, branch mispredictions, IPC
-- Profiling with `perf record` and flamegraphs
-
-### Exercises
-
-
-**Foundational 1**: Compile a simple dot product function with `-O0`, `-O2`, `-O3`, and `-O3 -march=native`. Benchmark all four versions. Explain the speedup (or lack thereof) based on compiler output or assembly inspection.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-
----
-
-
-**Proficiency 1**: Write a microbenchmark for matrix multiplication comparing: (1) naive triple loop, (2) loop reordering for cache efficiency, (3) Eigen. Measure with Google Benchmark. Use `perf stat` to measure cache misses. Explain the results.
-
-
-**Expected Time (Proficient): 40–55 minutes**
-
-
-**Algorithmic focus**: Memory layout and cache efficiency measured empirically
-
-
----
-
-
-**Mastery**: Implement a SIMD-optimized sum function using compiler auto-vectorization (pragmas or intrinsics). Verify vectorization with compiler output. Benchmark against naive loop. Achieve ≥2x speedup on floating-point arrays. Write a report explaining when SIMD helps and when it doesn't.
-
-
-**Expected Time (Proficient): 60–90 minutes**
-
-
-**Algorithmic focus**: SIMD vectorization at the hardware level
-
-
-### Deliverable
-
-
-A microbenchmark suite with Google Benchmark, showing performance across optimization levels. Include `perf` output explaining cache behavior. Add a README with optimization flag recommendations.
-
-
----
-
-
-## Optional Capstone Extension
-
-
-**This extension is optional.** The integrated capstone from Weeks 1–2 already demonstrates proficiency. This extension is for those who want a portfolio piece.
-
-
-### Task
-
-
-Extend the Week 1 Python capstone (Bayesian A/B testing pipeline) OR the Week 2 C++ capstone with ONE of the following:
-
-
-**Option A: Performance Upgrade**
-
-- Identify bottleneck in Python capstone via profiling
-- Rewrite critical section in C++ and wrap with `pybind11`
-- Achieve ≥10x speedup on the bottleneck
-- Maintain bitwise reproducibility
-- Add benchmarks comparing Python-only vs hybrid
-
-**Option B: Robustness Upgrade**
-
-- Add Hypothesis-based stress tests that probe numerical edge cases
-- Identify and fix at least one numerical stability issue
-- Add validation against high-precision arithmetic or analytical solutions
-- Document the failure modes and fixes
-
-**Option C: API & Polish Upgrade**
-
-- Refactor into a clean package structure with `pyproject.toml`
-- Add CLI with `argparse` or `click`
-- Full type hints + `mypy --strict` compliance
-- README with usage examples, benchmarks, and design decisions
-- ≥90% test coverage
-
-### Success Criteria (choose based on option)
-
-
-**Option A**: Profiling report showing 10x+ speedup on bottleneck; benchmarks; reproducibility tests pass.
-
-
-**Option B**: Hypothesis finds and reproduces a numerical bug; fix documented; stress tests pass across wide input ranges.
-
-
-**Option C**: Package installable with `pip install -e .`; CLI functional; `mypy --strict` passes; README publication-quality.
-
-
-### Rubric (Optional—only for self-assessment)
-
-
-| Dimension           | Good                            | Excellent                                                          |
-
-| ------------------- | ------------------------------- | ------------------------------------------------------------------ |
-
-| Technical Execution | Meets success criteria          | Exceeds criteria; additional insights or optimizations             |
-
-| Documentation       | README explains what and how    | README explains why; design tradeoffs articulated                  |
-
-| Code Quality        | Clean, readable, passes linters | Idiomatic; could be merged into a production codebase              |
-
-| Rigor               | Tests pass, benchmarks present  | Stress-tested with edge cases; performance validated across inputs |
-
-
-**Expected Time (Proficient): 3–6 hours across multiple sessions**
-
-
----
-
-
-## Supplementary: Concurrency and Visualization
-
-
-These topics are not covered in the daily exercises but are essential for production Python work. Review these concepts and complete at least one exercise from each section.
-
-
-### Concurrency Concepts
-
-
-Python's Global Interpreter Lock (GIL) prevents true parallel execution of Python bytecode. For CPU-bound work, use `multiprocessing` to spawn separate processes. For I/O-bound work (network, disk), use `asyncio` or `threading`.
-
-
-`multiprocessing.Pool` provides a simple interface for parallel map operations. Each worker is a separate process with its own memory space and Python interpreter.
-
-
-`concurrent.futures` provides a unified interface: `ThreadPoolExecutor` for I/O-bound work, `ProcessPoolExecutor` for CPU-bound work.
-
-
-`asyncio` enables cooperative multitasking. Functions declared with `async def` can `await` other async functions. The event loop schedules coroutines without OS thread overhead.
-
-
-When to use each:
-
-- `multiprocessing`: CPU-bound work that can be embarrassingly parallel (bootstrap, cross-validation folds, Monte Carlo simulations)
-- `threading`: I/O-bound work with shared state (careful with race conditions)
-- `asyncio`: High-concurrency I/O (many network requests, database queries)
-
-### Concurrency Exercise
-
-
-**Exercise**: Implement a function `parallel_bootstrap(data, stat_func, n_bootstrap, n_workers)` that computes bootstrap confidence intervals using `multiprocessing.Pool`. Compare runtime against a sequential implementation for 10,000 bootstrap samples on 100,000 data points. Ensure reproducibility by passing different seeds to each worker.
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-```python
-from multiprocessing import Pool
-import numpy as np
-
-def _bootstrap_worker(args):
-    data, stat_func, n_samples, seed = args
-    rng = np.random.default_rng(seed)
-    results = []
-    for _ in range(n_samples):
-        sample = rng.choice(data, size=len(data), replace=True)
-        results.append(stat_func(sample))
-    return results
-
-def parallel_bootstrap(data, stat_func, n_bootstrap, n_workers, base_seed=42):
-    samples_per_worker = n_bootstrap // n_workers
-    seeds = [base_seed + i for i in range(n_workers)]
-    args = [(data, stat_func, samples_per_worker, seed) for seed in seeds]
-    
-    with Pool(n_workers) as pool:
-        results = pool.map(_bootstrap_worker, args)
-    
-    return np.concatenate(results)
-
-```
-
-
-</details>
-
-
-### Visualization Concepts
-
-
-Matplotlib is the foundation for Python visualization. Understand the object-oriented API: `fig, ax = plt.subplots()` creates Figure and Axes objects. Use `ax.plot()`, `ax.scatter()`, `ax.hist()` methods. Avoid `plt.plot()` in production code—it uses implicit global state.
-
-
-For statistical visualization, seaborn provides higher-level functions: `sns.histplot()`, `sns.kdeplot()`, `sns.boxplot()`, `sns.pairplot()`. It integrates well with pandas DataFrames and handles grouping automatically.
-
-
-**Matplotlib architecture**:
-
-- **Figure**: The entire window/page. Contains one or more Axes.
-- **Axes**: A single plot with its own coordinate system, labels, title.
-- **Artist**: Everything drawn on the figure (lines, text, patches).
-
-**Common statistical plot types**:
-
-- Distribution: `histplot`, `kdeplot`, `ecdfplot`, `rugplot`
-- Relationship: `scatterplot`, `lineplot`, `regplot`
-- Categorical: `boxplot`, `violinplot`, `stripplot`, `swarmplot`
-- Matrix: `heatmap`, `clustermap`
-
-**Publication-quality checklist**:
-
-- [ ] Font sizes readable at target print/display size
-- [ ] Axis labels with units
-- [ ] Legend positioned to not obscure data
-- [ ] Colorblind-accessible palette (use `sns.color_palette('colorblind')`)
-- [ ] Figure dimensions match journal/venue requirements
-- [ ] Vector format (PDF, SVG) for print; raster (PNG) for web
-- [ ] DPI ≥ 300 for print
-
-**Seaborn statistical plots**:
-
-
-```python
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-# Set publication style
-sns.set_theme(style='whitegrid', font_scale=1.2)
-plt.rcParams['figure.dpi'] = 100
-plt.rcParams['savefig.dpi'] = 300
-
-# Distribution with confidence interval
-sns.histplot(data=df, x='value', hue='group', kde=True, stat='density')
-
-# Regression with confidence band
-sns.regplot(data=df, x='x', y='y', ci=95, scatter_kws={'alpha': 0.5})
-
-# Faceted plots
-g = sns.FacetGrid(df, col='category', row='treatment')
-g.map_dataframe(sns.histplot, x='value')
-
-```
-
-
-**Interactive visualization** (for exploration, not publication):
-
-- Plotly: `import` [`plotly.express`](http://plotly.express/) `as px; px.scatter(df, x='x', y='y', color='group')`
-- Altair: Declarative grammar of graphics, good for complex interactions
-
-### Visualization Exercises
-
-
-**Exercise 1**: Create a function `plot_posterior_comparison(samples_a, samples_b, credible_level=0.95)` that produces a publication-quality figure with: (a) KDE plots of both posteriors on the same axes, (b) shaded credible intervals, (c) a vertical line at zero, (d) proper labels and legend. Save as both PNG and PDF.
-
-
-**Expected Time (Proficient): 15–25 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy import stats
-
-def plot_posterior_comparison(samples_a, samples_b, credible_level=0.95):
-    fig, ax = plt.subplots(figsize=(8, 5))
-    
-    alpha = 1 - credible_level
-    
-    for samples, label, color in [(samples_a, 'Group A', 'C0'), 
-                                   (samples_b, 'Group B', 'C1')]:
-        kde = stats.gaussian_kde(samples)
-        x = np.linspace(samples.min(), samples.max(), 200)
-        y = kde(x)
-        ax.plot(x, y, color=color, label=label)
-        
-        # Credible interval
-        lo, hi = np.percentile(samples, [100*alpha/2, 100*(1-alpha/2)])
-        mask = (x >= lo) & (x <= hi)
-        ax.fill_between(x[mask], y[mask], alpha=0.3, color=color)
-    
-    ax.axvline(0, color='black', linestyle='--', alpha=0.5, label='Zero')
-    ax.set_xlabel('Effect Size', fontsize=12)
-    ax.set_ylabel('Density', fontsize=12)
-    ax.legend(fontsize=10)
-    ax.set_title(f'Posterior Distributions ({credible_level*100:.0f}% CI)', fontsize=14)
-    
-    fig.tight_layout()
-    fig.savefig('posterior_comparison.png', dpi=300, bbox_inches='tight')
-    fig.savefig('posterior_comparison.pdf', bbox_inches='tight')
-    return fig, ax
-
-```
-
-
-</details>
-
-
-**Exercise 2**: Create a function `plot_regression_diagnostics(y_true, y_pred, feature_names=None)` that produces a 2×2 subplot figure with: (a) predicted vs actual scatter with identity line, (b) residual histogram with normal curve overlay, (c) residuals vs predicted (check for heteroscedasticity), (d) Q-Q plot of residuals. All subplots must have proper labels.
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-```python
-import matplotlib.pyplot as plt
-import numpy as np
-from scipy import stats
-
-def plot_regression_diagnostics(y_true, y_pred, figsize=(10, 10)):
-    residuals = y_true - y_pred
-    
-    fig, axes = plt.subplots(2, 2, figsize=figsize)
-    
-    # (a) Predicted vs Actual
-    ax = axes[0, 0]
-    ax.scatter(y_pred, y_true, alpha=0.5, s=20)
-    lims = [min(y_pred.min(), y_true.min()), max(y_pred.max(), y_true.max())]
-    ax.plot(lims, lims, 'r--', label='Perfect fit')
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Actual')
-    ax.set_title('Predicted vs Actual')
-    ax.legend()
-    
-    # (b) Residual Histogram
-    ax = axes[0, 1]
-    ax.hist(residuals, bins=30, density=True, alpha=0.7, edgecolor='black')
-    x = np.linspace(residuals.min(), residuals.max(), 100)
-    ax.plot(x, stats.norm.pdf(x, residuals.mean(), residuals.std()), 
-            'r-', lw=2, label='Normal')
-    ax.set_xlabel('Residual')
-    ax.set_ylabel('Density')
-    ax.set_title('Residual Distribution')
-    ax.legend()
-    
-    # (c) Residuals vs Predicted
-    ax = axes[1, 0]
-    ax.scatter(y_pred, residuals, alpha=0.5, s=20)
-    ax.axhline(0, color='red', linestyle='--')
-    ax.set_xlabel('Predicted')
-    ax.set_ylabel('Residual')
-    ax.set_title('Residuals vs Predicted')
-    
-    # (d) Q-Q Plot
-    ax = axes[1, 1]
-    stats.probplot(residuals, dist='norm', plot=ax)
-    ax.set_title('Q-Q Plot')
-    
-    fig.tight_layout()
-    return fig, axes
-
-```
-
-
-</details>
-
-
-**Exercise 3**: Create a `style_for_journal(journal='nature')` context manager that temporarily sets matplotlib rcParams appropriate for the specified journal. Support at least 'nature' (single column: 89mm, double: 183mm) and 'ieee' (single: 3.5in, double: 7in). Reset to defaults on exit.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-```python
-import matplotlib.pyplot as plt
-from contextlib import contextmanager
-
-JOURNAL_STYLES = {
-    'nature': {
-        'figure.figsize': (3.5, 2.625),  # 89mm single column
-        'font.size': 7,
-        'axes.labelsize': 8,
-        'axes.titlesize': 8,
-        'legend.fontsize': 6,
-        'xtick.labelsize': 6,
-        'ytick.labelsize': 6,
-        'font.family': 'sans-serif',
-        'savefig.dpi': 300,
-    },
-    'ieee': {
-        'figure.figsize': (3.5, 2.625),  # Single column
-        'font.size': 8,
-        'axes.labelsize': 8,
-        'axes.titlesize': 9,
-        'legend.fontsize': 7,
-        'xtick.labelsize': 7,
-        'ytick.labelsize': 7,
-        'font.family': 'serif',
-        'savefig.dpi': 300,
-    }
-}
-
-@contextmanager
-def style_for_journal(journal='nature'):
-    if journal not in JOURNAL_STYLES:
-        raise ValueError(f"Unknown journal: {journal}")
-    
-    # Save current settings
-    original = {k: plt.rcParams[k] for k in JOURNAL_STYLES[journal]}
-    
-    try:
-        plt.rcParams.update(JOURNAL_STYLES[journal])
-        yield
-    finally:
-        plt.rcParams.update(original)
-
-# Usage:
-with style_for_journal('nature'):
-    fig, ax = plt.subplots()
-    ax.plot([1, 2, 3], [1, 4, 9])
-    fig.savefig('figure_for_nature.pdf')
-
-```
-
-
-</details>
-
-
----
-
-
-# Week 2: C++
-
+## 📄 Week 2: C++ (Days 8-14)
 
 ## Day 8: References, Pointers, and Ownership
 
@@ -14948,6 +12821,1090 @@ This is not a summary. This is a concrete checklist of abilities. If you cannot 
 - [ ] Design a system where Python handles I/O and orchestration while C++ handles computation
 - [ ] Write equivalent code in both languages and verify they produce identical results
 - [ ] Reason about numerical precision differences between implementations
+
+# Optional Extensions
+
+
+## 📄 Week 3: Optional Extensions (Days 15-20)
+
+**Framing**: Week 3 is optional. The 2-week curriculum achieves credible proficiency. Week 3 is for those who want to deepen judgment, consolidate under time pressure, and polish a portfolio artifact.
+
+
+## How Week 3 Relates to Algorithmic Thinking
+
+
+Algorithmic thinking is **already required** in Weeks 1 and 2. The exercises in Days 1–7 (Python) and Days 8–14 (C++) demand that you:
+
+- Translate mathematical concepts into numerically stable code
+- Choose appropriate data structures and algorithms
+- Reason about performance, memory, and correctness
+- Profile before optimizing and validate after changes
+
+Week 3 does **not** introduce new algorithmic content. Instead, it consolidates these skills under **realistic pressure**:
+
+- Tighter time constraints (simulating production deadlines)
+- Integrated multi-language tasks (Python ↔ C++ boundaries)
+- Portfolio-quality deliverables (code that you would defend in a technical interview)
+
+Week 3 is **not required for proficiency**. It is for deepening judgment and building confidence through repetition and polish.
+
+
+---
+
+
+## Day 15: Advanced Python Engineering for Data Science
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Performance workflow** (Algorithmic Thinking: hypothesis → profile → optimize → validate)
+- **Python vs Numba vs C++ tradeoffs** (when to stay in Python, when to drop to compiled code)
+- **Memory vs speed tradeoffs** (choosing data structures based on access patterns)
+- **Pure functions and dependency injection** (from Day 5: testable, reusable code)
+
+### Objectives
+
+- Structure medium-scale Python projects for data science (not research notebooks, not production services—something in between)
+- Use type hints and static analysis (`mypy`) to catch errors before runtime
+- Implement logging and configuration management for reproducible experiments
+- Design clean APIs for statistical functions that others can use
+
+### Topics
+
+
+**Python Project Structure**:
+
+- Separating source code (`src/`), tests (`tests/`), scripts (`scripts/`), and notebooks (`notebooks/`)
+- `pyproject.toml` for dependencies and metadata
+- Entry points and command-line interfaces with `argparse` or `click`
+
+**Type Hints and Static Analysis**:
+
+- Beyond basic types: `Union`, `Optional`, `Literal`, `TypeVar` for generic functions
+- `numpy.typing` for array shapes and dtypes
+- Running `mypy --strict` and interpreting errors
+- When to use `# type: ignore` and when it's a code smell
+
+**Logging for Experiments**:
+
+- Structured logging with `logging` module (not print statements)
+- Log levels: DEBUG, INFO, WARNING, ERROR
+- Logging RNG seeds, hyperparameters, and provenance information
+- Rotating log files and log aggregation
+
+**Configuration Management**:
+
+- Separating code from configuration (YAML, TOML, or dataclasses)
+- Validation with `pydantic` or `dataclasses` with type checking
+- Handling environment-specific configs (dev, test, prod)
+
+### Exercises
+
+
+**Foundational 1**: Take an existing analysis script (provided) and refactor it into a Python package with `src/`, `tests/`, and `pyproject.toml`. Add type hints to all public functions. Run `mypy --strict` and fix all errors.
+
+
+**Expected Time (Proficient): 25–35 minutes**
+
+
+---
+
+
+**Proficiency 1**: Implement a configurable Monte Carlo simulation where all parameters (n_samples, seed, output_path) come from a YAML config file. Add structured logging that records: config hash, start time, end time, and summary statistics. Write a test that verifies the config is validated correctly.
+
+
+**Expected Time (Proficient): 30–40 minutes**
+
+
+**Algorithmic focus**: Reproducibility via configuration; dependency injection for RNG
+
+
+---
+
+
+**Mastery**: Design a "statistical function registry" where users can register custom estimators by decorating them with `@estimator.register`. The registry should validate that functions have the correct signature (take `data` and `rng`, return a scalar or array). Implement type-checking with `Protocol` and write tests using Hypothesis to verify the registry works with arbitrary valid functions.
+
+
+**Expected Time (Proficient): 40–60 minutes**
+
+
+**Algorithmic focus**: Pure functions as reusable components; protocol-based polymorphism
+
+
+### Deliverable
+
+
+A refactored Python package (from Foundational 1) that passes `mypy --strict`, has ≥80% test coverage, includes a working CLI, and has a README with usage examples.
+
+
+---
+
+
+## Day 16: Profiling, Benchmarking, and Performance Tuning
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Performance workflow** (Algorithmic Thinking: always profile before optimizing)
+- **Vectorize vs loop** and **pandas vs NumPy** tradeoffs (quantifying with measurements)
+- **Amdahl's Law reasoning** (focus on largest bottlenecks first)
+- **Memory vs speed** (profiling memory alongside time)
+
+### Objectives
+
+- Conduct systematic performance profiling (CPU and memory)
+- Interpret profiling output to identify true bottlenecks (not guesses)
+- Apply targeted optimizations and validate speedups
+- Write microbenchmarks that measure specific operations in isolation
+- Understand when optimization is premature vs necessary
+
+### Topics
+
+
+**Profiling Tools Deep Dive**:
+
+- `cProfile` + `pstats` for function-level profiling
+- `line_profiler` for line-by-line CPU profiling
+- `memory_profiler` for memory usage over time
+- `py-spy` for sampling profiler (low overhead, can attach to running process)
+- `viztracer` for timeline visualization
+
+**Microbenchmarking**:
+
+- Using `timeit` correctly (warming up, sufficient iterations)
+- `pyperf` for robust benchmarking (handles system noise)
+- Comparing alternatives with statistical confidence
+- Avoiding common pitfalls (measuring setup time, optimizer interference)
+
+**Optimization Patterns**:
+
+- Loop fusion (combining multiple passes into one)
+- Vectorization (replacing Python loops with NumPy operations)
+- Caching/memoization (when to precompute vs compute-on-the-fly)
+- Algorithmic improvements (O(n²) → O(n log n) is better than micro-optimizations)
+
+**Memory Optimization**:
+
+- Identifying memory leaks (retained references)
+- Using generators instead of lists for streaming data
+- `__slots__` for memory-efficient classes
+- Memory mapping for large datasets (`np.memmap`)
+
+### Exercises
+
+
+**Foundational 1**: Profile a provided data processing pipeline with `cProfile` and `memory_profiler`. Generate a report identifying the top 3 bottlenecks by time and the top 2 by memory. For each, state whether optimization is worthwhile (Amdahl's Law).
+
+
+**Expected Time (Proficient): 20–30 minutes**
+
+
+---
+
+
+**Proficiency 1**: Implement three versions of pairwise distance computation: (1) Python loops, (2) NumPy broadcasting, (3) `scipy.spatial.distance.cdist`. Benchmark all three using `pyperf` with confidence intervals. Write a report explaining when each approach is appropriate.
+
+
+**Expected Time (Proficient): 30–40 minutes**
+
+
+**Algorithmic focus**: Measuring the vectorization vs loop tradeoff empirically
+
+
+---
+
+
+**Mastery**: Take a grouped aggregation operation in pandas that uses `.apply()` (provided). Profile it, identify the bottleneck, rewrite using vectorized pandas operations or NumPy on `.values`. Achieve ≥10x speedup. Write a before/after profiling report with `line_profiler` output showing the eliminated bottleneck.
+
+
+**Expected Time (Proficient): 45–60 minutes**
+
+
+**Algorithmic focus**: Escaping to NumPy for tight loops; pandas overhead quantified
+
+
+### Deliverable
+
+
+A profiling report (Markdown or PDF) with annotated profiler output, optimization decisions justified by Amdahl's Law, and before/after benchmarks showing measured speedups.
+
+
+---
+
+
+## Day 17: Python ↔ C++ Boundaries and API Design
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Python vs Numba vs C++ tradeoffs** (Algorithmic Thinking: when to cross the language boundary)
+- **Data representation and memory intuition** (understanding memory layout across languages)
+- **Pure functions** (easier to wrap across languages than stateful code)
+
+### Objectives
+
+- Wrap C++ functions for use in Python via `pybind11`
+- Design APIs that minimize data copying across the language boundary
+- Handle NumPy arrays in C++ using `Eigen` or raw pointers
+- Understand when Python ↔ C++ overhead dominates vs when it's negligible
+- Write hybrid codebases where Python orchestrates and C++ computes
+
+### Topics
+
+
+**pybind11 Basics**:
+
+- Wrapping simple C++ functions
+- Handling argument conversion (Python types ↔ C++ types)
+- Error handling: C++ exceptions → Python exceptions
+- Building with `CMake` or `setuptools`
+
+**NumPy ↔ C++ Integration**:
+
+- Using `py::array_t<double>` to accept NumPy arrays
+- Zero-copy access via `.data()` and `.mutable_data()`
+- Shape and stride validation
+- Returning NumPy arrays from C++ without copying
+
+**API Design for Hybrid Code**:
+
+- Keep Python for orchestration, configuration, and I/O
+- Drop to C++ for tight numerical loops
+- Batch operations to amortize call overhead
+- Avoid chatty interfaces (many small calls vs few large calls)
+
+**Performance Considerations**:
+
+- Call overhead: ~1–10 µs per Python → C++ call
+- When overhead matters: tight loops, small arrays
+- When it doesn't: batch processing, large arrays
+
+### Exercises
+
+
+**Foundational 1**: Wrap a simple C++ function `double compute_mean(const double* data, size_t n)` using `pybind11`. Make it accept NumPy arrays from Python. Write a Python test that verifies it produces the same result as `np.mean()`.
+
+
+**Expected Time (Proficient): 25–35 minutes**
+
+
+---
+
+
+**Proficiency 1**: Implement a rolling window operation in C++ that accepts a NumPy array and window size, returns a 2D NumPy array of windows (zero-copy view via stride manipulation). Wrap with `pybind11`. Benchmark against pure Python implementation.
+
+
+**Expected Time (Proficient): 35–50 minutes**
+
+
+**Algorithmic focus**: Memory layout and stride manipulation across languages
+
+
+---
+
+
+**Mastery**: Design a hybrid bootstrap implementation: Python generates seeds and aggregates results; C++ performs the resampling and statistic computation. Minimize data transfer. Benchmark against pure Python and pure C++ versions. Write a short design doc explaining the API choices.
+
+
+**Expected Time (Proficient): 50–70 minutes**
+
+
+**Algorithmic focus**: Batching to amortize boundary-crossing overhead
+
+
+### Deliverable
+
+
+A working Python package with C++ extension (via `pybind11`) that includes: compiled `.so`/`.pyd`, Python wrapper, tests comparing Python and C++ implementations, and a benchmark report.
+
+
+---
+
+
+## Day 18: Numerical Robustness, Validation, and Stress Testing
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Numerical robustness and stability** (Algorithmic Thinking: overflow, cancellation, conditioning)
+- **Invariants and correctness conditions** (what must always be true)
+- **Property-based testing** (from Day 5: Hypothesis for stress testing)
+
+### Objectives
+
+- Identify numerical instabilities in statistical algorithms
+- Implement numerically stable alternatives
+- Write tests that probe edge cases (overflow, underflow, cancellation)
+- Use property-based testing to find numerical bugs
+- Validate implementations against high-precision arithmetic or analytical solutions
+
+### Topics
+
+
+**Common Numerical Issues**:
+
+- **Overflow/underflow**: log-space arithmetic for products of small numbers
+- **Catastrophic cancellation**: $(a + b) - a \neq b$ in floating point
+- **Loss of significance**: $\sqrt{1 + x} - 1$ for small $x$
+- **Ill-conditioning**: matrix inversion, condition numbers
+
+**Stable Implementations**:
+
+- Variance: two-pass or Welford's algorithm (never $E[X^2] - E[X]^2$)
+- Softmax: subtract max before exp
+- Log-sum-exp: $m + \log(\sum \exp(x - m))$ where $m = \max(x)$
+- Compensated summation: Kahan's algorithm
+
+**Validation Strategies**:
+
+- Compare with high-precision arithmetic (`mpmath`)
+- Analytical solutions for simple cases
+- Check invariants: probabilities sum to 1, covariance matrices are PSD
+- Residual checks: $\|Ax - b\|$ for linear systems
+
+**Stress Testing with Hypothesis**:
+
+- Generate extreme inputs: very large, very small, nearly-equal values
+- Test invariants across wide input ranges
+- Shrinking: Hypothesis finds minimal failing examples
+
+### Exercises
+
+
+**Foundational 1**: Implement naive and stable versions of sample variance. Test both with `[1e9, 1e9 + 1, 1e9 + 2]`. Show that naive version fails (negative variance or large error). Verify stable version with Hypothesis over wide input ranges.
+
+
+**Expected Time (Proficient): 20–30 minutes**
+
+
+---
+
+
+**Proficiency 1**: Implement log-sum-exp and softmax with numerical stability. Write Hypothesis tests that verify: (1) no overflow for inputs up to 1000, (2) softmax output sums to 1.0 within machine precision, (3) softmax preserves relative ordering.
+
+
+**Expected Time (Proficient): 30–40 minutes**
+
+
+**Algorithmic focus**: Numerical stability via log-space arithmetic
+
+
+---
+
+
+**Mastery**: Implement a numerically stable version of the multivariate normal log-likelihood using Cholesky decomposition (avoid explicit matrix inversion). Validate against `scipy.stats.multivariate_normal` for well-conditioned cases. Write Hypothesis tests that check invariants for ill-conditioned covariance matrices (condition number up to 1e10).
+
+
+**Expected Time (Proficient): 50–70 minutes**
+
+
+**Algorithmic focus**: Ill-conditioning and stable decompositions
+
+
+### Deliverable
+
+
+A test suite with Hypothesis-based stress tests for a statistical function library. Include a report documenting at least one numerical bug found by Hypothesis and how it was fixed.
+
+
+---
+
+
+## Day 19: C++ Numerical Patterns and RAII
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Data representation and memory intuition** (C++ memory model, stack vs heap)
+- **Ownership** (from Week 2 Day 9: who is responsible for cleanup)
+- **Linear algebra routines** (Algorithmic Thinking: using decompositions, avoiding temporaries)
+
+### Objectives
+
+- Use RAII (Resource Acquisition Is Initialization) for automatic memory management
+- Apply `const` correctness to prevent bugs and enable optimizations
+- Use `Eigen` expression templates to avoid temporary allocations
+- Implement move semantics for efficient data structures
+- Write modern C++ (C++17/20) for numerical computing
+
+### Topics
+
+
+**RAII and Smart Pointers**:
+
+- `std::unique_ptr` for exclusive ownership
+- `std::shared_ptr` only when needed (reference counting has overhead)
+- Custom deleters for non-memory resources (file handles, mutexes)
+- Avoiding `new`/`delete` in user code
+
+**Const Correctness**:
+
+- `const` member functions (don't modify state)
+- `const` references for read-only parameters
+- `const` enables compiler optimizations and prevents bugs
+- `mutable` for logically-const but physically-mutable state (caching)
+
+**Eigen Best Practices**:
+
+- Expression templates: `auto` vs explicit types
+- Avoiding aliasing: `.noalias()` for assignment
+- Block operations for cache efficiency
+- Choosing decompositions: QR, LU, Cholesky, SVD
+
+**Move Semantics**:
+
+- Rvalue references and `std::move`
+- Moving large objects instead of copying
+- Rule of Five (or Rule of Zero with smart pointers)
+
+### Exercises
+
+
+**Foundational 1**: Refactor a provided C++ class that uses raw pointers (`new`/`delete`) to use `std::unique_ptr`. Verify with AddressSanitizer that there are no leaks. Add `const` correctness to all member functions.
+
+
+**Expected Time (Proficient): 25–35 minutes**
+
+
+---
+
+
+**Proficiency 1**: Implement a matrix class wrapper around `Eigen::MatrixXd` that uses move semantics for efficient temporaries. Write benchmarks showing that moving is O(1) while copying is O(n²). Add `const` member functions for read-only operations.
+
+
+**Expected Time (Proficient): 35–50 minutes**
+
+
+**Algorithmic focus**: Ownership and move semantics as performance constraint
+
+
+---
+
+
+**Mastery**: Implement QR decomposition-based least squares solver using Eigen. Compare against naive $(X^T X)^{-1} X^T y$ for ill-conditioned matrices (condition number up to 1e10). Show that QR is stable while naive method fails. Write unit tests with known analytical solutions.
+
+
+**Expected Time (Proficient): 50–70 minutes**
+
+
+**Algorithmic focus**: Numerical stability via decompositions; avoiding explicit inversion
+
+
+### Deliverable
+
+
+A C++ library with RAII-based resource management, `const` correctness, and Eigen-based numerical routines. Include benchmarks comparing move vs copy, and numerical tests comparing QR vs naive least squares.
+
+
+---
+
+
+## Day 20: Compilation, Optimization Flags, and Microbenchmarking
+
+
+### Algorithmic Anchors
+
+
+This day builds on:
+
+- **Performance workflow** (Algorithmic Thinking: measure, optimize, validate)
+- **C++ compilation** (from Week 2: understanding `-O2`, `-O3`, sanitizers)
+- **Profiling** (connecting source code changes to assembly and hardware counters)
+
+### Objectives
+
+- Understand what `-O2` and `-O3` optimizations do (inlining, loop unrolling, vectorization)
+- Use compiler flags to enable/disable specific optimizations
+- Write microbenchmarks in C++ that measure specific operations
+- Interpret `perf` output (cache misses, branch mispredictions)
+- Prevent compiler from optimizing away benchmark code
+
+### Topics
+
+
+**Compiler Optimizations**:
+
+- `-O0`: No optimization (debugging)
+- `-O1`: Basic optimizations
+- `-O2`: Standard production optimizations
+- `-O3`: Aggressive optimizations (may increase code size)
+- `-march=native`: CPU-specific instructions (SIMD)
+- `-flto`: Link-time optimization
+
+**Vectorization**:
+
+- Auto-vectorization: compiler converts loops to SIMD
+- Intrinsics: manual SIMD programming
+- Alignment requirements for SIMD (`alignas`, `__attribute__((aligned))`)
+- Checking vectorization: `-fopt-info-vec` or Compiler Explorer
+
+**Microbenchmarking in C++**:
+
+- Google Benchmark library
+- Preventing optimization with `DoNotOptimize()` and `ClobberMemory()`
+- Measuring throughput vs latency
+- Handling setup/teardown costs
+
+**Hardware Performance Counters**:
+
+- `perf stat` for hardware metrics
+- Cache misses, branch mispredictions, IPC
+- Profiling with `perf record` and flamegraphs
+
+### Exercises
+
+
+**Foundational 1**: Compile a simple dot product function with `-O0`, `-O2`, `-O3`, and `-O3 -march=native`. Benchmark all four versions. Explain the speedup (or lack thereof) based on compiler output or assembly inspection.
+
+
+**Expected Time (Proficient): 25–35 minutes**
+
+
+---
+
+
+**Proficiency 1**: Write a microbenchmark for matrix multiplication comparing: (1) naive triple loop, (2) loop reordering for cache efficiency, (3) Eigen. Measure with Google Benchmark. Use `perf stat` to measure cache misses. Explain the results.
+
+
+**Expected Time (Proficient): 40–55 minutes**
+
+
+**Algorithmic focus**: Memory layout and cache efficiency measured empirically
+
+
+---
+
+
+**Mastery**: Implement a SIMD-optimized sum function using compiler auto-vectorization (pragmas or intrinsics). Verify vectorization with compiler output. Benchmark against naive loop. Achieve ≥2x speedup on floating-point arrays. Write a report explaining when SIMD helps and when it doesn't.
+
+
+**Expected Time (Proficient): 60–90 minutes**
+
+
+**Algorithmic focus**: SIMD vectorization at the hardware level
+
+
+### Deliverable
+
+
+A microbenchmark suite with Google Benchmark, showing performance across optimization levels. Include `perf` output explaining cache behavior. Add a README with optimization flag recommendations.
+
+
+---
+
+
+## Optional Capstone Extension
+
+
+**This extension is optional.** The integrated capstone from Weeks 1–2 already demonstrates proficiency. This extension is for those who want a portfolio piece.
+
+
+### Task
+
+
+Extend the Week 1 Python capstone (Bayesian A/B testing pipeline) OR the Week 2 C++ capstone with ONE of the following:
+
+
+**Option A: Performance Upgrade**
+
+- Identify bottleneck in Python capstone via profiling
+- Rewrite critical section in C++ and wrap with `pybind11`
+- Achieve ≥10x speedup on the bottleneck
+- Maintain bitwise reproducibility
+- Add benchmarks comparing Python-only vs hybrid
+
+**Option B: Robustness Upgrade**
+
+- Add Hypothesis-based stress tests that probe numerical edge cases
+- Identify and fix at least one numerical stability issue
+- Add validation against high-precision arithmetic or analytical solutions
+- Document the failure modes and fixes
+
+**Option C: API & Polish Upgrade**
+
+- Refactor into a clean package structure with `pyproject.toml`
+- Add CLI with `argparse` or `click`
+- Full type hints + `mypy --strict` compliance
+- README with usage examples, benchmarks, and design decisions
+- ≥90% test coverage
+
+### Success Criteria (choose based on option)
+
+
+**Option A**: Profiling report showing 10x+ speedup on bottleneck; benchmarks; reproducibility tests pass.
+
+
+**Option B**: Hypothesis finds and reproduces a numerical bug; fix documented; stress tests pass across wide input ranges.
+
+
+**Option C**: Package installable with `pip install -e .`; CLI functional; `mypy --strict` passes; README publication-quality.
+
+
+### Rubric (Optional—only for self-assessment)
+
+
+| Dimension           | Good                            | Excellent                                                          |
+
+| ------------------- | ------------------------------- | ------------------------------------------------------------------ |
+
+| Technical Execution | Meets success criteria          | Exceeds criteria; additional insights or optimizations             |
+
+| Documentation       | README explains what and how    | README explains why; design tradeoffs articulated                  |
+
+| Code Quality        | Clean, readable, passes linters | Idiomatic; could be merged into a production codebase              |
+
+| Rigor               | Tests pass, benchmarks present  | Stress-tested with edge cases; performance validated across inputs |
+
+
+**Expected Time (Proficient): 3–6 hours across multiple sessions**
+
+
+---
+
+
+## Supplementary: Concurrency and Visualization
+
+
+These topics are not covered in the daily exercises but are essential for production Python work. Review these concepts and complete at least one exercise from each section.
+
+
+### Concurrency Concepts
+
+
+Python's Global Interpreter Lock (GIL) prevents true parallel execution of Python bytecode. For CPU-bound work, use `multiprocessing` to spawn separate processes. For I/O-bound work (network, disk), use `asyncio` or `threading`.
+
+
+`multiprocessing.Pool` provides a simple interface for parallel map operations. Each worker is a separate process with its own memory space and Python interpreter.
+
+
+`concurrent.futures` provides a unified interface: `ThreadPoolExecutor` for I/O-bound work, `ProcessPoolExecutor` for CPU-bound work.
+
+
+`asyncio` enables cooperative multitasking. Functions declared with `async def` can `await` other async functions. The event loop schedules coroutines without OS thread overhead.
+
+
+When to use each:
+
+- `multiprocessing`: CPU-bound work that can be embarrassingly parallel (bootstrap, cross-validation folds, Monte Carlo simulations)
+- `threading`: I/O-bound work with shared state (careful with race conditions)
+- `asyncio`: High-concurrency I/O (many network requests, database queries)
+
+### Concurrency Exercise
+
+
+**Exercise**: Implement a function `parallel_bootstrap(data, stat_func, n_bootstrap, n_workers)` that computes bootstrap confidence intervals using `multiprocessing.Pool`. Compare runtime against a sequential implementation for 10,000 bootstrap samples on 100,000 data points. Ensure reproducibility by passing different seeds to each worker.
+
+
+**Expected Time (Proficient): 20–30 minutes**
+
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+from multiprocessing import Pool
+import numpy as np
+
+def _bootstrap_worker(args):
+    data, stat_func, n_samples, seed = args
+    rng = np.random.default_rng(seed)
+    results = []
+    for _ in range(n_samples):
+        sample = rng.choice(data, size=len(data), replace=True)
+        results.append(stat_func(sample))
+    return results
+
+def parallel_bootstrap(data, stat_func, n_bootstrap, n_workers, base_seed=42):
+    samples_per_worker = n_bootstrap // n_workers
+    seeds = [base_seed + i for i in range(n_workers)]
+    args = [(data, stat_func, samples_per_worker, seed) for seed in seeds]
+    
+    with Pool(n_workers) as pool:
+        results = pool.map(_bootstrap_worker, args)
+    
+    return np.concatenate(results)
+
+```
+
+
+</details>
+
+
+### Visualization Concepts
+
+
+Matplotlib is the foundation for Python visualization. Understand the object-oriented API: `fig, ax = plt.subplots()` creates Figure and Axes objects. Use `ax.plot()`, `ax.scatter()`, `ax.hist()` methods. Avoid `plt.plot()` in production code—it uses implicit global state.
+
+
+For statistical visualization, seaborn provides higher-level functions: `sns.histplot()`, `sns.kdeplot()`, `sns.boxplot()`, `sns.pairplot()`. It integrates well with pandas DataFrames and handles grouping automatically.
+
+
+**Matplotlib architecture**:
+
+- **Figure**: The entire window/page. Contains one or more Axes.
+- **Axes**: A single plot with its own coordinate system, labels, title.
+- **Artist**: Everything drawn on the figure (lines, text, patches).
+
+**Common statistical plot types**:
+
+- Distribution: `histplot`, `kdeplot`, `ecdfplot`, `rugplot`
+- Relationship: `scatterplot`, `lineplot`, `regplot`
+- Categorical: `boxplot`, `violinplot`, `stripplot`, `swarmplot`
+- Matrix: `heatmap`, `clustermap`
+
+**Publication-quality checklist**:
+
+- [ ] Font sizes readable at target print/display size
+- [ ] Axis labels with units
+- [ ] Legend positioned to not obscure data
+- [ ] Colorblind-accessible palette (use `sns.color_palette('colorblind')`)
+- [ ] Figure dimensions match journal/venue requirements
+- [ ] Vector format (PDF, SVG) for print; raster (PNG) for web
+- [ ] DPI ≥ 300 for print
+
+**Seaborn statistical plots**:
+
+
+```python
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Set publication style
+sns.set_theme(style='whitegrid', font_scale=1.2)
+plt.rcParams['figure.dpi'] = 100
+plt.rcParams['savefig.dpi'] = 300
+
+# Distribution with confidence interval
+sns.histplot(data=df, x='value', hue='group', kde=True, stat='density')
+
+# Regression with confidence band
+sns.regplot(data=df, x='x', y='y', ci=95, scatter_kws={'alpha': 0.5})
+
+# Faceted plots
+g = sns.FacetGrid(df, col='category', row='treatment')
+g.map_dataframe(sns.histplot, x='value')
+
+```
+
+
+**Interactive visualization** (for exploration, not publication):
+
+- Plotly: `import` [`plotly.express`](http://plotly.express/) `as px; px.scatter(df, x='x', y='y', color='group')`
+- Altair: Declarative grammar of graphics, good for complex interactions
+
+### Visualization Exercises
+
+
+**Exercise 1**: Create a function `plot_posterior_comparison(samples_a, samples_b, credible_level=0.95)` that produces a publication-quality figure with: (a) KDE plots of both posteriors on the same axes, (b) shaded credible intervals, (c) a vertical line at zero, (d) proper labels and legend. Save as both PNG and PDF.
+
+
+**Expected Time (Proficient): 15–25 minutes**
+
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+def plot_posterior_comparison(samples_a, samples_b, credible_level=0.95):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    
+    alpha = 1 - credible_level
+    
+    for samples, label, color in [(samples_a, 'Group A', 'C0'), 
+                                   (samples_b, 'Group B', 'C1')]:
+        kde = stats.gaussian_kde(samples)
+        x = np.linspace(samples.min(), samples.max(), 200)
+        y = kde(x)
+        ax.plot(x, y, color=color, label=label)
+        
+        # Credible interval
+        lo, hi = np.percentile(samples, [100*alpha/2, 100*(1-alpha/2)])
+        mask = (x >= lo) & (x <= hi)
+        ax.fill_between(x[mask], y[mask], alpha=0.3, color=color)
+    
+    ax.axvline(0, color='black', linestyle='--', alpha=0.5, label='Zero')
+    ax.set_xlabel('Effect Size', fontsize=12)
+    ax.set_ylabel('Density', fontsize=12)
+    ax.legend(fontsize=10)
+    ax.set_title(f'Posterior Distributions ({credible_level*100:.0f}% CI)', fontsize=14)
+    
+    fig.tight_layout()
+    fig.savefig('posterior_comparison.png', dpi=300, bbox_inches='tight')
+    fig.savefig('posterior_comparison.pdf', bbox_inches='tight')
+    return fig, ax
+
+```
+
+
+</details>
+
+
+**Exercise 2**: Create a function `plot_regression_diagnostics(y_true, y_pred, feature_names=None)` that produces a 2×2 subplot figure with: (a) predicted vs actual scatter with identity line, (b) residual histogram with normal curve overlay, (c) residuals vs predicted (check for heteroscedasticity), (d) Q-Q plot of residuals. All subplots must have proper labels.
+
+
+**Expected Time (Proficient): 20–30 minutes**
+
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+
+def plot_regression_diagnostics(y_true, y_pred, figsize=(10, 10)):
+    residuals = y_true - y_pred
+    
+    fig, axes = plt.subplots(2, 2, figsize=figsize)
+    
+    # (a) Predicted vs Actual
+    ax = axes[0, 0]
+    ax.scatter(y_pred, y_true, alpha=0.5, s=20)
+    lims = [min(y_pred.min(), y_true.min()), max(y_pred.max(), y_true.max())]
+    ax.plot(lims, lims, 'r--', label='Perfect fit')
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Actual')
+    ax.set_title('Predicted vs Actual')
+    ax.legend()
+    
+    # (b) Residual Histogram
+    ax = axes[0, 1]
+    ax.hist(residuals, bins=30, density=True, alpha=0.7, edgecolor='black')
+    x = np.linspace(residuals.min(), residuals.max(), 100)
+    ax.plot(x, stats.norm.pdf(x, residuals.mean(), residuals.std()), 
+            'r-', lw=2, label='Normal')
+    ax.set_xlabel('Residual')
+    ax.set_ylabel('Density')
+    ax.set_title('Residual Distribution')
+    ax.legend()
+    
+    # (c) Residuals vs Predicted
+    ax = axes[1, 0]
+    ax.scatter(y_pred, residuals, alpha=0.5, s=20)
+    ax.axhline(0, color='red', linestyle='--')
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('Residual')
+    ax.set_title('Residuals vs Predicted')
+    
+    # (d) Q-Q Plot
+    ax = axes[1, 1]
+    stats.probplot(residuals, dist='norm', plot=ax)
+    ax.set_title('Q-Q Plot')
+    
+    fig.tight_layout()
+    return fig, axes
+
+```
+
+
+</details>
+
+
+**Exercise 3**: Create a `style_for_journal(journal='nature')` context manager that temporarily sets matplotlib rcParams appropriate for the specified journal. Support at least 'nature' (single column: 89mm, double: 183mm) and 'ieee' (single: 3.5in, double: 7in). Reset to defaults on exit.
+
+
+**Expected Time (Proficient): 15–20 minutes**
+
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import matplotlib.pyplot as plt
+from contextlib import contextmanager
+
+JOURNAL_STYLES = {
+    'nature': {
+        'figure.figsize': (3.5, 2.625),  # 89mm single column
+        'font.size': 7,
+        'axes.labelsize': 8,
+        'axes.titlesize': 8,
+        'legend.fontsize': 6,
+        'xtick.labelsize': 6,
+        'ytick.labelsize': 6,
+        'font.family': 'sans-serif',
+        'savefig.dpi': 300,
+    },
+    'ieee': {
+        'figure.figsize': (3.5, 2.625),  # Single column
+        'font.size': 8,
+        'axes.labelsize': 8,
+        'axes.titlesize': 9,
+        'legend.fontsize': 7,
+        'xtick.labelsize': 7,
+        'ytick.labelsize': 7,
+        'font.family': 'serif',
+        'savefig.dpi': 300,
+    }
+}
+
+@contextmanager
+def style_for_journal(journal='nature'):
+    if journal not in JOURNAL_STYLES:
+        raise ValueError(f"Unknown journal: {journal}")
+    
+    # Save current settings
+    original = {k: plt.rcParams[k] for k in JOURNAL_STYLES[journal]}
+    
+    try:
+        plt.rcParams.update(JOURNAL_STYLES[journal])
+        yield
+    finally:
+        plt.rcParams.update(original)
+
+# Usage:
+with style_for_journal('nature'):
+    fig, ax = plt.subplots()
+    ax.plot([1, 2, 3], [1, 4, 9])
+    fig.savefig('figure_for_nature.pdf')
+
+```
+
+
+</details>
+
+
+---
+
+
+## Quick Links
+
+- [Proficiency Standards](/2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880fc9a21ddf798b6a4d5)
+- [How to Use This Curriculum](/2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880ce8da6fa07ef7e21b5)
+- [Interview Preparation Guide](https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880728b71d2d1ae7a67d4)
+
+---
+
+
+## Proficiency Standards
+
+
+To claim proficiency from this curriculum, you must meet ALL of the following:
+
+
+**1. Exercise Performance**
+
+- Score ≥1.5/2.0 average across all Foundational exercises
+- Complete ≥75% of Proficiency exercises with ≥1.5/2.0
+- Mastery exercises are optional enrichment (not required for proficiency)
+
+**2. Capstone Performance**
+
+- Score ≥1.5/2.0 on EACH dimension of both capstone rubrics
+- Complete ALL checklist items for both capstones (see capstone sections for checklists)
+
+**3. Oral Defense Readiness**
+
+- Answer ≥80% of oral defense questions at "strong answer" level
+- Demonstrate reasoning and trade-off awareness, not just factual recall
+- Practice articulation with a partner or in writing before claiming proficiency
+
+**4. Time Investment**
+
+- Expect 50-60 hours total (6-8 hours/day × 2 weeks)
+- If consistently exceeding 2× expected exercise times, you may need additional background preparation
+- Do NOT rush—proficiency requires deliberate practice, not completion speed
+
+**What if I don't meet thresholds?**
+
+- Review solution sketches and oral defense "strong answers"
+- Re-attempt exercises after reviewing concepts
+- Seek help from study group or mentor
+- Consider extending timeline (learning pace varies)—better to achieve proficiency in 3 weeks than false confidence in 2
+
+**What proficiency means (and doesn't mean):**
+
+
+_You CAN:_
+
+- Implement common statistical algorithms from mathematical descriptions
+- Debug numerical issues using profiling, assertions, and mathematical reasoning
+- Read production NumPy/Eigen/pandas code and understand intent
+- Contribute to statistical computing projects with mentorship
+- Recognize when Python is sufficient vs when C++ is needed for performance
+
+_You CANNOT yet:_
+
+- Design large-scale statistical software architectures (requires 6-12 months practice)
+- Claim expert-level C++ (template metaprogramming, advanced concurrency)
+- Independently lead performance optimization projects (need more profiling experience)
+- Claim general software engineering proficiency (this is domain-specific training)
+
+**Proficiency is the BEGINNING of mastery, not the end.**
+
+
+---
+
+
+## How to Use This Curriculum
+
+
+**Time Commitment:**
+
+- Plan for 50-60 hours total across 2 weeks (6-8 hours/day)
+- Days 0-7 (Python): ~25-30 hours
+- Days 8-14 (C++): ~25-30 hours
+- If you consistently exceed 2× expected exercise times, consider extending timeline or seeking additional C++/Python prep
+
+**Exercise Priority:**
+
+- **Foundational:** MUST complete all; these are prerequisites for Proficiency exercises
+- **Proficiency:** Attempt all; these test working proficiency; skip only if stuck after 2× expected time
+- **Mastery:** Optional enrichment for advanced learners or those continuing to Week 3
+
+**When to Use Solution Sketches:**
+
+- ONLY after spending ≥2× expected time on exercise
+- Don't just read solution—understand the reasoning and common mistakes
+- Re-attempt exercise from scratch after reviewing solution to verify understanding
+- Solution sketches show ONE correct approach; alternatives may exist
+
+**Getting Unstuck:**
+
+1. Re-read the "Concepts" section for that day
+2. Check "Common Mistakes" in solution sketch (without reading full solution)
+3. Review corresponding sections in "Algorithmic Thinking for Statistical Code"
+4. Check oral defense questions for related concepts (practice articulating your confusion)
+5. Use study group, mentor, or online community if available
+6. If still stuck after 2× expected time: review solution sketch, understand reasoning, retry from scratch
+
+**Daily Workflow Recommendation:**
+
+1. **Morning (2-3 hours):** Read Concepts section carefully; take notes on mental models
+2. **Midday (2-3 hours):** Attempt Foundational exercises; verify with solution sketches if stuck
+3. **Afternoon (2-3 hours):** Attempt Proficiency exercises; focus on reasoning, not just correct output
+4. **End of day (30-60 min):**
+5. Review solution sketches for any exercises where stuck
+6. Answer 2-3 oral defense questions (practice articulation aloud or in writing)
+7. Reflect: What mental models did I apply today? What tradeoffs did I navigate?
+5. **Optional evening:** Attempt Mastery exercise if energy permits
+
+**Proficiency Verification:**
+
+- After Day 7: Complete Python Capstone with ≥1.5/2.0 on all rubric dimensions
+- After Day 14: Complete C++ Capstone with ≥1.5/2.0 on all rubric dimensions
+- Final verification: Answer ≥80% of all oral defense questions at "strong answer" level
+- See "Proficiency Standards" section above for full criteria
+
+**Note on Optional Week 3:**
+Days 15-20 provide advanced extensions (advanced profiling, stress testing, API design, microbenchmarking). These are NOT required to claim proficiency. Week 3 is for learners who want to deepen skills beyond working proficiency. The core 2-week curriculum (Days 0-14) is self-contained.
+
 
 ---
 
