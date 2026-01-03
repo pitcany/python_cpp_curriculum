@@ -237,8 +237,10 @@ function removeDuplicateSolutionBlocks(markdown) {
         let depth = 1;
         let k = j + 2;
         while (k < lines.length && depth > 0) {
-          if (lines[k].includes('<details>')) depth++;
-          if (lines[k].includes('</details>')) depth--;
+          // Count occurrences (not just presence) in case multiple tags appear on one line.
+          const openCount = (lines[k].match(/<details>/g) || []).length;
+          const closeCount = (lines[k].match(/<\/details>/g) || []).length;
+          depth += openCount - closeCount;
           k++;
         }
 
