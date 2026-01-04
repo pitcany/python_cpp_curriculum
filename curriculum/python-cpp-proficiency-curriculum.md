@@ -2,15 +2,21 @@
 title: "2-Week Python & C++ Proficiency for Statisticians and Data Scientists"
 source: Notion
 notion_url: https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2dc342cf7cc8807b9122dc79f2781d1e
-last_synced: 2026-01-02T23:26:42.593Z
-last_edited_in_notion: 2026-01-02T23:23:00.000Z
+last_synced: 2026-01-04T06:13:24.106Z
+last_edited_in_notion: 2026-01-03T19:03:00.000Z
 ---
 
 
-This curriculum assumes fluency in probability, statistics, linear algebra, and optimization. It does not assume prior software engineering training.
+# 2-Week Python & C++ Proficiency for Statisticians and Data Scientists
 
 
-**The goal is working proficiency in statistical computing**: the ability to implement numerically stable algorithms in Python (NumPy/pandas ecosystem) and foundational C++ skills for performance-critical numerical code with Eigen. Graduates can read production statistical code, write tested implementations of common algorithms (MCMC, optimization, linear algebra), debug numerical issues, and perform basic Python-C++ interoperability.
+**Version**: 1.0.0-beta | **Last Updated**: January 2, 2026
+
+
+This curriculum assumes fluency in probability, statistics, linear algebra, and optimization.
+
+
+**The goal is working proficiency in statistical computing**: the ability to implement numerically stable algorithms in Python (NumPy/pandas ecosystem) and foundational C++ skills for performance-critical numerical code with Eigen. Graduates can read production statistical code, write tested implementations of common algorithms (MCMC, optimization, linear algebra), debug numerical issues, and understand when to use Python vs C++ for statistical computing tasks. _(Note: Full Python-C++ interoperability via pybind11 is covered in optional Week 3, Day 17.)_
 
 
 **This is NOT general-purpose software engineering training.** The curriculum focuses exclusively on computational statistics and data science workflows. You will gain depth in numerical computing patterns, not breadth in web development, databases, or systems programming.
@@ -25,7 +31,7 @@ Week 1 covers Python for statistical computing. Week 2 covers foundational C++ f
 # Getting Started
 
 
-## Setup
+## Setup (Day 0)
 
 ## Day 0: Environment Setup
 
@@ -63,14 +69,17 @@ source stats_env/bin/activate  # On Windows: stats_env\Scripts\activate
 ### Required Packages
 
 
-Install core dependencies:
+Install core dependencies with version pins:
 
 
 ```bash
 pip install --upgrade pip
-pip install numpy pandas scipy matplotlib seaborn pytest hypothesis ipython
+pip install numpy>=1.20,<2.0 pandas>=1.3,<3.0 scipy>=1.7 matplotlib>=3.3 seaborn>=0.11 pytest>=7.0 hypothesis>=6.0 ipython>=7.0
 
 ```
+
+
+**Why version pins?** NumPy 2.0+ and Pandas 3.0+ may introduce breaking API changes. These pins ensure compatibility with all exercises in this curriculum.
 
 
 ### Verification Script
@@ -234,9 +243,9 @@ Expected output: Program compiles with no warnings, prints sum and mean, no sani
 
 ```bash
 source stats_env/bin/activate  # Activate environment
-python script.py               # Run a script
-pytest test_file.py           # Run tests
-python -m cProfile script.py  # Profile code
+python script.py              # Run a script
+python -m pytest tests/       # Run tests
+ipython                       # Interactive shell
 
 ```
 
@@ -269,7 +278,7 @@ Once both verification scripts run successfully, you're ready for Week 1. If you
 # Foundations
 
 
-## 📄 Algorithmic Thinking for Statistical Code
+## Algorithmic Thinking for Statistical Code
 
 Statistical computing demands a particular kind of algorithmic reasoning—distinct from general software engineering and from pure mathematics. This section makes that reasoning explicit.
 
@@ -560,6 +569,9 @@ _(Optional: Week 3, Day 16)_ Benchmarks these tradeoffs systematically with prof
 These short drills test your ability to choose correct algorithmic approaches. Focus on **correctness invariants** and **avoiding common pitfalls**.
 
 
+**Note on numbering**: These exercises are labeled "Foundational 1-3", "Proficiency 1-3", and "Mastery 1-4" within this Algorithmic Thinking section. Daily exercises (Days 1-14) use separate numbering within each day.
+
+
 **Foundational 1**: Compute log-sum-exp: $\log(\sum_i \exp(x_i))$ stably for $x \in \mathbb{R}^n$ with potentially large $|x_i|$.
 
 
@@ -652,6 +664,30 @@ These short drills test your ability to choose correct algorithmic approaches. F
 
 **Correctness invariant**: $\sum_i \sigma(x)_i = 1$ exactly (up to machine precision). No overflow for large $x_i$.
 
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import numpy as np
+
+def softmax_stable(x):
+    """Numerically stable softmax."""
+    # Subtract max for numerical stability
+    x_shifted = x - np.max(x)
+    exp_x = np.exp(x_shifted)
+    return exp_x / np.sum(exp_x)
+
+# Verification
+x = np.array([1000, 1001, 1002])  # Would overflow without stability trick
+probs = softmax_stable(x)
+assert np.isclose(np.sum(probs), 1.0)  # Sums to 1
+assert np.all(np.isfinite(probs))  # No inf/nan
+
+```
+
+
+</details>
+
 
 ---
 
@@ -664,6 +700,44 @@ These short drills test your ability to choose correct algorithmic approaches. F
 
 **Correctness invariant**: Residual $\|b - Ax\|$ decreases geometrically until machine precision limit.
 
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import numpy as np
+
+def iterative_refinement(A, b, max_iter=5, tol=1e-12):
+    """Iterative refinement for Ax = b."""
+    # Initial solution
+    x = np.linalg.solve(A, b)
+    
+    for i in range(max_iter):
+        # Compute residual (use higher precision if available)
+        r = b - A @ x
+        residual_norm = np.linalg.norm(r)
+        
+        if residual_norm < tol:
+            break
+        
+        # Solve for correction
+        delta = np.linalg.solve(A, r)
+        
+        # Update solution
+        x = x + delta
+    
+    return x, residual_norm
+
+# Example with ill-conditioned matrix
+A = np.array([[1e10, 1], [1, 1]])
+b = np.array([1e10, 2])
+x_refined, res = iterative_refinement(A, b)
+print(f"Residual: {res:.2e}")  # Should be very small
+
+```
+
+
+</details>
+
 
 ---
 
@@ -675,6 +749,59 @@ These short drills test your ability to choose correct algorithmic approaches. F
 
 
 **Correctness invariant**: After preprocessing, each sample takes O(1) time. Frequency matches target distribution.
+
+<details>
+<summary>Solution Sketch</summary>
+
+```python
+import numpy as np
+
+class AliasMethod:
+    """O(1) sampling from discrete distribution."""
+    def __init__(self, probs):
+        n = len(probs)
+        self.prob = np.zeros(n)
+        self.alias = np.zeros(n, dtype=int)
+        
+        # Normalize probabilities
+        probs = np.array(probs) * n
+        
+        # Partition into small and large
+        small = [i for i, p in enumerate(probs) if p < 1]
+        large = [i for i, p in enumerate(probs) if p >= 1]
+        
+        # Build alias table
+        while small and large:
+            s, l = small.pop(), large.pop()
+            self.prob[s] = probs[s]
+            self.alias[s] = l
+            probs[l] = probs[l] - (1 - probs[s])
+            if probs[l] < 1:
+                small.append(l)
+            else:
+                large.append(l)
+        
+        # Remaining probabilities are 1
+        for i in small + large:
+            self.prob[i] = 1
+    
+    def sample(self, rng):
+        """O(1) sample."""
+        i = rng.integers(0, len(self.prob))
+        return i if rng.random() < self.prob[i] else self.alias[i]
+
+# Example usage
+probs = [0.1, 0.2, 0.3, 0.4]
+sampler = AliasMethod(probs)
+rng = np.random.default_rng(42)
+samples = [sampler.sample(rng) for _ in range(10000)]
+
+# Verify frequencies match target distribution
+
+```
+
+
+</details>
 
 
 _(Optional: Week 3, Days 15-18)_ Revisit these patterns under time pressure, with explicit profiling and numerical validation requirements.
@@ -839,5006 +966,2944 @@ _(Optional: Week 3, Day 18)_ Includes mock oral defense sessions where you must 
 # Core Curriculum (Required for Proficiency)
 
 
-## 📄 Week 1: Python (Days 1-7)
+## Week 1: Python (Days 1-7)
+
+## Overview
+
+
+Week 1 focuses on **Python proficiency** for statisticians and data scientists transitioning from R, MATLAB, or similar environments. By the end of this week, you will understand Python's unique behaviors, write production-grade code, and complete a capstone project demonstrating mastery.
+
 
 ---
+
+
+## Week Structure
+
+
+This week is organized into 7 daily modules, each covering a critical Python concept:
 
 
 ## Day 1: Functions, Modules, and Idiomatic Python
 
+## Overview
 
-### Concepts
 
+**Focus**: Transition from quick-and-dirty scripting to production-grade Python. Topics include function best practices, module organization, and idiomatic patterns that prevent common bugs.
 
-**Functions as first-class objects**
 
-
-In Python, functions are objects just like integers, strings, or lists. This means you can:
-
-- **Pass functions as arguments** to other functions (higher-order functions)
-- **Return functions** from other functions (factory pattern)
-- **Store functions** in data structures like lists or dictionaries
-- **Assign functions** to variables
-
-Example:
-
-
-```python
-def apply_twice(func, x):
-    return func(func(x))
-
-def add_one(n):
-    return n + 1
-
-result = apply_twice(add_one, 5)  # Returns 7
-
-```
-
-
-**`def`** **vs** **`lambda`**:
-
-- `def` creates a named function with a full statement block. Use for any function that needs multiple lines, docstrings, or will be reused.
-- `lambda` creates an anonymous function limited to a single expression. Use for short, throwaway functions passed to higher-order functions.
-
-```python
-
-# def: multi-line, documented
-def compute_zscore(x, mean, std):
-    """Standardize a value."""
-    return (x - mean) / std
-
-# lambda: inline, single expression
-data.sort(key=lambda x: x[1])  # Sort by second element
-
-```
-
-
-**Style guidance**: Prefer `def` for clarity unless the function is trivial and used once.
-
-
-**Module structure and the** **`if __name__ == "__main__":`** **pattern**
-
-
-Python files serve two roles:
-
-1. **Module**: Imported by other code to use its functions/classes
-2. **Script**: Run directly as a program
-
-When Python imports a file, it executes all top-level code. The `if __name__ == "__main__":` guard distinguishes between these cases:
-
-- When **imported**: `__name__` is set to the module name, so the guard block doesn't run
-- When **run directly**: `__name__` is `"__main__"`, so the guard block executes
-
-```python
-
-# mymodule.py
-def useful_function():
-    return 42
-
-if __name__ == "__main__":
-    # This only runs when executing: python mymodule.py
-    # Does NOT run when: import mymodule
-    print("Testing:", useful_function())
-
-```
-
-
-**Why this matters**: Without the guard, test code, examples, or script logic would execute on import, causing side effects and slowing down imports.
-
-
-**Circular imports**
-
-
-A circular import occurs when module A imports module B, and module B imports module A (directly or transitively). Python handles this by creating a partially initialized module object, which often leads to `AttributeError` when code tries to access names that haven't been defined yet.
-
-
-Example of the problem:
-
-
-```python
-
-# a.py
-from b import bar
-def foo(): return bar()
-
-# b.py  
-from a import foo
-def bar(): return foo()
-
-# When you import a, it tries to import b,
-
-# which tries to import a (not yet finished), crash!
-
-```
-
-
-**Solutions**:
-
-1. **Restructure**: Extract shared code into a third module
-2. **Late import**: Move import statements inside functions
-3. **Import module, not names**: Use `import a` instead of `from a import foo`, then call [`a.foo`](http://a.foo/)`()`
-
-**Idiomatic Python: Readability and comprehensions**
-
-
-Python philosophy (PEP 20): "Readability counts" and "Explicit is better than implicit."
-
-
-**List comprehensions** replace simple loops with a more declarative syntax:
-
-
-```python
-
-# Explicit loop (verbose)
-squares = []
-for x in range(10):
-    squares.append(x ** 2)
-
-# List comprehension (clear intent)
-squares = [x ** 2 for x in range(10)]
-
-# With filter
-evens = [x for x in range(10) if x % 2 == 0]
-
-```
-
-
-**When to use comprehensions**: When the operation is simple and fits on one line. If you need multiple statements or complex logic, use an explicit loop.
-
-
-**Generator expressions** use the same syntax but with parentheses instead of brackets. They don't create the entire list in memory—they yield values one at a time:
-
-
-```python
-
-# List comprehension: creates full list in memory
-squares_list = [x**2 for x in range(1_000_000)]  # Uses ~8MB
-
-# Generator expression: lazy evaluation
-squares_gen = (x**2 for x in range(1_000_000))   # Uses ~128 bytes
-print(next(squares_gen))  # Computes on demand
-
-```
-
-
-Use generators when you don't need all values at once, especially for large datasets or infinite sequences.
-
-
-**`itertools`** **module** provides building blocks for iteration:
-
-- `itertools.chain(*iterables)`: concatenate iterables
-- `itertools.islice(it, start, stop)`: slice an iterator
-- `itertools.groupby(it, key)`: group consecutive elements
-- `itertools.product(A, B)`: Cartesian product
-
-**Variadic functions:** **`*args`** **and `**kwargs`
-
-
-`*args` collects positional arguments into a tuple. `**kwargs` collects keyword arguments into a dictionary.
-
-
-```python
-def flexible_function(required, *args, **kwargs):
-    print(f"Required: {required}")
-    print(f"Extra positional: {args}")     # tuple
-    print(f"Extra keyword: {kwargs}")       # dict
-
-flexible_function(1, 2, 3, x=10, y=20)
-
-# Required: 1
-
-# Extra positional: (2, 3)
-
-# Extra keyword: {'x': 10, 'y': 20}
-
-```
-
-
-**Common use case**: Wrapper functions that forward arguments:
-
-
-```python
-def logged_function(func):
-    def wrapper(*args, **kwargs):
-        print(f"Calling {func.__name__}")
-        return func(*args, **kwargs)  # Forward all arguments
-    return wrapper
-
-```
-
-
-**Mutable default argument pitfall**
-
-
-Default arguments are evaluated **once** when the function is defined, not each time it's called. Mutable defaults (lists, dicts) are shared across all calls:
-
-
-```python
-
-# WRONG: Mutable default
-def append_to_list(item, lst=[]):
-    lst.append(item)
-    return lst
-
-print(append_to_list(1))  # [1]
-print(append_to_list(2))  # [1, 2]  ← Same list!
-
-# CORRECT: Use None as sentinel
-def append_to_list(item, lst=None):
-    if lst is None:
-        lst = []  # Create new list each call
-    lst.append(item)
-    return lst
-
-print(append_to_list(1))  # [1]
-print(append_to_list(2))  # [2]  ← Separate lists
-
-```
-
-
-**Why this happens**: The empty list `[]` is created when Python parses the `def` statement. The same list object is reused on every call. Use `None` as a default and create the mutable object inside the function.
-
-
-### Exercises
-
-
-**Foundational 1**: Write a function `apply_to_columns(df, func)` that applies a callable to each numeric column of a pandas DataFrame and returns a dictionary mapping column names to results. Handle the case where `func` raises an exception for some columns gracefully.
-
-
-**Expected Time (Proficient): 8–12 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                                         | 1                                                         | 2                                                                             |
-
-| ----------- | --------------------------------------------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
-
-| Correctness | Does not filter to numeric columns or fails on exceptions | Filters numeric columns but exception handling incomplete | Correctly iterates numeric columns, catches exceptions, returns complete dict |
-
-| Clarity     | Unclear logic, poor naming                                | Readable but verbose or inconsistent style                | Clean, idiomatic Python with clear intent                                     |
-
-| Robustness  | Crashes on edge cases (empty df, all non-numeric)         | Handles some edge cases                                   | Handles empty df, no numeric columns, mixed types gracefully                  |
-
-| Efficiency  | Unnecessary copies or iterations                          | Reasonable but minor inefficiencies                       | Single pass, no unnecessary allocations                                       |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Iterate over numeric columns using `select_dtypes`, apply func in try/except, collect results.
-
-
-**Key steps**:
-
-1. Use [`df.select`](http://df.select/)`_dtypes(include=[np.number])` to get numeric columns
-2. Iterate over column names
-3. Wrap `func(df[col])` in try/except
-4. Store result or None/sentinel on exception
-
-**Implementation details**:
-
-- Return type: `dict[str, Any]` where values are func results or exception indicators
-- Consider returning `{col: (success, result_or_error)}` tuples for explicit error handling
-- Alternative: use `df.apply(func, axis=0)` but this obscures exception handling
-
-**Common mistakes**:
-
-- Forgetting to filter to numeric columns first
-- Silently swallowing exceptions without indication
-- Modifying the DataFrame in place when func has side effects
-
-</details>
-
-
-**Foundational 2**: Create a module `stats_`[`](%7B%7Bhttp://utils.py%7D%7D)[utils.py](http://utils.py/)[`](%7B%7Bhttp://utils.py%7D%7D) containing at least three functions for common statistical operations (e.g., z-score normalization, winsorization, bootstrap mean). Write a separate script that imports and uses this module. Verify that running the module directly executes test code, but importing it does not.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                            | 1                                            | 2                                            |
-
-| ----------- | -------------------------------------------- | -------------------------------------------- | -------------------------------------------- |
-
-| Correctness | Functions don't work or import guard missing | Functions work but guard incomplete or buggy | All functions correct, guard works perfectly |
-
-| Clarity     | Poor naming, no docstrings                   | Some documentation, readable                 | Clear docstrings, idiomatic Python style     |
-
-| Robustness  | No edge case handling                        | Basic validation                             | Handles empty arrays, NaN, edge cases        |
-
-| Modularity  | Functions tightly coupled                    | Some separation of concerns                  | Clean interfaces, independently testable     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Use `if __name__ == "__main__":` guard to separate importable functions from test code.
-
-
-**Key steps**:
-
-1. Define functions: `zscore(arr)`, `winsorize(arr, limits)`, `bootstrap_mean(arr, n_samples, rng)`
-2. Add `if __name__ == "__main__":` block with test code
-3. Create [`](%7B%7Bhttp://main.py%7D%7D)[main.py](http://main.py/)[`](%7B%7Bhttp://main.py%7D%7D) that does `from stats_utils import zscore, winsorize`
-4. Verify: `python stats_`[`](%7B%7Bhttp://utils.py%7D%7D)[utils.py](http://utils.py/)[`](%7B%7Bhttp://utils.py%7D%7D) runs tests; `python` [`](%7B%7Bhttp://main.py%7D%7D)[main.py](http://main.py/)[`](%7B%7Bhttp://main.py%7D%7D) does not
-
-**Implementation details**:
-
-
-```python
-def zscore(arr):
-    return (arr - np.mean(arr)) / np.std(arr, ddof=1)
-
-if __name__ == "__main__":
-    # Test code here - only runs when executed directly
-    test_data = np.array([1, 2, 3, 4, 5])
-    print(zscore(test_data))
-
-```
-
-
-**Common mistakes**:
-
-- Putting test code at module level (runs on import)
-- Circular imports if stats_utils imports from main
-
-</details>
-
-
-**Foundational 3**: Write a function that takes an array and returns `True` if it is a view of another array and `False` if it owns its data. Test on slices, boolean masks, and results of arithmetic operations.
-
-
-**Expected Time (Proficient): 6–10 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                    | 1                                        | 2                                                          |
-
-| ----------- | ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------- |
-
-| Correctness | Wrong flag checked or logic inverted | Correct for most cases, edge case errors | Correctly identifies views vs owned data in all test cases |
-
-| Clarity     | Implementation unclear               | Functional but verbose                   | One-liner using `flags.owndata` with clear naming          |
-
-| Robustness  | Only works for 1D arrays             | Works for common cases                   | Handles any ndarray including 0-d arrays                   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Check the `OWNDATA` flag in array's flags attribute.
-
-
-**Key steps**:
-
-1. Access `arr.flags['OWNDATA']` or `arr.flags.owndata`
-2. Returns True if array owns its data, False if it's a view
-3. Test cases: slices (False), boolean masks (True), arithmetic (True)
-
-**Implementation**:
-
-
-```python
-def is_view(arr):
-    return not arr.flags.owndata
-
-def owns_data(arr):
-    return arr.flags.owndata
-
-# Tests
-a = np.arange(100)
-print(is_view(a))           # False - owns data
-print(is_view(a[10:20]))    # True - slice is view
-print(is_view(a[a > 50]))   # False - boolean mask copies
-print(is_view(a * 2))       # False - arithmetic creates new array
-
-```
-
-
-**Nuance**: `base` attribute shows what array a view is based on: `arr.base is None` means owns data.
-
-
-</details>
-
-
-**Proficiency 1**: Implement an in-place standardization function `standardize_inplace(X)` that modifies X to have zero mean and unit variance per column. It must not allocate a new array for the result. Verify memory addresses before and after are identical. Compare performance against a version that returns a new array.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                                | 1                                  | 2                                                       |
-
-| --------------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------- |
-
-| Correctness           | Creates copy or wrong statistics | In-place but incorrect mean/var    | Truly in-place with correct zero mean, unit variance    |
-
-| Clarity               | Logic hard to follow             | Readable but could be cleaner      | Clear use of `-=` and `/=` operators                    |
-
-| Robustness            | Fails on single column or row    | Works for typical cases            | Handles single column, single row, already standardized |
-
-| Efficiency            | Hidden copies via temporaries    | Mostly in-place, minor allocations | Zero allocations beyond stats computation               |
-
-| Statistical soundness | Wrong ddof or axis               | Correct formulas                   | Sample variance (ddof=1) with appropriate axis          |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Use in-place operators (`-=`, `/=`) and pre-computed statistics to avoid temporaries.
-
-
-**Key steps**:
-
-1. Compute column means and stds
-2. Subtract means in-place: `X -= means`
-3. Divide by stds in-place: `X /= stds`
-4. Verify with `id(X)` before/after or `X.__array_interface__['data'][0]`
-
-**Implementation**:
-
-
-```python
-def standardize_inplace(X):
-    means = X.mean(axis=0)
-    stds = X.std(axis=0, ddof=1)
-    X -= means  # In-place subtraction
-    X /= stds   # In-place division
-    return X    # Same object
-
-# Verify
-addr_before = X.__array_interface__['data'][0]
-standardize_inplace(X)
-addr_after = X.__array_interface__['data'][0]
-assert addr_before == addr_after
-
-```
-
-
-**Performance notes**:
-
-- In-place: ~2x faster for large arrays (no allocation overhead)
-- Memory: O(d) for means/stds vs O(n*d) for copy version
-
-**Common mistakes**:
-
-- Using `X = X - means` which creates new array and rebinds variable
-
-</details>
-
-
-**Proficiency 2**: Given a 3D array of shape `(n_samples, n_timesteps, n_features)`, write a function that returns a 2D array of shape `(n_samples * n_timesteps, n_features)` as a view (no copy). Determine under what conditions this is possible and raise an informative error when it is not.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                        | 1                                                       | 2                                                  |
-
-| ----------- | ---------------------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
-
-| Correctness | Returns copy or wrong shape              | View for C-contiguous only, no error for non-contiguous | View when possible, informative error otherwise    |
-
-| Clarity     | No explanation of contiguity requirement | Some documentation                                      | Clear docstring explaining when/why it works       |
-
-| Robustness  | No validation                            | Checks contiguity but poor error message                | Validates contiguity with actionable error message |
-
-| Efficiency  | Unnecessary copies or checks             | Correct but verbose                                     | Minimal checks, zero-copy when possible            |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Reshape is zero-copy only when data is contiguous in the target layout.
-
-
-**Key steps**:
-
-1. Check if array is C-contiguous (`arr.flags['C_CONTIGUOUS']`)
-2. If contiguous, `reshape(-1, n_features)` creates a view
-3. If not contiguous, raise informative error
-4. Verify result is view using `np.shares_memory`
-
-**Implementation**:
-
-
-```python
-def reshape_to_2d_view(arr):
-    if not arr.flags['C_CONTIGUOUS']:
-        raise ValueError(
-            f"Cannot reshape to view: array is not C-contiguous. "
-            f"Flags: {arr.flags}. Use np.ascontiguousarray() first."
-        )
-    n_features = arr.shape[-1]
-    result = arr.reshape(-1, n_features)
-    assert np.shares_memory(arr, result), "Unexpected copy"
-    return result
-
-```
-
-
-**When it fails**:
-
-- After transpose: `arr.T` is not C-contiguous
-- After non-contiguous slicing: `arr[:, ::2, :]`
-- Fortran-ordered arrays from some file formats
-
-</details>
-
-
-**Mastery**: Implement a function `sliding_window_view(arr, window_size)` that returns a 2D array where each row is a window of the original 1D array, using only stride manipulation (no loops, no copies). The result must be a view. Compare your implementation to `np.lib.stride_tricks.sliding_window_view` for correctness and memory behavior.
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                            | 1                                  | 2                                                               |
-
-| ----------- | ---------------------------- | ---------------------------------- | --------------------------------------------------------------- |
-
-| Correctness | Wrong output or creates copy | Correct output but edge cases fail | Matches numpy's implementation, result is view                  |
-
-| Clarity     | Stride math unclear          | Working but hard to follow         | Clear comments explaining stride calculation                    |
-
-| Robustness  | No input validation          | Some validation                    | Validates 1D input, window <= length, raises informative errors |
-
-| Efficiency  | Hidden copies or loops       | Zero-copy but inefficient checks   | Pure stride manipulation, O(1) construction                     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Use `as_strided` to create overlapping views by manipulating shape and strides.
-
-
-**Key steps**:
-
-1. Calculate output shape: `(len(arr) - window_size + 1, window_size)`
-2. Calculate strides: `(arr.strides[0], arr.strides[0])` - both dimensions step by element size
-3. Use `np.lib.stride_`[`tricks.as`](http://tricks.as/)`_strided` with these parameters
-4. Verify result shares memory with input
-
-**Implementation**:
-
-
-```python
-from numpy.lib.stride_tricks import as_strided
-
-def sliding_window_view(arr, window_size):
-    arr = np.asarray(arr)
-    if arr.ndim != 1:
-        raise ValueError("Input must be 1D")
-    if window_size > len(arr):
-        raise ValueError("Window larger than array")
-    
-    n_windows = len(arr) - window_size + 1
-    new_shape = (n_windows, window_size)
-    new_strides = (arr.strides[0], arr.strides[0])
-    
-    return as_strided(arr, shape=new_shape, strides=new_strides)
-
-```
-
-
-**Verification**:
-
-
-```python
-arr = np.arange(10)
-mine = sliding_window_view(arr, 3)
-theirs = np.lib.stride_tricks.sliding_window_view(arr, 3)
-assert np.array_equal(mine, theirs)
-assert np.shares_memory(arr, mine)
-
-```
-
-
-**Warning**: `as_strided` can create invalid memory access if parameters are wrong. Always validate inputs.
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why must the result be a view rather than a copy for this exercise to be meaningful?
-2. What happens if someone writes to the sliding window array? Demonstrate the aliasing.
-3. How would you extend this to 2D windows over a 2D array?
-4. When would using explicit loops be preferable to stride tricks?
-
-</details>
+**Why it matters**: R and MATLAB users often write "notebook-style" code. Learning to write modular, reusable functions is essential for collaboration and debugging.
 
 
 ---
 
 
-## Day 2: Memory Model, Views, and Copies
+## Learning Objectives
 
 
-### Concepts
+By the end of Day 1, you will:
+
+- Write functions with explicit type hints and docstrings
+- Organize code into importable modules
+- Use context managers (`with` statements) for resource management
+- Apply list/dict comprehensions and generator expressions idiomatically
+- Understand when to use `*args`, `**kwargs`, and default arguments
+
+---
 
 
-NumPy arrays are contiguous blocks of memory with metadata describing shape, strides, and dtype. Understanding this representation is essential for performance and correctness.
+## Core Concepts
 
 
-Views share memory with the original array. Slicing typically creates views: `arr[::2]` sees every other element without copying. Modifications to a view affect the original. Use `np.shares_memory(a, b)` or `arr.flags.owndata` to check.
+### 1. Function Design
 
 
-Copies allocate new memory. Boolean indexing (`arr[arr > 0]`) always copies. Fancy indexing (`arr[[0, 2, 4]]`) always copies. When in doubt, call `.copy()` explicitly.
+**Type Hints and Docstrings**
 
 
-Strides describe byte offsets between elements. A (3, 4) array with row-major layout has strides `(4 * itemsize, itemsize)`. Transposing swaps strides without copying data. Understanding strides enables advanced tricks like sliding windows.
+```python
+from typing import List, Optional
+
+def compute_loss(predictions: List[float], targets: List[float], 
+                 regularization: Optional[float] = None) -> float:
+    """
+    Compute mean squared error with optional L2 regularization.
+    
+    Args:
+        predictions: Model outputs (length n)
+        targets: Ground truth values (length n)
+        regularization: L2 penalty coefficient (default: None)
+    
+    Returns:
+        Scalar loss value
+    
+    Raises:
+        ValueError: If predictions and targets have different lengths
+    """
+    if len(predictions) != len(targets):
+        raise ValueError("Length mismatch")
+    
+    mse = sum((p - t)**2 for p, t in zip(predictions, targets)) / len(predictions)
+    
+    if regularization:
+        penalty = regularization * sum(p**2 for p in predictions)
+        return mse + penalty
+    return mse
+
+```
 
 
-The `__array_interface__` protocol exposes memory addresses. Use `arr.__array_interface__['data'][0]` to verify whether two arrays share the same buffer.
+**Default Arguments (Mutable Trap)**
 
 
-Memory alignment affects vectorization. Unaligned access is slower on some architectures. NumPy allocates aligned memory by default.
+```python
+
+# ❌ WRONG: Default list is shared across calls
+def append_result(value, results=[]):
+    results.append(value)
+    return results
+
+# First call
+append_result(1)  # [1] ✓
+
+# Second call reuses the SAME list!
+append_result(2)  # [1, 2] ✗
+
+# ✅ CORRECT: Use None as sentinel
+def append_result(value, results=None):
+    if results is None:
+        results = []
+    results.append(value)
+    return results
+
+```
 
 
-### Deep Dive: Understanding Views and Memory Layout
+### 2. Module Organization
 
 
-**Why this matters**: Views enable zero-copy operations that are 10-100x faster than creating copies. Understanding when operations create views vs. copies is essential for writing performant NumPy code and avoiding subtle bugs from aliasing.
-
-
-**Mental model**: Think of a NumPy array as a **data buffer** (the actual numbers in memory) plus **metadata** (shape, strides, dtype). A view shares the data buffer with the original array but has its own metadata. Modifying data through a view affects the original because they point to the same memory.
+**File Structure**
 
 
 ```javascript
-Original array X:     View Y = X[::2, ::2]:
-Buffer: [1,2,3,4...]  Buffer: [same memory]
-Shape: (100, 100)     Shape: (50, 50)
-Strides: (800, 8)     Strides: (1600, 16)  # doubled
+my_stats_lib/
+├── __init__.py          # Package initialization
+├── preprocessing.py     # Data cleaning functions
+├── models.py            # Statistical models
+├── utils.py             # Helper functions
+└── tests/
+    ├── __init__.py
+    ├── test_preprocessing.py
+    └── test_models.py
 
 ```
 
 
-**Worked example**: Slicing vs. boolean indexing
+**`__init__.py`** **Example**
 
 
 ```python
-import numpy as np
 
-# Create a 2D array
-X = np.arange(12).reshape(3, 4)
-print("Original X:")
-print(X)
+# my_stats_lib/__init__.py
+from .preprocessing import standardize, handle_missing
+from .models import linear_regression
 
-# [[0  1  2  3]
-
-#  [4  5  6  7]
-
-#  [8  9 10 11]]
-
-# Slicing creates a VIEW (strides change, no copy)
-Y = X[::2, :]  # Every other row
-print("\nY is a view:", not Y.flags['OWNDATA'])
-print("Shares memory:", np.shares_memory(X, Y))
-
-# Modify the view
-Y[0, 0] = 999
-print("\nAfter Y[0,0] = 999:")
-print("X[0,0] =", X[0,0])  # Also changed! They share memory.
-
-# Boolean indexing creates a COPY (non-contiguous selection)
-Z = X[X > 5]
-print("\nZ is a copy:", Z.flags['OWNDATA'])
-print("Shares memory:", np.shares_memory(X, Z))
-
-# Modifying the copy doesn't affect original
-Z[0] = -1
-print("After Z[0] = -1:")
-print("X (unchanged):", X[X > 5])  # Original values preserved
+__all__ = ['standardize', 'handle_missing', 'linear_regression']
+__version__ = '0.1.0'
 
 ```
 
 
-**Key insight**: The difference comes from **memory layout**:
-
-- **Slice** `X[::2, :]`: Selects every other row. Still contiguous in memory (or can be described with strides). Result: view.
-- **Boolean mask** `X[X > 5]`: Selects scattered elements (6, 7, 8, 9, 10, 11). Cannot be described with simple strides. Result: must copy into new contiguous array.
-
-**Rule of thumb**:
-
-- Regular slicing with `start:stop:step` → usually a view
-- Boolean indexing `arr[mask]` → always a copy
-- Fancy indexing `arr[[0, 2, 5]]` → always a copy
-- Arithmetic operations `arr * 2` → always a copy (new result)
-
-When in doubt: check with `np.shares_memory(a, b)` or `a.flags['OWNDATA']`.
+### 3. Context Managers
 
 
-### Exercises
-
-
-**Foundational 1**: Create a 2D array `X` of shape (100, 100). Extract a slice `Y = X[::2, ::2]`. Verify that `Y` is a view using `np.shares_memory`. Modify `Y[0, 0]` and confirm `X[0, 0]` changes. Then create `Z = X[X > 0.5]` and verify it is NOT a view.
-
-
-**Expected Time (Proficient): 8–12 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension     | 0                                          | 1                                      | 2                                                        |
-
-| ------------- | ------------------------------------------ | -------------------------------------- | -------------------------------------------------------- |
-
-| Correctness   | Cannot distinguish views from copies       | Identifies view correctly but not copy | Correctly identifies both view and copy cases            |
-
-| Verification  | No verification of shared memory           | Uses owndata but not shares_memory     | Uses shares_memory and demonstrates mutation propagation |
-
-| Understanding | Cannot explain why boolean indexing copies | Knows it copies but unclear why        | Explains non-contiguous result requires new allocation   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Slicing with step creates a view (strides adjust); boolean indexing extracts arbitrary elements requiring a copy.
-
-
-**Key steps**:
-
-1. `X = np.random.rand(100, 100)`
-2. `Y = X[::2, ::2]` — view with doubled strides
-3. `assert np.shares_memory(X, Y)`
-4. `Y[0, 0] = -999; assert X[0, 0] == -999`
-5. `Z = X[X > 0.5]; assert not np.shares_memory(X, Z)`
-
-**Common mistakes**:
-
-- Confusing `.copy()` return value with in-place modification
-- Assuming all indexing creates views
-
-</details>
-
-
-**Foundational 2**: Write a function `memory_address(arr)` that returns the memory address of an array's first element. Use it to verify that `arr.T` (transpose) shares the same base address as `arr` but `arr.flatten()` does not.
-
-
-**Expected Time (Proficient): 10–15 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                            | 1                           | 2                                                    |
-
-| -------------- | ---------------------------- | --------------------------- | ---------------------------------------------------- |
-
-| Implementation | Cannot access memory address | Uses wrong interface method | Correctly uses **array_interface**['data'][0]        |
-
-| Transpose Test | Does not test transpose      | Tests but wrong conclusion  | Verifies transpose shares address, different strides |
-
-| Flatten Test   | Does not test flatten        | Tests but wrong conclusion  | Verifies flatten allocates new memory                |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: `__array_interface__` exposes the raw pointer; transpose reuses data with swapped strides; flatten must copy to guarantee contiguity.
-
-
-**Implementation**:
+**Why Use** **`with`****?**
 
 
 ```python
-def memory_address(arr):
-    return arr.__array_interface__['data'][0]
 
-arr = np.arange(12).reshape(3, 4)
-assert memory_address(arr) == memory_address(arr.T)
-assert memory_address(arr) != memory_address(arr.flatten())
+# ❌ Manual resource management (risky)
+f = open('data.csv')
+data = f.read()
+f.close()  # Easy to forget!
+
+# What if an exception occurs before close()?
+
+# ✅ Automatic resource management (safe)
+with open('data.csv') as f:
+    data = f.read()
+
+# File automatically closed, even if exception occurs
 
 ```
 
 
-**Note**: `arr.ravel()` returns a view when possible, `arr.flatten()` always copies.
-
-
-</details>
-
-
-**Proficiency 1**: Write a function `diagnose_array(arr)` that returns a dictionary with: `shape`, `strides`, `dtype`, `is_contiguous` (C or F order), `owns_data`, `memory_address`, and `itemsize`. Use this to explain why `arr[:, 0]` (column slice) has different stride behavior than `arr[0, :]` (row slice) for a C-contiguous array.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension          | 0                                 | 1                                | 2                                                             |
-
-| ------------------ | --------------------------------- | -------------------------------- | ------------------------------------------------------------- |
-
-| Completeness       | Missing multiple fields           | Most fields present, 1-2 missing | All requested fields present and correct                      |
-
-| Contiguity Check   | Does not check contiguity         | Checks one order only            | Correctly identifies C vs F contiguity using flags            |
-
-| Stride Explanation | Cannot explain stride differences | Partial explanation              | Clear explanation: row slice contiguous, column slice strided |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-def diagnose_array(arr):
-    return {
-        'shape': arr.shape,
-        'strides': arr.strides,
-        'dtype': arr.dtype,
-        'is_c_contiguous': arr.flags['C_CONTIGUOUS'],
-        'is_f_contiguous': arr.flags['F_CONTIGUOUS'],
-        'owns_data': arr.flags['OWNDATA'],
-        'memory_address': arr.__array_interface__['data'][0],
-        'itemsize': arr.itemsize
-    }
+```javascript
 
 ```
 
 
-**Stride explanation**: For C-contiguous (m, n) array with itemsize 8:
-
-- `arr[0, :]` has strides (8,) — contiguous
-- `arr[:, 0]` has strides (n*8,) — strided, cache-unfriendly
-
-</details>
-
-
-**Proficiency 2**: Implement `safe_slice(arr, start, stop, step)` that returns a view when the slice is contiguous and a copy otherwise. The function should detect contiguity by examining whether the resulting strides equal `(itemsize,)` for 1D output.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension    | 0                                     | 1                           | 2                                                              |
-
-| ------------ | ------------------------------------- | --------------------------- | -------------------------------------------------------------- |
-
-| Logic        | Always copies or always views         | Contiguity check incomplete | Correctly detects contiguity and returns view/copy accordingly |
-
-| Edge Cases   | Fails on negative step or empty slice | Handles some edge cases     | Handles negative step, empty slice, step > 1 correctly         |
-
-| Verification | No verification of view vs copy       | Some verification           | Uses shares_memory to verify behavior in tests                 |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: A slice is contiguous iff step == 1 (or -1 for reversed contiguous). Check resulting strides against itemsize.
-
-
-**Implementation**:
+**Custom Context Manager**
 
 
 ```python
-def safe_slice(arr, start, stop, step):
-    result = arr[start:stop:step]
-    is_contiguous = (result.ndim == 1 and 
-                     abs(result.strides[0]) == result.itemsize)
-    if is_contiguous:
-        return result  # view
-    return result.copy()
+from contextlib import contextmanager
+import time
 
-```
-
-
-</details>
-
-
-**Mastery**: Implement `as_strided_safe(arr, shape, strides)` that wraps `np.lib.stride_`[`tricks.as`](http://tricks.as/)`_strided` with bounds checking. Before calling `as_strided`, verify that no element in the output would access memory outside the original array's buffer. Raise `ValueError` with a descriptive message if the configuration is invalid. Test on valid sliding window configurations and invalid ones that would cause out-of-bounds access.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                            | 1                                    | 2                                                                   |
-
-| -------------- | ---------------------------- | ------------------------------------ | ------------------------------------------------------------------- |
-
-| Bounds Logic   | No bounds checking           | Partial checking (misses edge cases) | Complete bounds verification for all output elements                |
-
-| Error Messages | Generic or no error messages | Error raised but message unhelpful   | Clear message indicating which access is out of bounds              |
-
-| Testing        | No tests                     | Tests valid cases only               | Tests both valid and invalid configurations, verifies errors raised |
-
-| Performance    | Check is O(output size)      | Check is O(shape dimensions)         | Check is O(1) using max offset calculation                          |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Calculate maximum byte offset that any output element would access; compare against input buffer size.
-
-
-**Implementation**:
-
-
-```python
-def as_strided_safe(arr, shape, strides):
-    # Calculate max offset
-    max_offset = sum((s - 1) * st for s, st in zip(shape, strides))
-    buffer_size = arr.nbytes
-    
-    if max_offset >= buffer_size:
-        raise ValueError(
-            f"Invalid configuration: max offset {max_offset} >= buffer size {buffer_size}"
-        )
-    
-    return np.lib.stride_
-
-```
-
-
-**Test cases**:
-
-
-```python
-arr = np.arange(10)
-
-# Valid: sliding window of size 3
-as_strided_safe(arr, (8, 3), (8, 8))  # works
-
-# Invalid: window extends past end
-as_strided_safe(arr, (10, 3), (8, 8))  # raises ValueError
-
-```
-
-
-</details>
-
-<details>
-<summary>Complete Reference Implementation</summary>
-
-```python
-import numpy as np
-from numpy.lib.stride_tricks import as_strided
-from typing import Tuple
-
-def as_strided_safe(arr: np.ndarray, shape: Tuple[int, ...], strides: Tuple[int, ...]) -> np.ndarray:
-    """Safe wrapper around as_strided with bounds checking."""
-    if not isinstance(arr, np.ndarray):
-        raise TypeError(f"Expected numpy array, got {type(arr).__name__}")
-    if len(shape) != len(strides):
-        raise ValueError(f"shape has {len(shape)} dims but strides has {len(strides)} dims")
-    if any(s < 0 for s in shape):
-        raise ValueError("shape dimensions must be non-negative")
-    if any(s == 0 for s in shape):
-        return as_strided(arr, shape=shape, strides=strides)
-    
-    # Calculate max byte offset any output element could access
-    max_offset = sum((s - 1) * abs(st) for s, st in zip(shape, strides))
-    last_byte = max_offset + arr.itemsize - 1
-    
-    if last_byte >= arr.nbytes:
-        raise ValueError(f"Invalid: accessing byte {last_byte} but buffer is {arr.nbytes} bytes")
-    if any(st < 0 for st in strides):
-        raise ValueError("Negative strides not supported in safe version")
-    
-    return as_strided(arr, shape=shape, strides=strides)
-
-```
-
-
-</details>
-
-<details>
-<summary>Test Suite</summary>
-
-```python
-def test_as_strided_safe():
-    # Test 1: Valid sliding window
-    arr = np.arange(10, dtype=np.float64)
-    result = as_strided_safe(arr, shape=(8, 3), strides=(8, 8))
-    assert result.shape == (8, 3)
-    assert np.shares_memory(arr, result)
-    print("PASS: Valid sliding window")
-    
-    # Test 2: Rejects out-of-bounds
+@contextmanager
+def timer(label):
+    start = time.perf_counter()
     try:
-        as_strided_safe(arr, shape=(10, 3), strides=(8, 8))
-        assert False
-    except ValueError:
-        print("PASS: Rejects out-of-bounds")
-    
-    # Test 3: Type checking
-    try:
-        as_strided_safe([1,2,3], shape=(2,), strides=(8,))
-        assert False
-    except TypeError:
-        print("PASS: Type checking")
-    
-    # Test 4: Dimension mismatch
-    try:
-        as_strided_safe(arr, shape=(3,3), strides=(8,))
-        assert False
-    except ValueError:
-        print("PASS: Dimension mismatch")
-    
-    print("All tests passed!")
+        yield
+    finally:
+        elapsed = time.perf_counter() - start
+        print(f"{label}: {elapsed:.4f}s")
 
-if __name__ == "__main__":
-    test_as_strided_safe()
+# Usage
+with timer("Model training"):
+    # ... training code ...
+    pass
 
 ```
 
 
-</details>
+### 4. Comprehensions and Generators
 
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why does `as_strided` not perform bounds checking by default?
-2. What happens if you write to an array created by `as_strided` with overlapping windows?
-3. How would you extend this to handle negative strides?
-4. When would you use `as_strided` instead of explicit loops in production code?
 
-</details>
+**List Comprehensions**
+
+
+```python
+
+# Convert R-style loop to Pythonic comprehension
+
+# R: sapply(data, function(x) x^2)
+
+# ❌ Verbose
+squares = []
+for x in data:
+    squares.append(x**2)
+
+# ✅ Pythonic
+squares = [x**2 for x in data]
+
+# ✅ With filtering
+positive_squares = [x**2 for x in data if x > 0]
+
+```
+
+
+**Generator Expressions (Memory Efficient)**
+
+
+```python
+
+# Process large dataset without loading everything into memory
+
+# ( ) creates generator, [ ] creates list
+
+# List comprehension: loads all into memory
+sum([x**2 for x in range(10_000_000)])  # ~400 MB
+
+# Generator: processes one at a time
+sum(x**2 for x in range(10_000_000))    # ~100 bytes
+
+```
 
 
 ---
 
 
-## Day 3: Broadcasting and Vectorization
+## Hands-On Exercises
 
 
-### Concepts
+### Exercise 1.1: Refactor Function
 
 
-**Broadcasting: automatic array shape alignment**
-
-
-Broadcasting is NumPy's rule for performing operations on arrays with different shapes. It enables elegant, vectorized code without explicit loops or array replication.
-
-
-**The broadcasting rules** (applied dimension-by-dimension from right to left):
-
-1. If arrays have different numbers of dimensions, prepend 1s to the shape of the smaller array
-2. For each dimension, sizes are compatible if:
-    - They are equal, OR
-    - One of them is 1 (that dimension is "stretched" to match)
-3. If any dimension is incompatible, broadcasting fails with a `ValueError`
-
-Example of compatible shapes:
+Convert this "notebook-style" function to production-grade code:
 
 
 ```python
-A: (3, 4, 5)
-B: (   4, 5)  → prepended to (1, 4, 5)
+def process(data, threshold):
+    result = []
+    for i in range(len(data)):
+        if data[i] > threshold:
+            result.append(data[i] * 2)
+    return result
 
 ```
 
 
-Dimension-by-dimension check:
+**Your Task**: Add type hints, docstring, use comprehension, handle edge cases.
 
-- Axis 0: 3 vs 1 → compatible (1 stretches to 3)
-- Axis 1: 4 vs 4 → compatible (equal)
-- Axis 2: 5 vs 5 → compatible (equal)
+<details>
+<summary>Solution</summary>
 
-Result shape: (3, 4, 5)
+```python
+from typing import List
+
+def amplify_above_threshold(data: List[float], threshold: float) -> List[float]:
+    """
+    Double all values exceeding a threshold.
+    
+    Args:
+        data: Input numeric values
+        threshold: Cutoff value (inclusive)
+    
+    Returns:
+        List of doubled values where data[i] > threshold
+    
+    Example:
+        >>> amplify_above_threshold([1, 5, 3], threshold=2)
+        [10, 6]
+    """
+    if not data:
+        return []
+    return [x * 2 for x in data if x > threshold]
+
+```
 
 
-**Why broadcasting matters: performance**
+</details>
 
 
-Vectorized operations using broadcasting are **10-100x faster** than Python loops because:
+### Exercise 1.2: Module Design
 
-1. **No Python interpreter overhead**: Loops execute in compiled C/Fortran code
-2. **Contiguous memory access**: Cache-friendly sequential reads
-3. **SIMD vectorization**: Modern CPUs process multiple elements per instruction
-4. **No temporary arrays**: Broadcasting doesn't actually copy data—it adjusts indexing logic
 
-Example comparison:
+Create a `stats_`[`utils.py`](http://utils.py/) module with these functions:
+
+1. `mean(values: List[float]) -> float`
+2. `std(values: List[float], ddof: int = 1) -> float`
+3. `z_score(values: List[float]) -> List[float]`
+
+Include proper docstrings and a `__main__` block for testing.
+
+<details>
+<summary>Solution</summary>
+
+```python
+
+# stats_utils.py
+"""Statistical utility functions."""
+from typing import List
+import math
+
+def mean(values: List[float]) -> float:
+    """Compute arithmetic mean.
+    
+    Args:
+        values: List of numeric values
+    
+    Returns:
+        Arithmetic mean
+    
+    Raises:
+        ValueError: If values is empty
+    """
+    if not values:
+        raise ValueError("Cannot compute mean of empty list")
+    return sum(values) / len(values)
+
+def std(values: List[float], ddof: int = 1) -> float:
+    """Compute standard deviation.
+    
+    Args:
+        values: List of numeric values
+        ddof: Delta degrees of freedom (default: 1 for sample std)
+    
+    Returns:
+        Standard deviation
+    
+    Raises:
+        ValueError: If values has fewer than ddof+1 elements
+    """
+    n = len(values)
+    if n <= ddof:
+        raise ValueError(f"Need at least {ddof + 1} values")
+    mu = mean(values)
+    variance = sum((x - mu)**2 for x in values) / (n - ddof)
+    return math.sqrt(variance)
+
+def z_score(values: List[float]) -> List[float]:
+    """Standardize values to z-scores (mean=0, std=1).
+    
+    Args:
+        values: List of numeric values
+    
+    Returns:
+        List of z-scores
+    """
+    mu = mean(values)
+    sigma = std(values)
+    return [(x - mu) / sigma for x in values]
+
+if __name__ == "__main__":
+    # Quick test
+    test_data = [1, 2, 3, 4, 5]
+    print(f"Mean: {mean(test_data)}")
+    print(f"Std:  {std(test_data)}")
+    print(f"Z:    {z_score(test_data)}")
+
+```
+
+
+</details>
+
+
+**Scoring Rubric - Exercise 1.1** (10 points)
+
+
+| Criterion                                   | Points |
+
+| ------------------------------------------- | ------ |
+
+| Type hints on all parameters and return     | 2      |
+
+| Complete docstring (Args, Returns, Example) | 3      |
+
+| List comprehension instead of loop          | 2      |
+
+| Edge case handling (empty list)             | 2      |
+
+| Descriptive function name                   | 1      |
+
+
+**Scoring Rubric - Exercise 1.2** (15 points)
+
+
+| Criterion                                      | Points |
+
+| ---------------------------------------------- | ------ |
+
+| All three functions implemented correctly      | 6      |
+
+| Type hints on all functions                    | 3      |
+
+| Docstrings with Args/Returns/Raises            | 3      |
+
+| Error handling (empty list, insufficient data) | 2      |
+
+| `__main__` block with test cases               | 1      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                     | Why It's Bad                         | Fix                                     |
+
+| --------------------------- | ------------------------------------ | --------------------------------------- |
+
+| `def func(x=[])`            | Mutable default shared across calls  | Use `x=None`, then `x = x or []`        |
+
+| No type hints               | Hard to catch bugs, poor IDE support | Add `-> ReturnType` annotations         |
+
+| `for i in range(len(data))` | Unpythonic, error-prone              | Use `for item in data` or `enumerate()` |
+
+| Deeply nested `if`/`for`    | Hard to read and debug               | Extract to helper functions             |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 2, verify you can:
+
+- [ ] Write a function with type hints, docstring, and proper error handling
+- [ ] Explain why `def f(x=[])` is dangerous
+- [ ] Use `with` statements for file I/O
+- [ ] Convert a `for` loop to a list comprehension
+- [ ] Organize code into an importable module with `__init__.py`
+
+---
+
+
+## Resources
+
+- [PEP 8 – Style Guide](https://peps.python.org/pep-0008/)
+- [Real Python: Type Hints](https://realpython.com/python-type-checking/)
+- [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+
+## Day 2: Memory Model, Views, and Copies
+
+## Overview
+
+
+**Focus**: Understand how Python and NumPy manage memory. Topics include references vs. copies, views vs. base arrays, and when mutations propagate unexpectedly.
+
+
+**Why it matters**: R and MATLAB often copy-on-write by default. Python's reference semantics cause subtle bugs if you assume copies happen automatically.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 2, you will:
+
+- Distinguish between shallow copies, deep copies, and references
+- Predict when NumPy operations return views vs. copies
+- Debug unintended mutations in nested data structures
+- Use `is` vs. `==` correctly
+- Understand object mutability and its implications
+
+---
+
+
+## Core Concepts
+
+
+### 1. References vs. Copies
+
+
+**The Fundamental Difference**
+
+
+```python
+
+# Lists are mutable objects
+a = [1, 2, 3]
+b = a          # b is a REFERENCE to the same list
+b.append(4)
+print(a)       # [1, 2, 3, 4] ← a changed too!
+
+# To get a copy:
+c = a.copy()   # or a[:] or list(a)
+c.append(5)
+print(a)       # [1, 2, 3, 4] ← a unchanged
+
+```
+
+
+**Identity vs. Equality**
+
+
+```python
+a = [1, 2]
+b = a
+c = [1, 2]
+
+a == b  # True (same contents)
+a is b  # True (same object in memory)
+
+a == c  # True (same contents)
+a is c  # False (different objects)
+
+# Use `is` for None, True, False; use `==` for value comparison
+
+```
+
+
+### 2. Shallow vs. Deep Copy
+
+
+**Nested Structures**
+
+
+```python
+import copy
+
+# Shallow copy: copies top level only
+matrix = [[1, 2], [3, 4]]
+shallow = matrix.copy()
+shallow[0][0] = 99
+
+print(matrix)  # [[99, 2], [3, 4]] ← nested list still shared!
+
+# Deep copy: recursively copies everything
+matrix = [[1, 2], [3, 4]]
+deep = copy.deepcopy(matrix)
+deep[0][0] = 99
+
+print(matrix)  # [[1, 2], [3, 4]] ← unchanged
+
+```
+
+
+**When to Use Which**
+
+
+| Scenario                 | Use                |
+
+| ------------------------ | ------------------ |
+
+| Flat list/dict           | `.copy()` or `[:]` |
+
+| Nested structures        | `copy.deepcopy()`  |
+
+| NumPy arrays (see below) | `.copy()`          |
+
+
+### 3. NumPy Views vs. Copies
+
+
+**The View Mechanism**
 
 
 ```python
 import numpy as np
 
-# Slow: Python loop
-X = np.random.rand(1000, 100)
-means = X.mean(axis=0)
-result = np.zeros_like(X)
-for i in range(X.shape[0]):
-    result[i] = X[i] - means  # ~10ms
+# Most slicing operations return VIEWS (not copies)
+x = np.array([1, 2, 3, 4, 5])
+y = x[1:4]      # y is a view into x
 
-# Fast: Broadcasting
-result = X - means  # ~0.1ms (100x faster!)
+y[0] = 99
+print(x)        # [1, 99, 3, 4, 5] ← x changed!
 
-```
-
-
-**Common broadcasting patterns**
-
-1. **Centering data** (subtract column means):
-
-```python
-X = np.random.rand(1000, 50)  # (1000, 50)
-means = X.mean(axis=0)         # (50,) → broadcasts to (1, 50) → (1000, 50)
-X_centered = X - means
-
-```
-
-1. **Pairwise distances** (expand dimensions to enable broadcasting):
-
-```python
-X = np.random.rand(100, 3)  # 100 points in 3D
-
-# Compute all pairwise distances
-X_i = X[:, np.newaxis, :]  # (100, 1, 3)
-X_j = X[np.newaxis, :, :]  # (1, 100, 3)
-diff = X_i - X_j           # (100, 100, 3) via broadcasting
-dist = np.sqrt((diff**2).sum(axis=2))  # (100, 100)
-
-```
-
-1. **Outer operations**:
-
-```python
-a = np.array([1, 2, 3])       # (3,)
-b = np.array([10, 20, 30, 40]) # (4,)
-
-# Outer product
-outer = a[:, np.newaxis] * b[np.newaxis, :]  # (3, 1) * (1, 4) → (3, 4)
+# Force a copy:
+z = x[1:4].copy()
+z[0] = 77
+print(x)        # [1, 99, 3, 4, 5] ← x unchanged
 
 ```
 
 
-**Understanding dimension expansion**
-
-
-Use `np.newaxis` (or `None`) to insert new axes of size 1:
+**Detecting Views**
 
 
 ```python
-a = np.array([1, 2, 3])  # Shape: (3,)
-print(a.shape)           # (3,)
+x = np.array([1, 2, 3, 4])
+y = x[::2]      # every other element
 
-print(a[:, np.newaxis].shape)  # (3, 1) - column vector
-print(a[np.newaxis, :].shape)  # (1, 3) - row vector
+# Check if y is a view of x:
+y.base is x     # True ← y is a view
 
-# Equivalent to:
-print(a.reshape(3, 1).shape)   # (3, 1)
-print(a.reshape(1, 3).shape)   # (1, 3)
-
-```
-
-
-**When broadcasting fails**
-
-
-Incompatible shapes raise `ValueError`:
-
-
-```python
-A = np.random.rand(3, 4)
-B = np.random.rand(3, 5)  # Different size in axis 1
-
-try:
-    C = A + B  # Error!
-except ValueError as e:
-    print(e)  # "operands could not be broadcast together with shapes (3,4) (3,5)"
+# Check if array owns its data:
+y.flags['OWNDATA']  # False ← doesn't own data
+x.flags['OWNDATA']  # True  ← owns data
 
 ```
 
 
-**Fix: reshape to make compatible**:
+**Operations That Return Views vs. Copies**
+
+
+| Operation                         | Returns            |
+
+| --------------------------------- | ------------------ |
+
+| `arr[start:stop]`                 | View               |
+
+| `arr[[0, 2, 4]]` (fancy indexing) | Copy               |
+
+| `arr[arr > 0]` (boolean mask)     | Copy               |
+
+| `arr.reshape(...)`                | View (if possible) |
+
+| `arr.T` (transpose)               | View               |
+
+| `arr.flatten()`                   | Copy               |
+
+| `arr.ravel()`                     | View (if possible) |
+
+
+### 4. Common Pitfalls
+
+
+**Pitfall 1: Loop Variable Aliasing**
 
 
 ```python
 
-# If you want to add each row of A to each row of B:
-A_expanded = A[:, :, np.newaxis]  # (3, 4, 1)
-B_expanded = B[:, np.newaxis, :]  # (3, 1, 5)
-C = A_expanded + B_expanded        # (3, 4, 5)
+# ❌ All functions reference the SAME variable
+functions = []
+for i in range(3):
+    functions.append(lambda: i**2)
+
+[f() for f in functions]  # [4, 4, 4] ← all return 2^2!
+
+# ✅ Capture i's value explicitly
+functions = []
+for i in range(3):
+    functions.append(lambda x=i: x**2)  # default arg captures value
+
+[f() for f in functions]  # [0, 1, 4] ✓
 
 ```
 
 
-**Common pitfalls and debugging**
-
-
-**Pitfall 1: Accidental broadcasting**
+**Pitfall 2: DataFrame Column Assignment**
 
 
 ```python
-a = np.array([1, 2, 3])      # Shape: (3,)
-b = np.array([[1], [2], [3]]) # Shape: (3, 1)
+import pandas as pd
 
-result = a + b  # (3,) + (3, 1) → (1, 3) + (3, 1) → (3, 3)
-print(result.shape)  # (3, 3) - probably not what you wanted!
+df = pd.DataFrame({'A': [1, 2, 3]})
+
+# ❌ May create a view or copy (depends on pandas version)
+col = df['A']
+col[0] = 99  # Might trigger SettingWithCopyWarning
+
+# ✅ Explicit copy
+col = df['A'].copy()
+col[0] = 99  # Safe
+
+# ✅ Or modify in place
+df.loc[0, 'A'] = 99
 
 ```
 
 
-You expected element-wise addition of two length-3 vectors, but got a 3×3 matrix from outer sum.
+---
 
 
-**Fix: Ensure shapes match explicitly**:
+## Hands-On Exercises
+
+
+### Exercise 2.1: Debug the Mutation
+
+
+Find and fix the bug:
 
 
 ```python
-assert a.shape == b.flatten().shape
-result = a + b.flatten()  # Now (3,) + (3,) = (3,)
+def reset_matrix(mat):
+    """Set all elements to zero."""
+    for row in mat:
+        row = [0] * len(row)
+    return mat
+
+data = [[1, 2], [3, 4]]
+reset_matrix(data)
+print(data)  # [[1, 2], [3, 4]] ← Why didn't it reset?
 
 ```
-
-
-**Pitfall 2: Wrong axis for reduction**
-
-
-```python
-X = np.random.rand(100, 50)  # 100 samples, 50 features
-
-# WRONG: subtracting row means instead of column means
-row_means = X.mean(axis=1)  # Shape: (100,)
-X_wrong = X - row_means     # (100, 50) - (100,) → broadcasts to (100, 50)
-
-# But this subtracts row_means[i] from ALL columns in row i!
-
-# CORRECT: subtract column means
-col_means = X.mean(axis=0)  # Shape: (50,)
-X_centered = X - col_means  # (100, 50) - (50,) → correct broadcasting
-
-```
-
-
-**Pitfall 3: Missing keepdims**
-
-
-```python
-X = np.random.rand(10, 20, 30)
-
-# WRONG: loses dimension
-means = X.mean(axis=1)  # Shape: (10, 30) - axis 1 removed
-
-# Now broadcasting fails:
-try:
-    X - means  # (10, 20, 30) vs (10, 30) - axis 1 incompatible!
-except ValueError:
-    pass
-
-# CORRECT: keep dimension with size 1
-means = X.mean(axis=1, keepdims=True)  # Shape: (10, 1, 30)
-X_centered = X - means  # (10, 20, 30) - (10, 1, 30) → broadcasts correctly
-
-```
-
-
-**Debugging broadcasting: use** **`.shape`**
-
-
-When broadcasting doesn't work as expected, print shapes:
-
-
-```python
-print(f"A: {A.shape}")
-print(f"B: {B.shape}")
-print(f"A + B: {(A + B).shape}")
-
-```
-
-
-**The power of broadcasting: avoiding explicit loops**
-
-
-Without broadcasting (slow):
-
-
-```python
-X = np.random.rand(1000, 100)
-result = np.zeros((1000, 1000))
-for i in range(1000):
-    for j in range(1000):
-        result[i, j] = np.sum((X[i] - X[j])**2)  # Very slow!
-
-```
-
-
-With broadcasting (fast):
-
-
-```python
-X_i = X[:, np.newaxis, :]  # (1000, 1, 100)
-X_j = X[np.newaxis, :, :]  # (1, 1000, 100)
-result = ((X_i - X_j)**2).sum(axis=2)  # (1000, 1000) - 100x faster!
-
-```
-
-
-**Memory considerations**
-
-
-Broadcasting doesn't create copies during the operation, but the **result** may be large:
-
-
-```python
-a = np.random.rand(1000, 1)     # 8 KB
-b = np.random.rand(1, 1000)     # 8 KB
-c = a + b                        # (1000, 1000) = 8 MB!
-
-```
-
-
-The operation is memory-efficient (no intermediate copies of `a` or `b`), but the output is large.
-
-
-**Vectorization: eliminating Python loops**
-
-
-**Vectorized** = operations applied element-wise to entire arrays, no Python loops.
-
-
-Example: Standardizing data
-
-
-```python
-
-# Non-vectorized (slow)
-def standardize_slow(X):
-    result = np.zeros_like(X)
-    for i in range(X.shape[1]):  # For each column
-        mean = np.mean(X[:, i])
-        std = np.std(X[:, i])
-        for j in range(X.shape[0]):  # For each row
-            result[j, i] = (X[j, i] - mean) / std
-    return result
-
-# Vectorized (fast)
-def standardize_fast(X):
-    means = X.mean(axis=0)  # Vectorized mean
-    stds = X.std(axis=0)    # Vectorized std
-    return (X - means) / stds  # Vectorized arithmetic + broadcasting
-
-# Performance: 100x speedup for large X
-
-```
-
-
-**When to use broadcasting vs explicit operations**
-
-- **Use broadcasting** when shapes are compatible and intent is clear
-- **Be explicit** when broadcasting might cause confusion or silent bugs
-- **Add asserts** in critical code to verify shape compatibility
-
-```python
-def safe_subtract_means(X):
-    """Subtract column means from X."""
-    means = X.mean(axis=0)
-    assert means.shape == (X.shape[1],), f"Expected shape ({X.shape[1]},), got {means.shape}"
-    return X - means
-
-```
-
-
-### Exercises
-
-
-**Foundational 1**: Compute the Euclidean distance matrix between two sets of points `X` (shape `(m, d)`) and `Y` (shape `(n, d)`) using broadcasting. The result should have shape `(m, n)`. Do not use loops.
-
-
-**Expected Time (Proficient): 10–15 minutes**
 
 <details>
-<summary>Rubric</summary>
+<summary>Solution</summary>
 
-| Dimension   | 0                          | 1                            | 2                                                                 |
+**Problem**: Reassigning `row` creates a new local variable; it doesn't modify the original list.
 
-| ----------- | -------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 
-| Correctness | Uses loops or wrong result | Correct but numerical issues | Correct distances, handles numerical precision (no negative sqrt) |
+```python
 
-| Clarity     | Broadcasting logic unclear | Working but verbose          | Clean broadcasting with clear dimension comments                  |
+# ✅ Fix 1: Modify in place
+def reset_matrix(mat):
+    for row in mat:
+        for i in range(len(row)):
+            row[i] = 0
+    return mat
 
-| Robustness  | Fails on m≠n or d=1        | Works for typical cases      | Handles any m, n, d including edge cases                          |
+# ✅ Fix 2: Rebuild matrix
+def reset_matrix(mat):
+    return [[0] * len(row) for row in mat]
 
-| Efficiency  | O(mnd) memory intermediate | Correct but suboptimal       | Uses efficient formula (                                          |
+# ✅ Fix 3: NumPy (best for numeric data)
+import numpy as np
+def reset_matrix(mat):
+    arr = np.array(mat)
+    arr[:] = 0  # In-place assignment
+    return arr.tolist()
+
+```
 
 
 </details>
 
-<details>
-<summary>Solution Sketch</summary>
 
-**Core idea**: Expand dimensions to enable broadcasting: `||x - y||^2 = ||x||^2 + ||y||^2 - 2*x·y`
+### Exercise 2.2: NumPy View Detective
 
 
-**Method 1 - Direct broadcasting** (memory intensive):
+Predict whether each operation creates a view or copy:
 
 
 ```python
+import numpy as np
+x = np.arange(12).reshape(3, 4)
 
-# X: (m, d), Y: (n, d)
-
-# Expand: X[:, None, :] is (m, 1, d), Y[None, :, :] is (1, n, d)
-diff = X[:, None, :] - Y[None, :, :]  # (m, n, d)
-dist = np.sqrt((diff ** 2).sum(axis=2))  # (m, n)
-
-```
-
-
-**Method 2 - Efficient formula** (recommended):
-
-
-```python
-
-# ||x-y||^2 = ||x||^2 + ||y||^2 - 2*x·y
-X_sq = (X ** 2).sum(axis=1, keepdims=True)  # (m, 1)
-Y_sq = (Y ** 2).sum(axis=1, keepdims=True)  # (n, 1)
-dist_sq = X_sq + Y_sq.T - 2 * X @ Y.T      # (m, n)
-dist = np.sqrt(np.maximum(dist_sq, 0))      # Avoid negative due to float errors
+a = x[0, :]          # ?
+b = x[[0, 2], :]     # ?
+c = x[x > 5]         # ?
+d = x.T              # ?
+e = x.reshape(4, 3)  # ?
 
 ```
-
-
-**Performance notes**:
-
-- Method 1: O(m_n_d) memory for intermediate
-- Method 2: O(m*n) memory, faster for large d
-
-**Common mistakes**:
-
-- Forgetting `keepdims=True` breaks broadcasting
-- Not handling numerical precision (tiny negative values before sqrt)
-
-</details>
-
-
-**Foundational 2**: Given a matrix `X` of shape `(n_samples, n_features)`, subtract the column means and divide by column standard deviations using only broadcasting (no explicit loops, no `apply`). Verify the result has zero mean and unit variance per column.
-
-
-**Expected Time (Proficient): 8–12 minutes**
 
 <details>
-<summary>Rubric</summary>
+<summary>Solution</summary>
 
-| Dimension             | 0                                | 1                           | 2                                           |
+| Variable | View or Copy? | Reason                           |
 
-| --------------------- | -------------------------------- | --------------------------- | ------------------------------------------- |
+| -------- | ------------- | -------------------------------- |
 
-| Correctness           | Wrong axis or broadcasting fails | Correct standardization     | Correct with verification using allclose    |
+| `a`      | View          | Basic slicing                    |
 
-| Clarity               | Axis parameter usage unclear     | Working but verbose         | Clean one-liner with clear axis usage       |
+| `b`      | Copy          | Fancy indexing (list of indices) |
 
-| Robustness            | Fails on single row/column       | Works for typical cases     | Handles edge cases, division by zero        |
+| `c`      | Copy          | Boolean mask                     |
 
-| Statistical soundness | Wrong ddof                       | Correct but no verification | ddof=1 for sample std, verified numerically |
+| `d`      | View          | Transpose is metadata-only       |
 
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Compute statistics along axis=0, broadcast back to full shape.
-
-
-**Implementation**:
-
-
-```python
-means = X.mean(axis=0)        # Shape: (n_features,)
-stds = X.std(axis=0, ddof=1)  # Shape: (n_features,)
-X_standardized = (X - means) / stds  # Broadcasting: (n, d) - (d,) / (d,)
-
-```
+| `e`      | View          | Reshape without data copy        |
 
 
 **Verification**:
 
 
 ```python
-
-# Mean should be ~0 (within floating point tolerance)
-assert np.allclose(X_standardized.mean(axis=0), 0, atol=1e-10)
-
-# Std should be ~1
-assert np.allclose(X_standardized.std(axis=0, ddof=1), 1, atol=1e-10)
+print(a.base is x)  # True
+print(b.base is x)  # False
+print(c.base is x)  # False
+print(d.base is x)  # True
+print(e.base is x)  # True
 
 ```
 
 
-**Broadcasting explanation**:
-
-- `X` has shape `(n, d)`, `means` has shape `(d,)`
-- NumPy aligns from right: `(n, d)` - `(d,)` broadcasts `(d,)` to `(1, d)` then to `(n, d)`
-
-**Common mistakes**:
-
-- Using `axis=1` instead of `axis=0` (row vs column operations)
-- Forgetting `ddof=1` for sample standard deviation
-
 </details>
 
 
-**Proficiency 1**: Implement softmax for a 2D array along axis 1 using broadcasting. Handle numerical stability (subtract the max before exponentiating). Compare performance against a naive loop-based implementation for arrays of shape `(10000, 1000)`.
+**Scoring Rubric - Exercise 2.1** (10 points)
 
 
-**Expected Time (Proficient): 12–18 minutes**
+| Criterion                                            | Points |
 
-<details>
-<summary>Rubric</summary>
+| ---------------------------------------------------- | ------ |
 
-| Dimension   | 0                                  | 1                          | 2                                                  |
+| Correctly identifies the bug (rebinding vs mutation) | 3      |
 
-| ----------- | ---------------------------------- | -------------------------- | -------------------------------------------------- |
+| Provides working fix that modifies in-place          | 4      |
 
-| Correctness | Wrong result or numerical overflow | Correct for typical values | Correct for extreme values (-1000 to 1000)         |
+| Explains why original code fails                     | 2      |
 
-| Clarity     | Stability trick unclear            | Working but verbose        | Clear max subtraction with keepdims                |
-
-| Robustness  | Fails on single row                | Works for typical cases    | Handles single row, single column, all-same values |
-
-| Efficiency  | Slower than loop version           | Faster but not optimal     | 10x+ faster than loop, proper vectorization        |
+| Code is clean and follows Python conventions         | 1      |
 
 
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: `softmax(x) = exp(x - max(x)) / sum(exp(x - max(x)))` for stability.
+**Scoring Rubric - Exercise 2.2** (10 points)
 
 
-**Implementation**:
+| Criterion                                  | Points |
+
+| ------------------------------------------ | ------ |
+
+| Correctly identifies all 5 as view or copy | 5      |
+
+| Provides correct reasoning for each        | 3      |
+
+| Includes verification code using `.base`   | 2      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                                     | Why It's Bad                          | Fix                            |
+
+| ------------------------------------------- | ------------------------------------- | ------------------------------ |
+
+| `b = a` without `.copy()`                   | Unintended mutations propagate        | Use `.copy()` explicitly       |
+
+| Modifying view assuming it's a copy         | Changes affect original array         | Check `.base` or use `.copy()` |
+
+| Using `==` instead of `is` for `None`       | Less efficient, wrong semantics       | Use `if x is None:`            |
+
+| Forgetting nested structures need deep copy | Shallow copy still shares nested refs | Use `copy.deepcopy()`          |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 3, verify you can:
+
+- [ ] Explain the difference between `a = b` and `a = b.copy()`
+- [ ] Predict when `arr[slice]` returns a view vs. copy
+- [ ] Use `.base` to check if an array is a view
+- [ ] Fix a bug caused by unintended list aliasing
+- [ ] Use `copy.deepcopy()` for nested structures
+
+---
+
+
+## Resources
+
+- [Python Memory Management](https://realpython.com/python-memory-management/)
+- [NumPy Views and Copies](https://numpy.org/doc/stable/user/basics.copies.html)
+- [Ned Batchelder: Facts and Myths about Python Names and Values](https://nedbatchelder.com/text/names.html)
+
+## Day 3: Broadcasting and Vectorization
+
+## Overview
+
+
+**Focus**: Learn how NumPy's broadcasting rules enable vectorized operations without explicit loops. Topics include shape compatibility, performance optimization, and common pitfalls.
+
+
+**Why it matters**: R and MATLAB vectorize automatically in many cases. Understanding Python's broadcasting rules prevents shape-mismatch errors and unlocks massive speedups.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 3, you will:
+
+- Apply broadcasting rules to combine arrays of different shapes
+- Vectorize computations to replace Python loops
+- Use `np.newaxis` and `reshape` to control broadcasting
+- Avoid common broadcasting pitfalls (e.g., unintended dimension expansion)
+- Benchmark vectorized vs. loop-based code
+
+---
+
+
+## Core Concepts
+
+
+### 1. Broadcasting Rules
+
+
+**The Three Rules**
+
+
+NumPy compares array shapes element-wise from right to left. Two dimensions are compatible when:
+
+1. They are equal, OR
+2. One of them is 1
+
+```python
+import numpy as np
+
+# Rule 1: Same shape
+a = np.array([1, 2, 3])      # shape (3,)
+b = np.array([10, 20, 30])   # shape (3,)
+a + b  # [11, 22, 33] ✓
+
+# Rule 2: Trailing dimensions match
+a = np.array([[1], [2], [3]])  # shape (3, 1)
+b = np.array([10, 20, 30])     # shape (3,)
+a + b  # Broadcasting expands to (3, 3)
+
+# [[11, 21, 31],
+
+#  [12, 22, 32],
+
+#  [13, 23, 33]]
+
+# Rule 3: Dimension of 1 stretches
+a = np.ones((3, 1))   # shape (3, 1)
+b = np.ones((1, 4))   # shape (1, 4)
+(a + b).shape         # (3, 4) ✓
+
+```
+
+
+**Visual Example: Mean Centering**
 
 
 ```python
-def softmax_stable(X):
-    # X: (n, d)
-    X_max = X.max(axis=1, keepdims=True)  # (n, 1)
-    exp_X = np.exp(X - X_max)              # (n, d) - broadcasting
-    return exp_X / exp_X.sum(axis=1, keepdims=True)
 
-def softmax_loop(X):
-    result = np.zeros_like(X)
-    for i in range(X.shape[0]):
-        row = X[i] - X[i].max()
-        exp_row = np.exp(row)
-        result[i] = exp_row / exp_row.sum()
+# Center each column of a matrix (subtract column means)
+X = np.array([[1, 2, 3],
+              [4, 5, 6],
+              [7, 8, 9]])  # shape (3, 3)
+
+col_means = X.mean(axis=0)  # shape (3,) → [4, 5, 6]
+
+# Broadcasting: (3, 3) - (3,) → (3, 3)
+X_centered = X - col_means
+
+# [[-3, -3, -3],
+
+#  [ 0,  0,  0],
+
+#  [ 3,  3,  3]]
+
+```
+
+
+### 2. Controlling Broadcasting with `newaxis`
+
+
+**Adding Dimensions**
+
+
+```python
+a = np.array([1, 2, 3])  # shape (3,)
+
+# Add dimension at end
+a[:, np.newaxis]  # shape (3, 1)
+
+# [[1],
+
+#  [2],
+
+#  [3]]
+
+# Add dimension at start
+a[np.newaxis, :]  # shape (1, 3)
+
+# [[1, 2, 3]]
+
+# Equivalent to reshape
+a.reshape(-1, 1)  # shape (3, 1)
+a.reshape(1, -1)  # shape (1, 3)
+
+```
+
+
+**Use Case: Distance Matrix**
+
+
+```python
+
+# Compute pairwise distances between points
+points = np.array([[0, 0], [1, 1], [2, 2]])  # shape (3, 2)
+
+# Expand to (3, 1, 2) and (1, 3, 2)
+diff = points[:, np.newaxis, :] - points[np.newaxis, :, :]
+
+# Compute Euclidean distance
+distances = np.sqrt((diff ** 2).sum(axis=2))
+
+# [[0.        , 1.41421356, 2.82842712],
+
+#  [1.41421356, 0.        , 1.41421356],
+
+#  [2.82842712, 1.41421356, 0.        ]]
+
+```
+
+
+### 3. Vectorization
+
+
+**Loop-to-Vector Conversion**
+
+
+```python
+
+# ❌ Python loop (slow)
+def standardize_loop(X):
+    result = np.empty_like(X)
+    for i in range(X.shape[1]):
+        col = X[:, i]
+        result[:, i] = (col - col.mean()) / col.std()
     return result
 
+# ✅ Vectorized (fast)
+def standardize_vectorized(X):
+    means = X.mean(axis=0)  # shape (n_features,)
+    stds = X.std(axis=0)    # shape (n_features,)
+    return (X - means) / stds  # Broadcasting handles everything
+
 ```
 
 
-**Performance** (10000, 1000):
-
-- Vectorized: ~15ms
-- Loop-based: ~500ms
-- Speedup: ~30x
-
-**Why stability matters**:
-
-- `exp(1000)` = inf, `exp(1000 - 1000) = 1`
-- Subtracting max ensures all exponents are ≤ 0
-
-**Common mistakes**:
-
-- Forgetting `keepdims=True` breaks broadcasting
-- Not handling axis parameter correctly
-
-</details>
-
-
-**Proficiency 2**: Given `X` of shape `(n, d)` and `centroids` of shape `(k, d)`, compute the index of the nearest centroid for each point in `X` using broadcasting. No loops. Then implement a full k-means iteration (assignment + centroid update) in pure NumPy.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                              | 1                                   | 2                                          |
-
-| ----------- | ------------------------------ | ----------------------------------- | ------------------------------------------ |
-
-| Correctness | Wrong assignments or centroids | Assignment correct, update has bugs | Both assignment and update correct         |
-
-| Clarity     | Broadcasting logic unclear     | Working but verbose                 | Clean implementation with clear steps      |
-
-| Robustness  | Fails on empty clusters        | Works but empty cluster crashes     | Handles empty clusters gracefully          |
-
-| Efficiency  | O(nkd) loops                   | Vectorized assignment, loop update  | Fully vectorized including centroid update |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Compute all pairwise distances, then argmin. Update centroids with grouped mean.
-
-
-**Implementation**:
+**Performance Comparison**
 
 
 ```python
-def assign_clusters(X, centroids):
-    # X: (n, d), centroids: (k, d)
-    # Distance squared: (n, k)
-    diff = X[:, None, :] - centroids[None, :, :]  # (n, k, d)
-    dist_sq = (diff ** 2).sum(axis=2)  # (n, k)
-    return dist_sq.argmin(axis=1)  # (n,)
+import time
 
-def update_centroids(X, assignments, k):
-    # Vectorized centroid update
-    new_centroids = np.zeros((k, X.shape[1]))
-    for i in range(k):  # This loop is O(k), not O(n)
-        mask = assignments == i
-        if mask.sum() > 0:
-            new_centroids[i] = X[mask].mean(axis=0)
-    return new_centroids
+X = np.random.randn(1000, 100)
 
-def kmeans_iteration(X, centroids):
-    assignments = assign_clusters(X, centroids)
-    new_centroids = update_centroids(X, assignments, len(centroids))
-    return assignments, new_centroids
+# Loop version
+start = time.perf_counter()
+standardize_loop(X)
+loop_time = time.perf_counter() - start
+
+# Vectorized version
+start = time.perf_counter()
+standardize_vectorized(X)
+vec_time = time.perf_counter() - start
+
+print(f"Speedup: {loop_time / vec_time:.1f}x")
+
+# Typical output: Speedup: 50-100x
 
 ```
 
 
-**Fully vectorized centroid update** (advanced):
+### 4. Common Pitfalls
+
+
+**Pitfall 1: Unexpected Broadcasting**
+
+
+```python
+a = np.array([[1], [2], [3]])  # shape (3, 1)
+b = np.array([[10, 20, 30]])   # shape (1, 3)
+
+# Intended: element-wise multiplication
+
+# Actual: outer product due to broadcasting!
+result = a * b  # shape (3, 3)
+
+# [[ 10,  20,  30],
+
+#  [ 20,  40,  60],
+
+#  [ 30,  60,  90]]
+
+# Fix: Ensure matching shapes
+a_flat = a.ravel()  # shape (3,)
+b_flat = b.ravel()  # shape (3,)
+result = a_flat * b_flat  # shape (3,)
+
+```
+
+
+**Pitfall 2: Ambiguous 1D Arrays**
 
 
 ```python
 
-# Using np.add.at for scatter-add
-sums = np.zeros((k, d))
-counts = np.zeros(k)
-np.add.at(sums, assignments, X)
-np.add.at(counts, assignments, 1)
-new_centroids = sums / counts[:, None]
+# 1D array: shape (3,)
+a = np.array([1, 2, 3])
+
+# Does this become (3, 1) or (1, 3)?
+
+# Answer: Neither! It stays (3,) and broadcasts flexibly
+a + np.ones((4, 3))  # ✓ Works (broadcasts as row)
+a + np.ones((3, 4))  # ✗ ValueError (incompatible)
+
+# Explicit reshaping prevents confusion
+a.reshape(-1, 1) + np.ones((3, 4))  # ✓ Clear intent
 
 ```
 
 
-</details>
+---
 
 
-**Mastery**: Implement batched matrix multiplication for arrays `A` of shape `(batch, m, k)` and `B` of shape `(batch, k, n)` using `np.einsum`. Then implement the same using broadcasting and `np.matmul`. Benchmark both against explicit loops for `batch=1000, m=n=k=64`. Explain the performance differences.
+## Hands-On Exercises
 
 
-**Expected Time (Proficient): 20–30 minutes**
+### Exercise 3.1: Normalize by Row and Column
+
+
+Given a matrix, compute both row-normalized and column-normalized versions.
+
+
+```python
+X = np.array([[1, 2, 3],
+              [4, 5, 6],
+              [7, 8, 9]], dtype=float)
+
+# TODO: Compute row_normed and col_normed
+
+```
+
 
 <details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                       | 1                          | 2                                              |
-
-| ----------- | --------------------------------------- | -------------------------- | ---------------------------------------------- |
-
-| Correctness | Wrong einsum subscripts or matmul usage | One method correct         | Both einsum and matmul produce correct results |
-
-| Clarity     | Einsum subscripts unexplained           | Working but no explanation | Clear comments explaining subscript meaning    |
-
-| Robustness  | Fails on batch=1                        | Works for typical cases    | Handles batch=1, non-square matrices           |
-
-| Efficiency  | Slower than loop                        | Faster than loop           | Both methods achieve expected speedup (5-10x)  |
 
 
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: einsum specifies contraction explicitly; matmul handles batch dims automatically.
-
-
-**Implementations**:
+<summary>Solution</summary>
 
 
 ```python
 
-# Method 1: einsum
-def batched_matmul_einsum(A, B):
-    return np.einsum('bmk,bkn->bmn', A, B)
+# Row normalization (each row sums to 1)
+row_sums = X.sum(axis=1, keepdims=True)  # shape (3, 1)
+row_normed = X / row_sums
 
-# Method 2: np.matmul (@ operator)
-def batched_matmul_matmul(A, B):
-    return A @ B  # Handles batch dimensions automatically
+# Column normalization (each column sums to 1)
+col_sums = X.sum(axis=0, keepdims=True)  # shape (1, 3)
+col_normed = X / col_sums
 
-# Method 3: Loop (baseline)
-def batched_matmul_loop(A, B):
-    batch = A.shape[0]
-    result = np.zeros((batch, A.shape[1], B.shape[2]))
-    for i in range(batch):
-        result[i] = A[i] @ B[i]
-    return result
+print(row_normed)
+
+# [[0.16666667, 0.33333333, 0.5       ],
+
+#  [0.26666667, 0.33333333, 0.4       ],
+
+#  [0.29166667, 0.33333333, 0.375     ]]
+
+print(col_normed)
+
+# [[0.08333333, 0.13333333, 0.16666667],
+
+#  [0.33333333, 0.33333333, 0.33333333],
+
+#  [0.58333333, 0.53333333, 0.5       ]]
 
 ```
 
 
-**Performance** (batch=1000, m=n=k=64):
+**Key insight**: `keepdims=True` preserves the reduced dimension as size 1, enabling automatic broadcasting.
 
-- Loop: ~50ms
-- einsum: ~8ms
-- matmul: ~4ms
-
-**Why matmul is fastest**:
-
-- Uses optimized BLAS batched GEMM
-- einsum: flexible but less optimized path
-- Loop: Python overhead per iteration
-
-**einsum notation explained**:
-
-- `bmk,bkn-\>bmn`: b=batch (preserved), m=rows (A), k=contracted, n=cols (B)
-
-**Common mistakes**:
-
-- Wrong einsum subscripts
-- Assuming einsum is always slower (it's competitive for complex contractions)
 
 </details>
+
+
+### Exercise 3.2: Vectorize Sigmoid Function
+
+
+Implement the sigmoid activation function and its derivative without loops.
+
+
+```python
+def sigmoid(z):
+    # TODO: Implement using NumPy
+    pass
+
+def sigmoid_derivative(z):
+    # TODO: Implement using sigmoid(z)
+    pass
+
+```
+
 
 <details>
-<summary>Oral Defense Questions</summary>
-1. When would you prefer einsum over matmul despite the performance difference?
-2. How does the performance comparison change for non-square matrices or very small batch sizes?
-3. What memory layout considerations affect batched matmul performance?
-4. How would you implement this efficiently if matrices don't fit in memory?
+
+
+<summary>Solution</summary>
+
+
+```python
+def sigmoid(z):
+    """Numerically stable sigmoid function."""
+    return 1 / (1 + np.exp(-z))
+
+def sigmoid_derivative(z):
+    """Derivative: σ'(z) = σ(z) * (1 - σ(z))"""
+    s = sigmoid(z)
+    return s * (1 - s)
+
+# Test on array
+z = np.array([-2, -1, 0, 1, 2])
+print(sigmoid(z))
+
+# [0.11920292, 0.26894142, 0.5, 0.73105858, 0.88079708]
+
+print(sigmoid_derivative(z))
+
+# [0.10499359, 0.19661193, 0.25, 0.19661193, 0.10499359]
+
+```
+
 
 </details>
 
+
+**Scoring Rubric - Exercise 3.1** (10 points)
+
+
+| Criterion                                    | Points |
+
+| -------------------------------------------- | ------ |
+
+| Correct row normalization formula            | 3      |
+
+| Correct column normalization formula         | 3      |
+
+| Uses `keepdims=True` for proper broadcasting | 2      |
+
+| Verifies output (rows/columns sum to 1)      | 2      |
+
+
+**Scoring Rubric - Exercise 3.2** (10 points)
+
+
+| Criterion                                 | Points |
+
+| ----------------------------------------- | ------ |
+
+| Correct sigmoid implementation            | 3      |
+
+| Correct derivative using σ(z)·(1-σ(z))    | 3      |
+
+| Works on arrays of any shape (vectorized) | 2      |
+
+| Includes test cases with expected output  | 2      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                                | Why It's Bad                               | Fix                                          |
+
+| -------------------------------------- | ------------------------------------------ | -------------------------------------------- |
+
+| Not using `keepdims=True`              | Forces manual reshaping                    | Use `keepdims=True` in `sum`, `mean`, `std`  |
+
+| Assuming 1D arrays have orientation    | Broadcasting behavior is ambiguous         | Explicitly reshape to (n, 1) or (1, n)       |
+
+| Forgetting to benchmark                | May vectorize code that's not a bottleneck | Use `%timeit` or `perf_counter`              |
+
+| Broadcasting large intermediate arrays | Memory explosion                           | Check shapes; use `einsum` for complex cases |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 4, verify you can:
+
+- [ ] Predict the output shape of a broadcasted operation
+- [ ] Use `np.newaxis` to add dimensions for broadcasting
+- [ ] Vectorize a function that processes matrix rows/columns
+- [ ] Compute a distance matrix without loops
+- [ ] Benchmark vectorized vs. loop-based code
+
+---
+
+
+## Resources
+
+- [NumPy Broadcasting](62)
+- [From Python to NumPy (Nicolas Rougier)](63)
+- [Vectorization Tricks (Jake VanderPlas)](64)
 
 ## Day 4: Pandas Pitfalls and Alternatives
 
-
-### Concepts
-
-
-**Pandas: Convenience with hidden complexity**
+## Overview
 
 
-Pandas is the standard for tabular data in Python, but its convenience comes with performance costs and subtle behaviors that cause bugs. Understanding when pandas helps vs. hurts is essential for data-intensive work.
+**Focus**: Learn to use Pandas efficiently and recognize when alternatives (Polars, DuckDB) are better. Topics include avoiding common performance traps and writing maintainable data transformations.
 
 
-### The SettingWithCopyWarning: Understanding views vs. copies
+**Why it matters**: Pandas is ubiquitous but has subtle pitfalls that cause bugs and slowdowns. Understanding its limitations prevents frustration.
 
 
-The most common pandas confusion: modifying a DataFrame and seeing no effect, or seeing a `SettingWithCopyWarning`.
+---
 
 
-**The problem**: Chained indexing like `df\[condition\]\[col\] = value` creates an intermediate DataFrame that **might be a view or a copy**—pandas can't always tell. If it's a copy, your assignment modifies the copy, not the original.
+## Learning Objectives
 
 
-**Example of silent failure**:
+By the end of Day 4, you will:
+
+- Avoid chained indexing and `SettingWithCopyWarning`
+- Use `.loc`, `.iloc`, and `.query()` correctly
+- Recognize when Pandas is slow (e.g., row iteration, string operations)
+- Apply Polars or DuckDB for large datasets
+- Write transformation pipelines using method chaining
+
+---
 
 
-```python
-import pandas as pd
-import numpy as np
-
-df = pd.DataFrame({'A': [1, 2, 3, 4], 'B': [10, 20, 30, 40]})
-
-# BAD: Chained indexing
-df[df['A'] > 2]['B'] = 999
-print(df)  # B column UNCHANGED! Assignment went to a copy.
-
-# GOOD: Single indexing with .loc
-df.loc[df['A'] > 2, 'B'] = 999
-print(df)  # B column correctly modified where A > 2
-
-```
+## Core Concepts
 
 
-**Why this happens**:
-
-- `df\[df\['A'\] > 2\]` may return a **view** (shares memory with original) or a **copy** (new allocation)
-- Whether you get a view or copy depends on internal DataFrame structure—**you can't rely on either**
-- When it returns a copy, `\['B'\] = 999` modifies the copy, which is then discarded
-- Pandas warns you with `SettingWithCopyWarning`, but it's a warning not an error
-
-**The fix: Use** **`.loc`** **for all assignment operations**
+### 1. Indexing Done Right
 
 
-```python
-
-# Correct pattern: .loc[row_indexer, col_indexer]
-df.loc[df['A'] > 2, 'B'] = 999  # Unambiguous, always modifies original
-
-```
-
-
-**Why** **`.loc`** **works**: It uses a single indexing operation that pandas can handle unambiguously.
-
-
-**When is chained indexing OK?**
-
-- When you're **reading** data (not assigning): `value = df\[condition\]\['col'\].mean()` is fine
-- When you explicitly `.copy()`: `subset = df\[condition\].copy(); subset\['B'\] = 999` (though subset is independent)
-
-### Why `.apply()` is slow and what to do about it
-
-
-The `.apply()` method is convenient but often **10-100× slower** than vectorized alternatives.
-
-
-**Example**:
+**The Golden Rules**
 
 
 ```python
 import pandas as pd
-import numpy as np
 
-df = pd.DataFrame({'x': np.random.randn(100000)})
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 
-# SLOW: Row-wise apply invokes Python function 100k times
-%%timeit
-df['y'] = df.apply(lambda row: row['x'] ** 2, axis=1)  # ~500ms
+# ✅ CORRECT: Single assignment with .loc
+df.loc[df['A'] > 1, 'B'] = 99
 
-# FAST: Vectorized operation stays in NumPy/C
-%%timeit
-df['y'] = df['x'] ** 2  # ~5ms (100× faster!)
+# ❌ WRONG: Chained indexing (may fail silently!)
+df[df['A'] > 1]['B'] = 99  # SettingWithCopyWarning
+
+# ✅ CORRECT: Use .loc for clarity
+df.loc[0, 'A'] = 10  # Set scalar value
+
+# ❌ WRONG: Ambiguous
+df['A'][0] = 10  # Works but discouraged
 
 ```
 
 
-**Why** **`.apply()`** **is slow**:
-
-1. **Python function call overhead**: Each row calls a Python lambda/function (
-
-1-10µs per call)
-
-1. **Lost vectorization**: pandas/NumPy can't use SIMD or cache-friendly operations
-2. **Type checking**: pandas checks types on every iteration
-
-**When you must use** **`.apply()`** **(and how to make it faster)**:
-
-
-Sometimes vectorization isn't straightforward (complex conditionals, calling external functions). Here's the optimization hierarchy:
-
-
-**Level 0: Slow** **`.apply()`**
+**Boolean Indexing**
 
 
 ```python
 
-# Slowest: axis=1 (row-wise)
-df['result'] = df.apply(lambda row: complex_function(row['a'], row['b']), axis=1)
+# Filter rows
+high_values = df[df['A'] > 2]
+
+# Multiple conditions: Use & (and), | (or), ~ (not)
+
+# Parentheses are REQUIRED
+filtered = df[(df['A'] > 1) & (df['B'] < 6)]
+
+# Query syntax (alternative)
+filtered = df.query('A > 1 and B < 6')
 
 ```
 
 
-**Level 1: Escape to NumPy**
+### 2. Performance Pitfalls
+
+
+**Pitfall 1: Row Iteration**
 
 
 ```python
 
-# Faster: Extract to NumPy arrays first
-values_a = df['a'].values
-values_b = df['b'].values
-result = np.array([complex_function(a, b) for a, b in zip(values_a, values_b)])
-df['result'] = result
+# ❌ SLOW: Python loop over rows
+total = 0
+for idx, row in df.iterrows():
+    total += row['A'] * row['B']
 
-# Still a Python loop but no pandas overhead per iteration
+# ✅ FAST: Vectorized operation
+total = (df['A'] * df['B']).sum()
+
+# Speedup: 100-1000x
 
 ```
 
 
-**Level 2: Vectorize the function**
+**Pitfall 2: String Operations**
 
 
 ```python
 
-# Best: Rewrite function to accept arrays
-def complex_function_vectorized(a_array, b_array):
-    # Operate on entire arrays at once
-    return np.where(a_array > 0, a_array ** 2 + b_array, b_array)
+# ❌ SLOW: Python loop
+df['upper'] = df['text'].apply(lambda x: x.upper())
 
-df['result'] = complex_function_vectorized(df['a'].values, df['b'].values)
+# ✅ FAST: Vectorized string method
+df['upper'] = df['text'].str.upper()
 
-```
-
-
-**Level 3: Use Numba for tight loops**
-
-
-```python
-from numba import jit
-
-@jit(nopython=True)
-def compute_fast(a, b):
-    result = np.empty(len(a))
-    for i in range(len(a)):
-        result[i] = complex_function(a[i], b[i])
-    return result
-
-df['result'] = compute_fast(df['a'].values, df['b'].values)
-
-# Compiles to machine code, 10-50× faster than pure Python
+# For complex regex or parsing, consider Polars
 
 ```
 
 
-### GroupBy performance: When to use `.transform()` vs `.apply()`
-
-
-GroupBy operations are common but have performance traps.
-
-
-**Example: Subtracting group mean**
-
-
-```python
-df = pd.DataFrame({
-    'group': np.repeat(['A', 'B', 'C'], 10000),
-    'value': np.random.randn(30000)
-})
-
-# SLOW: .apply() invokes Python function per group
-%%timeit
-df['centered'] = df.groupby('group')['value'].apply(lambda x: x - x.mean())
-
-# ~50ms
-
-# FAST: .transform() with built-in aggregation
-%%timeit
-df['centered'] = df['value'] - df.groupby('group')['value'].transform('mean')
-
-# ~5ms (10× faster)
-
-```
-
-
-**Why** **`.transform()`** **is faster**:
-
-- Uses optimized C code for aggregations like `'mean'`, `'sum'`, `'std'`
-- Avoids Python function call per group
-- Automatically broadcasts result back to original shape
-
-**When to use each**:
-
-- `.transform('mean')`, `.transform('sum')`, etc.: Use built-in string names when possible
-- `.transform(lambda x: custom_agg(x))`: When you need custom aggregation
-- `.apply()`: When you need to change the shape (e.g., return multiple rows per group)
-
-### MultiIndex: When it helps and when it hurts
-
-
-MultiIndex allows hierarchical row/column labels. It's powerful but adds complexity.
-
-
-**When MultiIndex helps**:
-
-- Hierarchical data (country → state → city)
-- Panel data (entity × time)
-- Results of groupby with multiple keys
-
-**Example: Intuitive with hierarchical data**
+**Pitfall 3: Appending in Loop**
 
 
 ```python
 
-# Natural for hierarchical aggregations
-df = pd.DataFrame({
-    'country': ['USA', 'USA', 'Canada', 'Canada'],
-    'state': ['CA', 'TX', 'ON', 'BC'],
-    'population': [39, 29, 14, 5]
-})
+# ❌ VERY SLOW: Repeated concatenation
+result = pd.DataFrame()
+for chunk in chunks:
+    result = pd.concat([result, chunk])  # O(n²) complexity!
 
-multi_df = df.set_index(['country', 'state'])
-print(multi_df.loc['USA'])  # Clean slice: all USA states
+# ✅ FAST: Collect then concatenate once
+result = pd.concat(chunks, ignore_index=True)
 
 ```
 
 
-**When MultiIndex hurts**:
+### 3. Method Chaining
 
-- Simple queries become verbose: `df.loc\[('USA', 'CA')\]` vs `df\[df.state == 'CA'\]`
-- Harder to reset/manipulate: need `.reset_index()`, `.xs()`, `.swaplevel()`
-- Some operations don't support MultiIndex well
 
-**Key MultiIndex operations**:
+**Readable Pipelines**
 
 
 ```python
 
-# Access specific level
-multi_df.xs('CA', level='state')  # All countries, CA state
+# ❌ Hard to read: Intermediate variables everywhere
+df = pd.read_csv('data.csv')
+df = df.dropna()
+df = df[df['age'] > 18]
+df['income_log'] = np.log(df['income'])
+df = df.groupby('region')['income_log'].mean()
+df = df.reset_index()
 
-# Swap index levels
-multi_df.swaplevel()  # Now indexed by (state, country)
-
-# Convert to columns
-multi_df.reset_index()  # Back to flat DataFrame
-
-# Pivot between long and wide
-multi_df.stack()    # Columns → index
-multi_df.unstack()  # Index → columns
+# ✅ Clean: Method chaining
+result = (
+    pd.read_csv('data.csv')
+    .dropna()
+    .query('age > 18')
+    .assign(income_log=lambda x: np.log(x['income']))
+    .groupby('region')['income_log']
+    .mean()
+    .reset_index()
+)
 
 ```
 
 
-**Recommendation**: Use MultiIndex for genuinely hierarchical data. For simple filtering/grouping, flat DataFrames with explicit columns are clearer.
+**Using** **`.pipe()`** **for Custom Functions**
 
 
-### Pandas alternatives: When to consider them
+```python
+def remove_outliers(df, column, n_std=3):
+    mean = df[column].mean()
+    std = df[column].std()
+    return df[df[column].between(mean - n_std*std, mean + n_std*std)]
+
+# Use in pipeline
+result = (
+    df
+    .pipe(remove_outliers, 'income', n_std=2)
+    .groupby('region')['income']
+    .median()
+)
+
+```
 
 
-**Polars**: A faster DataFrame library written in Rust
+### 4. Alternatives to Pandas
 
-- **When to use**: Large datasets (1GB+), need for speed, complex query pipelines
-- **Performance**: 5-10× faster than pandas for many operations
-- **API**: Similar to pandas but not identical—lazy evaluation, better query optimizer
-- **Tradeoff**: Smaller ecosystem, less mature
 
-**Example**:
+**When to Use Polars**
+
+
+[Polars](https://www.pola.rs/) is faster and more memory-efficient than Pandas for large datasets.
 
 
 ```python
 import polars as pl
 
-# Polars uses lazy evaluation and query optimization
-df_polars = pl.scan_csv('large_file.csv')  # Doesn't load yet
-result = (df_polars
-    .filter(pl.col('value') > 100)
-    .groupby('category')
-    .agg(pl.col('amount').sum())
-    .collect())  # Now executes optimized query
+# Polars: eager execution
+df = pl.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+result = df.filter(pl.col('A') > 1).select(pl.col('B') * 2)
+
+# Polars: lazy execution (optimizes query plan)
+result = (
+    pl.scan_csv('large_file.csv')
+    .filter(pl.col('age') > 18)
+    .groupby('region')
+    .agg(pl.col('income').mean())
+    .collect()  # Executes optimized plan
+)
 
 ```
 
 
-**Vaex**: Out-of-core DataFrames for datasets larger than RAM
-
-- **When to use**: Data doesn't fit in memory, need lazy evaluation
-- **Performance**: Memory-mapped access, never loads full dataset
-- **Tradeoff**: Limited operations compared to pandas
-
-**Dask**: Parallel pandas for distributed computing
-
-- **When to use**: Data much larger than RAM, need to scale across machines
-- **API**: Identical to pandas (wraps pandas operations)
-- **Tradeoff**: Overhead for small data, complexity of distributed setup
-
-### Best practices summary
-
-1. ✓ **Always use** **`.loc`** **for assignment**: `df.loc\[condition, col\] = value`
-2. ✓ **Avoid** **`.apply()`** **with axis=1**: Vectorize or use `.transform()` instead
-3. ✓ **Profile before optimizing**: Don't assume `.apply()` is the bottleneck—measure with `line_profiler`
-4. ✓ **Escape to NumPy for tight loops**: `df.values` gives you raw arrays
-5. ✓ **Use MultiIndex only for hierarchical data**: Flat is often clearer
-6. ✓ **Consider alternatives for large data**: Polars (speed), Vaex (out-of-core), Dask (distributed)
-
-### Exercises
+**When to Use DuckDB**
 
 
-**Foundational 1**: Create a DataFrame where chained indexing triggers `SettingWithCopyWarning`. Fix the code using `.loc`. Explain why the original code is ambiguous.
-
-
-**Expected Time (Proficient): 8–12 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                     | 1                                       | 2                                                  |
-
-| ----------- | ------------------------------------- | --------------------------------------- | -------------------------------------------------- |
-
-| Correctness | Cannot reproduce warning or fix wrong | Warning reproduced but explanation weak | Warning reproduced, fix correct, explanation clear |
-
-| Clarity     | Explanation unclear                   | Partial explanation                     | Clear explanation of view vs copy ambiguity        |
-
-| Robustness  | Only one example                      | Multiple examples but incomplete        | Demonstrates multiple scenarios (boolean, slice)   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Chained indexing (`df[col][idx]`) may modify a copy, not the original DataFrame.
-
-
-**Triggering the warning**:
+[DuckDB](https://duckdb.org/) is ideal for SQL-style analytics on DataFrames.
 
 
 ```python
-import pandas as pd
-df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+import duckdb
 
-# BAD: Chained indexing - may or may not work
-df[df['A'] > 1]['B'] = 99  # SettingWithCopyWarning!
-print(df)  # 'B' column unchanged - silent failure!
+# Query Pandas DataFrame using SQL
+result = duckdb.query("""
+    SELECT region, AVG(income) as avg_income
+    FROM df
+    WHERE age > 18
+    GROUP BY region
+    ORDER BY avg_income DESC
+""").to_df()
 
-```
+# Or register multiple tables
+duckdb.register('customers', customers_df)
+duckdb.register('orders', orders_df)
 
-
-**Fixed version**:
-
-
-```python
-
-# GOOD: Single indexing with .loc
-df.loc[df['A'] > 1, 'B'] = 99
-print(df)  # 'B' column correctly modified
-
-```
-
-
-**Why it's ambiguous**:
-
-- `df[df['A'] > 1]` might return a view or a copy (depends on internal state)
-- If copy: `['B'] = 99` modifies the copy, original unchanged
-- If view: modification propagates (but you can't rely on this)
-- `.loc[row_indexer, col_indexer]` is unambiguous: always modifies original
-
-**Rule**: Use `.loc` for any assignment operation.
-
-
-</details>
-
-
-**Foundational 2**: Write two versions of a function that computes the rolling z-score for each group in a grouped DataFrame: one using `apply` with a custom function, one using vectorized pandas operations. Benchmark on 100 groups of 10,000 rows each.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                              | 1                                 | 2                                       |
-
-| ----------- | ------------------------------ | --------------------------------- | --------------------------------------- |
-
-| Correctness | One or both versions incorrect | Both correct but edge case issues | Both produce identical correct results  |
-
-| Clarity     | Code hard to follow            | Working but verbose               | Clean implementations with clear intent |
-
-| Robustness  | Fails on small groups          | Works for typical cases           | Handles groups smaller than window      |
-
-| Efficiency  | Vectorized not faster          | 2-5x speedup                      | 10x+ speedup with transform             |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: `apply` invokes Python per group; vectorized uses optimized C paths.
-
-
-**Setup**:
-
-
-```python
-df = pd.DataFrame({
-    'group': np.repeat(range(100), 10000),
-    'value': np.random.randn(1_000_000)
-})
+result = duckdb.query("""
+    SELECT 
+        c.region,
+        COUNT(o.order_id) as num_orders,
+        SUM(o.amount) as total_amount
+    FROM customers c
+    JOIN orders o ON c.customer_id = o.customer_id
+    GROUP BY c.region
+    ORDER BY total_amount DESC
+""").to_df()
 
 ```
 
 
-**Method 1: apply (slow)**:
+**Comparison Table**
 
 
-```python
-def rolling_zscore_apply(df, window=20):
-    def zscore_group(g):
-        rolling = g['value'].rolling(window)
-        return (g['value'] - rolling.mean()) / rolling.std()
-    return df.groupby('group').apply(zscore_group)
+| Tool   | Best For                                | Speed          | SQL Support  |
 
-```
+| ------ | --------------------------------------- | -------------- | ------------ |
 
+| Pandas | Small data (<1GB), interactive analysis | Baseline       | No           |
 
-**Method 2: vectorized (fast)**:
+| Polars | Large data, parallel processing         | 5-10x faster   | Query syntax |
 
-
-```python
-def rolling_zscore_vectorized(df, window=20):
-    grouped = df.groupby('group')['value']
-    rolling_mean = grouped.transform(lambda x: x.rolling(window).mean())
-    rolling_std = grouped.transform(lambda x: x.rolling(window).std())
-    return (df['value'] - rolling_mean) / rolling_std
-
-```
-
-
-**Performance**:
-
-- apply: ~2-3 seconds
-- vectorized transform: ~200-300ms
-- Speedup: ~10x
-
-**Why**: `transform` applies optimized rolling operations; `apply` has Python overhead per group.
-
-
-</details>
-
-
-**Proficiency 1**: Implement a merge operation that joins two DataFrames on a key, but where the key in one DataFrame requires a transformation before matching (e.g., stripping whitespace, lowercasing). Compare performance of: (a) transforming the column first then merging, (b) using `merge` with a custom key function via index manipulation.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                        | 1                                    | 2                                                  |
-
-| ----------- | ---------------------------------------- | ------------------------------------ | -------------------------------------------------- |
-
-| Correctness | Merge produces wrong results or fails    | One method correct, other has issues | Both methods produce correct, identical results    |
-
-| Clarity     | Transformation logic unclear             | Working but verbose                  | Clean, readable approach with clear transformation |
-
-| Robustness  | Fails on edge cases (empty strings, NaN) | Works for typical cases              | Handles edge cases gracefully                      |
-
-| Efficiency  | No benchmark comparison                  | Basic timing comparison              | Thorough benchmark with explanation of results     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Pre-transform is cleaner and usually faster than dynamic key functions.
-
-
-**Setup**:
-
-
-```python
-df1 = pd.DataFrame({'key': ['  Apple', 'BANANA  ', 'Cherry'], 'val1': [1, 2, 3]})
-df2 = pd.DataFrame({'key': ['apple', 'banana', 'cherry'], 'val2': [10, 20, 30]})
-
-```
-
-
-**Method (a): Transform then merge**:
-
-
-```python
-df1['key_clean'] = df1['key'].str.strip().str.lower()
-result = df1.merge(df2, left_on='key_clean', right_on='key', suffixes=('', '_r'))
-
-```
-
-
-**Method (b): Index-based merge**:
-
-
-```python
-df1_indexed = df1.set_index(df1['key'].str.strip().str.lower())
-df2_indexed = df2.set_index(df2['key'])
-result = df1_indexed.join(df2_indexed, lsuffix='_l', rsuffix='_r')
-
-```
-
-
-**Performance** (1M rows):
-
-- Method (a): ~150ms (transform: 50ms, merge: 100ms)
-- Method (b): ~200ms (set_index overhead)
-
-**Recommendation**: Method (a) is clearer and equally fast. Keep transformed column if needed for verification.
-
-
-</details>
-
-
-**Proficiency 2**: Given a DataFrame with columns `\[timestamp, user_id, event_type, value\]`, compute the time since each user's previous event of the same type. Implement using groupby + shift, then implement using a window function approach. Compare correctness and performance.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                   | 1                            | 2                                                     |
-
-| ----------- | ----------------------------------- | ---------------------------- | ----------------------------------------------------- |
-
-| Correctness | Wrong time differences or grouping  | One method correct           | Both methods produce correct, identical results       |
-
-| Clarity     | Groupby logic unclear               | Working but verbose          | Clean implementation with clear group keys            |
-
-| Robustness  | Fails on first event (NaT handling) | Works but edge cases unclear | Handles first events, single-event users gracefully   |
-
-| Efficiency  | No performance comparison           | Basic timing                 | Benchmark with explanation of diff vs shift tradeoffs |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Group by user+event_type, compute time diff from previous row.
-
-
-**Setup**:
-
-
-```python
-df = pd.DataFrame({
-    'timestamp': pd.date_range('2024-01-01', periods=100000, freq='1min'),
-    'user_id': np.random.randint(0, 1000, 100000),
-    'event_type': np.random.choice(['click', 'view', 'purchase'], 100000),
-    'value': np.random.randn(100000)
-}).sort_values(['user_id', 'event_type', 'timestamp'])
-
-```
-
-
-**Method 1: groupby + shift**:
-
-
-```python
-df['prev_ts'] = df.groupby(['user_id', 'event_type'])['timestamp'].shift(1)
-df['time_since_prev'] = df['timestamp'] - df['prev_ts']
-
-```
-
-
-**Method 2: transform with diff**:
-
-
-```python
-df['time_since_prev'] = df.groupby(['user_id', 'event_type'])['timestamp'].diff()
-
-```
-
-
-**Performance** (100k rows):
-
-- shift + subtract: ~15ms
-- diff: ~10ms
-- Both are O(n) but diff is slightly optimized
-
-**Important**: Data must be sorted by group keys + timestamp for correct results!
-
-
-**Edge cases**: First event per user/type has NaT (no previous event).
-
-
-</details>
-
-
-**Mastery**: Take a computationally intensive pandas workflow (e.g., grouped rolling regression on 1M rows, 1000 groups). Profile it using `line_profiler`. Identify the bottleneck. Rewrite the critical section using NumPy operations on the underlying arrays. Document the speedup and the tradeoffs in code clarity.
-
-
-**Expected Time (Proficient): 30–45 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension     | 0                                    | 1                                       | 2                                                     |
-
-| ------------- | ------------------------------------ | --------------------------------------- | ----------------------------------------------------- |
-
-| Correctness   | NumPy rewrite produces wrong results | Correct but minor numerical differences | Results match pandas version within tolerance         |
-
-| Clarity       | No profiling documentation           | Basic profiling output                  | Clear profiling report with annotated bottlenecks     |
-
-| Robustness    | Only works for specific data shape   | Works for typical cases                 | Handles edge cases (small groups, missing data)       |
-
-| Efficiency    | Less than 2x speedup                 | 2-10x speedup                           | 10x+ speedup with clear explanation of why            |
-
-| Documentation | No tradeoff discussion               | Brief mention of tradeoffs              | Thorough analysis of clarity vs performance tradeoffs |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Escape to NumPy for tight inner loops; pandas overhead dominates for complex grouped operations.
-
-
-**Example: Rolling regression**:
-
-
-```python
-
-# Slow pandas version
-def rolling_regression_pandas(df, window=20):
-    def regress(group):
-        y = group['y'].values
-        x = group['x'].values
-        # Rolling OLS is very slow in pure pandas
-        return group.rolling(window).apply(lambda w: linregress(w, ...).slope)
-    return df.groupby('group').apply(regress)
-
-```
-
-
-**Profiling**:
-
-
-```bash
-
-# Install: pip install line_profiler
-kernprof -l -v 
-
-```
-
-
-**NumPy rewrite** (fast):
-
-
-```python
-def rolling_regression_numpy(x, y, window):
-    # Vectorized rolling covariance / variance
-    n = len(x)
-    slopes = np.full(n, np.nan)
-    
-    # Use stride tricks for rolling windows
-    x_windows = sliding_window_view(x, window)
-    y_windows = sliding_window_view(y, window)
-    
-    # Vectorized regression: slope = cov(x,y) / var(x)
-    x_mean = x_windows.mean(axis=1)
-    y_mean = y_windows.mean(axis=1)
-    cov_xy = ((x_windows - x_mean[:, None]) * (y_windows - y_mean[:, None])).mean(axis=1)
-    var_x = ((x_windows - x_mean[:, None]) ** 2).mean(axis=1)
-    slopes[window-1:] = cov_xy / var_x
-    return slopes
-
-```
-
-
-**Performance**:
-
-- pandas apply: ~60s for 1M rows
-- NumPy vectorized: ~0.5s
-- Speedup: 100x+
-
-**Tradeoffs**: NumPy version is less readable, requires careful indexing, harder to maintain.
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. At what data size would you switch from pandas to NumPy for this operation?
-2. How would you verify the NumPy version produces identical results to pandas?
-3. What are the maintenance implications of the NumPy approach in a production codebase?
-4. When would pandas' readability outweigh the performance benefits of NumPy?
-
-</details>
+| DuckDB | Complex joins, SQL users                | 10-100x faster | Native SQL   |
 
 
 ---
 
 
+## Hands-On Exercises
+
+
+### Exercise 4.1: Fix the Chained Indexing
+
+
+Find and fix the bug:
+
+
+```python
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+
+# Intended: Set B=99 where A > 1
+df[df['A'] > 1]['B'] = 99
+
+print(df)
+
+# Expected: [[1, 4], [2, 99], [3, 99]]
+
+# Actual:   [[1, 4], [2, 5], [3, 6]] ← Didn't work!
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
+
+
+**Problem**: `df[df['A'] > 1]` creates a copy (sometimes), so the assignment doesn't affect the original.
+
+
+```python
+
+# ✅ Fix: Use .loc
+df.loc[df['A'] > 1, 'B'] = 99
+
+```
+
+
+</details>
+
+
+### Exercise 4.2: Optimize the Loop
+
+
+Vectorize this code:
+
+
+```python
+df = pd.DataFrame({'x': range(10000), 'y': range(10000)})
+
+# Compute z = sqrt(x^2 + y^2)
+z_values = []
+for idx, row in df.iterrows():
+    z_values.append((row['x']**2 + row['y']**2)**0.5)
+
+df['z'] = z_values
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
+
+
+```python
+
+# ✅ Vectorized
+df['z'] = (df['x']**2 + df['y']**2)**0.5
+
+# Speedup: ~100x
+
+```
+
+
+</details>
+
+
+### Exercise 4.3: Convert to Polars
+
+
+Rewrite this Pandas code in Polars:
+
+
+```python
+import pandas as pd
+import numpy as np
+
+df = pd.DataFrame({
+    'region': ['North', 'South', 'North', 'South', 'North'],
+    'sales': [100, 200, 150, 250, 300],
+    'active': [True, True, False, True, True]
+})
+
+result = (
+    df[df['active']]
+    .groupby('region')['sales']
+    .agg(['mean', 'sum'])
+    .reset_index()
+)
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
+
+
+</summary>
+
+
+```python
+import polars as pl
+
+df = pl.DataFrame({
+    'region': ['North', 'South', 'North', 'South', 'North'],
+    'sales': [100, 200, 150, 250, 300],
+    'active': [True, True, False, True, True]
+})
+
+result = (
+    df
+    .filter(pl.col('active'))
+    .group_by('region')
+    .agg([
+        pl.col('sales').mean().alias('mean'),
+        pl.col('sales').sum().alias('sum')
+    ])
+)
+
+print(result)
+
+# shape: (2, 3)
+
+# ┌────────┬────────┬──────┐
+
+# │ region ┆ mean   ┆ sum  │
+
+# │ ---    ┆ ---    ┆ ---  │
+
+# │ str    ┆ f64    ┆ i64  │
+
+# ╞════════╪════════╪══════╡
+
+# │ North  ┆ 200.0  ┆ 400  │
+
+# │ South  ┆ 225.0  ┆ 450  │
+
+# └────────┴────────┴──────┘
+
+```
+
+
+**Key differences**:
+
+- Polars uses `filter` instead of boolean indexing
+- No need for `reset_index()` (Polars doesn't use indexes)
+- Column references use `pl.col()` instead of strings
+
+</details>
+
+
+**Scoring Rubric - Exercise 4.1** (8 points)
+
+
+| Criterion                                  | Points |
+
+| ------------------------------------------ | ------ |
+
+| Identifies chained indexing as the problem | 3      |
+
+| Provides correct `.loc` fix                | 3      |
+
+| Explains why original creates a copy       | 2      |
+
+
+**Scoring Rubric - Exercise 4.2** (8 points)
+
+
+| Criterion                             | Points |
+
+| ------------------------------------- | ------ |
+
+| Removes loop entirely                 | 3      |
+
+| Uses vectorized operations on columns | 3      |
+
+| Benchmarks speedup (optional bonus)   | 2      |
+
+
+**Scoring Rubric - Exercise 4.3** (9 points)
+
+
+| Criterion                                      | Points |
+
+| ---------------------------------------------- | ------ |
+
+| Correct `filter()` instead of boolean indexing | 2      |
+
+| Correct `group_by()` syntax                    | 2      |
+
+| Correct `agg()` with `pl.col()` expressions    | 3      |
+
+| Output matches expected format                 | 2      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                         | Why It's Bad                     | Fix                                  |
+
+| ------------------------------- | -------------------------------- | ------------------------------------ |
+
+| `df[condition][col] = value`    | Chained indexing fails silently  | Use `df.loc[condition, col] = value` |
+
+| `for idx, row in df.iterrows()` | 100x slower than vectorization   | Use `.apply()` or vectorized ops     |
+
+| `pd.concat()` in loop           | O(n²) complexity                 | Collect list, concat once            |
+
+| Not considering Polars/DuckDB   | Pandas struggles with large data | Benchmark alternatives               |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 5, verify you can:
+
+- [ ] Use `.loc` and `.iloc` correctly
+- [ ] Avoid `SettingWithCopyWarning`
+- [ ] Write a method-chained transformation pipeline
+- [ ] Identify when row iteration is a performance bottleneck
+- [ ] Convert a simple Pandas operation to Polars
+
+---
+
+
+## Resources
+
+- [Pandas Best Practices](65)
+- [Modern Polars](66)
+- [DuckDB Python API](67)
+- [Why You Should Use Polars](68)
+
 ## Day 5: Testable, Reusable Code
 
-
-### Concepts
-
-
-**The foundation of testable code: separation of concerns**
+## Overview
 
 
-Testable code separates computation from side effects. Side effects (I/O, randomness, global state) make testing hard because they depend on external state or introduce non-determinism.
+**Focus**: Write modular, testable code that can be reused across projects. Topics include function design, unit testing, and packaging.
 
 
-**Key principle**: Pure functions (same input → same output, no side effects) are trivially testable. Impure functions (I/O, network, randomness) require test doubles, mocking, or dependency injection.
+**Why it matters**: Data science code often starts as throwaway scripts. Learning to write reusable functions accelerates future work and enables collaboration.
 
 
-Example of hard-to-test code:
+---
 
 
-```python
-import numpy as np
-
-def analyze_file():
-    # Hard to test: hardcoded filename, global random state, prints output
-    data = np.loadtxt('data.csv')  # Side effect: file I/O
-    np.random.seed(42)              # Side effect: global state
-    noise = np.random.randn(len(data))  # Non-deterministic
-    result = (data + noise).mean()
-    print(f"Result: {result}")      # Side effect: I/O
-    return result
-
-```
+## Learning Objectives
 
 
-**Why this is hard to test**:
+By the end of Day 5, you will:
 
-- Requires `data.csv` to exist
-- Global `np.random.seed` affects other tests
-- Cannot verify printed output easily
-- Cannot inject different data without creating files
+- Design functions with single responsibilities
+- Write unit tests with `pytest`
+- Use fixtures and parametrize tests
+- Organize code into packages
+- Apply test-driven development (TDD) basics
 
-**Refactored for testability**:
+---
+
+
+## Core Concepts
+
+
+### 1. Function Design Principles
+
+
+**Single Responsibility Principle**
 
 
 ```python
-import numpy as np
 
-def analyze_data(data, rng):
-    """Pure computation: data in, result out."""
-    noise = rng.randn(len(data))
-    return (data + noise).mean()
+# ❌ BAD: Function does too much
+def analyze_data(filepath):
+    data = pd.read_csv(filepath)        # I/O
+    data = data.dropna()                 # Cleaning
+    mean = data['value'].mean()          # Analysis
+    plt.hist(data['value'])              # Visualization
+    plt.savefig('output.png')            # More I/O
+    return mean
 
+# ✅ GOOD: Single responsibility each
 def load_data(filepath):
-    """I/O separated into its own function."""
-    return np.loadtxt(filepath)
+    return pd.read_csv(filepath)
 
-def main():
-    """Orchestration: glue together I/O and computation."""
-    data = load_data('data.csv')
-    rng = np.random.default_rng(42)
-    result = analyze_data(data, rng)
-    print(f"Result: {result}")
+def clean_data(df):
+    return df.dropna()
+
+def compute_mean(df, column):
+    return df[column].mean()
+
+def plot_histogram(df, column, output_path):
+    plt.hist(df[column])
+    plt.savefig(output_path)
 
 ```
 
 
-**Now easy to test**:
+**Pure Functions (When Possible)**
+
+
+```python
+
+# ❌ IMPURE: Modifies global state
+total = 0
+
+def add_to_total(x):
+    global total
+    total += x
+    return total
+
+# ✅ PURE: No side effects
+def add_to_total(x, current_total):
+    return current_total + x
+
+```
+
+
+### 2. Unit Testing with pytest
+
+
+**Basic Test Structure**
+
+
+```python
+
+# my_math.py
+def add(a, b):
+    return a + b
+
+def divide(a, b):
+    if b == 0:
+        raise ValueError("Cannot divide by zero")
+    return a / b
+
+```
+
+
+```python
+
+# test_my_math.py
+import pytest
+from my_math import add, divide
+
+def test_add_positive_numbers():
+    assert add(2, 3) == 5
+
+def test_add_negative_numbers():
+    assert add(-1, -1) == -2
+
+def test_divide_normal():
+    assert divide(10, 2) == 5.0
+
+def test_divide_by_zero_raises():
+    with pytest.raises(ValueError):
+        divide(10, 0)
+
+```
+
+
+**Run tests**:
+
+
+```bash
+pytest test_my_math.py -v
+
+```
+
+
+### 3. Fixtures and Parametrize
+
+
+**Fixtures for Test Data**
+
+
+```python
+import pytest
+import pandas as pd
+
+@pytest.fixture
+def sample_data():
+    """Reusable test data."""
+    return pd.DataFrame({
+        'A': [1, 2, 3],
+        'B': [4, 5, 6]
+    })
+
+def test_column_sum(sample_data):
+    assert sample_data['A'].sum() == 6
+
+def test_column_mean(sample_data):
+    assert sample_data['B'].mean() == 5
+
+```
+
+
+**Parametrized Tests**
+
+
+```python
+@pytest.mark.parametrize("a,b,expected", [
+    (2, 3, 5),
+    (0, 0, 0),
+    (-1, 1, 0),
+    (10, -5, 5),
+])
+def test_add_parametrized(a, b, expected):
+    assert add(a, b) == expected
+
+```
+
+
+### 4. Package Organization
+
+
+**Recommended Structure**
+
+
+```javascript
+my_project/
+├── my_package/
+│   ├── __init__.py
+│   ├── core.py
+│   ├── utils.py
+│   └── io.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_core.py
+│   └── test_utils.py
+├── setup.py
+├── README.md
+└── requirements.txt
+
+```
+
+
+[**`setup.py`**](http://setup.py/) **Example**
+
+
+```python
+from setuptools import setup, find_packages
+
+setup(
+    name='my_package',
+    version='0.1.0',
+    packages=find_packages(),
+    install_requires=[
+        'numpy>=1.20',
+        'pandas>=1.3',
+    ],
+    extras_require={
+        'dev': ['pytest>=7.0', 'black', 'flake8'],
+    },
+)
+
+```
+
+
+**Install in development mode**:
+
+
+```bash
+pip install -e .
+
+# Now you can import my_package anywhere
+
+```
+
+
+### 5. Test-Driven Development (TDD)
+
+
+**The Red-Green-Refactor Cycle**
+
+1. **Red**: Write a failing test
+2. **Green**: Write minimal code to pass
+3. **Refactor**: Improve code while tests still pass
+
+**Example**
+
+
+```python
+
+# 1. RED: Write test first (it will fail)
+def test_standardize():
+    data = np.array([1, 2, 3, 4, 5])
+    result = standardize(data)
+    assert np.isclose(result.mean(), 0)
+    assert np.isclose(result.std(), 1)
+
+# 2. GREEN: Implement to pass test
+def standardize(data):
+    return (data - data.mean()) / data.std()
+
+# 3. REFACTOR: Improve implementation
+def standardize(data):
+    """Standardize array to mean=0, std=1."""
+    data = np.asarray(data)
+    return (data - data.mean()) / data.std(ddof=1)  # Use sample std
+
+```
+
+
+---
+
+
+## Hands-On Exercises
+
+
+### Exercise 5.1: Write Tests
+
+
+Write tests for this function:
+
+
+```python
+def clip_outliers(data, n_std=3):
+    """Remove values beyond n standard deviations from mean."""
+    mean = np.mean(data)
+    std = np.std(data)
+    lower = mean - n_std * std
+    upper = mean + n_std * std
+    return data[(data >= lower) & (data <= upper)]
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
 
 
 ```python
 import pytest
 import numpy as np
 
-def test_analyze_data():
-    # Test with controlled inputs, no file I/O needed
-    data = np.array([1.0, 2.0, 3.0])
-    rng = np.random.default_rng(42)  # Deterministic
-    result = analyze_data(data, rng)
-    
-    # Deterministic result we can verify
-    expected_noise = rng.randn(3)
-    rng = np.random.default_rng(42)  # Reset
-    expected = (data + rng.randn(3)).mean()
-    assert np.isclose(result, expected)
+def test_clip_outliers_removes_extremes():
+    data = np.array([1, 2, 3, 4, 100])  # 100 is outlier
+    result = clip_outliers(data, n_std=2)
+    assert 100 not in result
+    assert len(result) == 4
+
+def test_clip_outliers_keeps_normal_values():
+    data = np.array([1, 2, 3, 4, 5])
+    result = clip_outliers(data, n_std=3)
+    assert len(result) == 5  # All values within 3 std
+
+@pytest.mark.parametrize("n_std", [1, 2, 3])
+def test_clip_outliers_different_thresholds(n_std):
+    data = np.array([1, 2, 3, 4, 100])
+    result = clip_outliers(data, n_std=n_std)
+    assert len(result) <= len(data)
 
 ```
 
 
-**Dependency injection: pass dependencies as parameters**
+</details>
 
 
-Instead of functions accessing global state or hardcoded resources, pass them as arguments.
+### Exercise 5.2: Refactor for Testability
 
 
-**Bad: Global state**:
+Make this function easier to test:
 
 
 ```python
-CONFIG = {'threshold': 0.5}  # Global
-
-def classify(x):
-    return x > CONFIG['threshold']  # Depends on global
+def process_file(filepath):
+    """Load CSV, clean, and save result."""
+    data = pd.read_csv(filepath)
+    data = data.dropna()
+    data['zscore'] = (data['value'] - data['value'].mean()) / data['value'].std()
+    data.to_csv('output.csv', index=False)
+    return data
 
 ```
 
 
-**Good: Inject dependency**:
+<details>
+
+
+<summary>Solution</summary>
+
+
+</summary>
+
+
+**Problem**: Hard to test because it mixes I/O with logic.
 
 
 ```python
-def classify(x, threshold):
-    return x > threshold  # Explicit dependency
+
+# ✅ Separate concerns
+def clean_data(data):
+    """Remove missing values."""
+    return data.dropna()
+
+def add_zscore(data, column):
+    """Add z-score column."""
+    data = data.copy()
+    data['zscore'] = (data[column] - data[column].mean()) / data[column].std()
+    return data
+
+def process_file(filepath, output_path):
+    """Orchestrate data processing."""
+    data = pd.read_csv(filepath)
+    data = clean_data(data)
+    data = add_zscore(data, 'value')
+    data.to_csv(output_path, index=False)
+    return data
+
+# Now we can test the logic without file I/O:
+def test_clean_data():
+    df = pd.DataFrame({'A': [1, None, 3]})
+    result = clean_data(df)
+    assert len(result) == 2
+    assert result['A'].isna().sum() == 0
+
+def test_add_zscore():
+    df = pd.DataFrame({'value': [1, 2, 3, 4, 5]})
+    result = add_zscore(df, 'value')
+    assert 'zscore' in result.columns
+    assert abs(result['zscore'].mean()) < 1e-10  # Mean should be ~0
 
 ```
 
 
-**Bad: Hardcoded file path**:
+</details>
+
+
+**Scoring Rubric - Exercise 5.1** (10 points)
+
+
+| Criterion                                    | Points |
+
+| -------------------------------------------- | ------ |
+
+| Tests outlier removal behavior               | 3      |
+
+| Tests normal value preservation              | 2      |
+
+| Uses parametrize for multiple thresholds     | 2      |
+
+| Tests edge cases (empty array, all outliers) | 2      |
+
+| Clear test function names                    | 1      |
+
+
+**Scoring Rubric - Exercise 5.2** (10 points)
+
+
+| Criterion                                         | Points |
+
+| ------------------------------------------------- | ------ |
+
+| Separates I/O from transformation logic           | 4      |
+
+| Each extracted function has single responsibility | 3      |
+
+| Provides tests for pure functions                 | 2      |
+
+| Output path made configurable                     | 1      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                              | Why It's Bad                 | Fix                                       |
+
+| ------------------------------------ | ---------------------------- | ----------------------------------------- |
+
+| Testing implementation, not behavior | Tests break when refactoring | Test inputs/outputs, not internals        |
+
+| Not using fixtures                   | Duplicate test data setup    | Use `@pytest.fixture`                     |
+
+| Skipping edge cases                  | Bugs in corner cases         | Test empty inputs, None, negatives        |
+
+| Mixing I/O with logic                | Hard to test                 | Separate pure functions from side effects |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 6, verify you can:
+
+- [ ] Write a pure function with single responsibility
+- [ ] Write unit tests with `pytest`
+- [ ] Use fixtures to share test data
+- [ ] Parametrize tests for multiple inputs
+- [ ] Organize code into an installable package
+
+---
+
+
+## Resources
+
+- [pytest Documentation](69)
+- [Testing Best Practices](70)
+- [Python Packaging Guide](71)
+- [Clean Code in Python](72)
+
+## Day 6: Reproducibility, Randomness, and State
+
+## Overview
+
+
+**Focus**: Understand how randomness, state, and side effects impact reproducibility. Topics include random seeds, stateful generators, and best practices for reproducible research.
+
+
+**Why it matters**: Statistical simulations must be reproducible. Understanding how Python manages randomness prevents "works on my machine" bugs.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 6, you will:
+
+- Set random seeds for NumPy and Python's `random` module
+- Use `np.random.Generator` for modern random number generation
+- Understand when state persists across function calls
+- Write reproducible simulation code
+- Manage randomness in parallel computations
+
+---
+
+
+## Core Concepts
+
+
+### 1. Random Seed Basics
+
+
+**Why Seeds Matter**
 
 
 ```python
-def process():
-    with open('/tmp/data.txt') as f:  # Hardcoded
-        return f.read()
+import numpy as np
+
+# Without seed: different results each run
+print(np.random.rand(3))  # [0.374 0.950 0.731]
+print(np.random.rand(3))  # [0.598 0.156 0.155]
+
+# With seed: reproducible results
+np.random.seed(42)
+print(np.random.rand(3))  # [0.374 0.950 0.731]
+
+np.random.seed(42)
+print(np.random.rand(3))  # [0.374 0.950 0.731] ← same!
 
 ```
 
 
-**Good: Inject file handle**:
+**Global State Problem**
 
 
 ```python
-def process(file_handle):
-    return file_handle.read()  # Testable with StringIO
+
+# ❌ BAD: Modifies global state
+def simulate_data(n, seed=42):
+    np.random.seed(seed)
+    return np.random.randn(n)
+
+# This will give IDENTICAL results!
+data1 = simulate_data(100, seed=42)
+data2 = simulate_data(100, seed=42)  # Resets seed again
 
 ```
 
 
-**Bad: Global random state**:
+### 2. Modern Random Number Generation
+
+
+**Using** **`np.random.Generator`**
+
+
+```python
+
+# ✅ GOOD: Isolated random state
+rng = np.random.default_rng(42)
+data = rng.normal(0, 1, size=100)
+
+# Each generator has independent state
+rng1 = np.random.default_rng(42)
+rng2 = np.random.default_rng(99)
+
+print(rng1.random(3))  # [0.77395605 0.43887844 0.85859792]
+print(rng2.random(3))  # [0.77513282 0.93949894 0.89482735]
+print(rng1.random(3))  # [0.69736803 0.09417735 0.97562235]
+
+```
+
+
+**Passing Generators to Functions**
+
+
+```python
+def bootstrap_sample(data, rng):
+    """Generate bootstrap sample using provided RNG."""
+    indices = rng.integers(0, len(data), size=len(data))
+    return data[indices]
+
+# Usage
+rng = np.random.default_rng(42)
+sample1 = bootstrap_sample(data, rng)
+sample2 = bootstrap_sample(data, rng)  # Different sample (state advanced)
+
+```
+
+
+### 3. Python's `random` Module
+
+
+**Separate State from NumPy**
 
 
 ```python
 import random
 
-def sample_data():
-    return random.choice([1, 2, 3])  # Global state
+# Python's random module has its own state
+random.seed(42)
+print([random.random() for _ in range(3)])
+
+# [0.639, 0.025, 0.275]
+
+# NumPy's seed doesn't affect Python's random
+np.random.seed(42)
+print([random.random() for _ in range(3)])
+
+# [0.220, 0.796, 0.118] ← different!
 
 ```
 
 
+**Seeding Both**
+
+
 ```python
-def sample_data(rng):
-    return rng.choice([1, 2, 3])  # Explicit, testable
+def set_all_seeds(seed):
+    """Set seeds for all random sources."""
+    random.seed(seed)
+    np.random.seed(seed)
+    # For PyTorch: torch.manual_seed(seed)
+    # For TensorFlow: tf.random.set_seed(seed)
 
 ```
 
 
-**Unit tests: verify individual functions in isolation**
+### 4. Stateful Functions
 
 
-Unit tests test a single function or method with known inputs and expected outputs.
-
-
-**Example**:
+**When State Persists**
 
 
 ```python
-import pytest
+
+# Example: Generator function maintains state
+def counter():
+    count = 0
+    while True:
+        count += 1
+        yield count
+
+gen = counter()
+print(next(gen))  # 1
+print(next(gen))  # 2
+print(next(gen))  # 3
+
+# State persists across calls!
+
+```
+
+
+**Avoiding Unintended State**
+
+
+```python
+
+# ❌ BAD: Hidden state in default argument
+def add_to_cache(item, cache=[]):
+    cache.append(item)
+    return cache
+
+print(add_to_cache(1))  # [1]
+print(add_to_cache(2))  # [1, 2] ← unexpected!
+
+# ✅ GOOD: Explicit state management
+def add_to_cache(item, cache=None):
+    if cache is None:
+        cache = []
+    cache.append(item)
+    return cache
+
+```
+
+
+### 5. Reproducible Simulations
+
+
+**Complete Example**
+
+
+```python
 import numpy as np
+from typing import Optional
 
-def standardize(data, axis=0):
-    """Standardize to mean=0, std=1."""
-    mean = np.mean(data, axis=axis, keepdims=True)
-    std = np.std(data, axis=axis, ddof=1, keepdims=True)
-    return (data - mean) / std
-
-def test_standardize_1d():
-    data = np.array([1, 2, 3, 4, 5])
-    result = standardize(data)
-    assert np.allclose(result.mean(), 0, atol=1e-10)
-    assert np.allclose(result.std(ddof=1), 1, atol=1e-10)
-
-def test_standardize_2d_axis0():
-    data = np.array([[1, 2], [3, 4], [5, 6]])
-    result = standardize(data, axis=0)
-    # Each column should have mean=0, std=1
-    assert np.allclose(result.mean(axis=0), 0, atol=1e-10)
-    assert np.allclose(result.std(axis=0, ddof=1), 1, atol=1e-10)
-
-def test_standardize_constant():
-    # Edge case: all values the same
-    data = np.array([5, 5, 5])
-    with pytest.raises(RuntimeWarning) or np.allclose(standardize(data), 0):
-        # Division by zero creates NaN or warning
-        pass
-
-```
-
-
-**Property-based testing: verify invariants across many inputs**
-
-
-**Example: Testing a** **`normalize`** **function**
-
-
-```python
-from hypothesis import given, strategies as st
-from hypothesis.extra.numpy import arrays
-import numpy as np
-
-def normalize(v):
-    """Normalize vector to unit length."""
-    norm = np.linalg.norm(v)
-    if norm == 0:
-        raise ValueError("Cannot normalize zero vector")
-    return v / norm
-
-# Traditional unit test: specific example
-def test_normalize_example():
-    v = np.array([3, 4])
-    result = normalize(v)
-    expected = np.array([0.6, 0.8])
-    assert np.allclose(result, expected)
-
-# Property-based test: invariant holds for ANY valid input
-@given(arrays(np.float64, shape=st.integers(1, 100), 
-               elements=st.floats(-1000, 1000)))
-def test_normalize_unit_length(v):
-    # Skip zero vectors (invalid input)
-    if np.linalg.norm(v) < 1e-10:
-        return
-    
-    result = normalize(v)
-    
-    # PROPERTY: Result should have unit length
-    assert np.isclose(np.linalg.norm(result), 1.0, atol=1e-10)
-    
-    # PROPERTY: Result should point in same direction
-    assert np.allclose(result * np.linalg.norm(v), v, atol=1e-10)
-
-```
-
-
-**Why property-based testing is powerful**:
-
-- Hypothesis generates edge cases you wouldn't think of (very large numbers, very small, arrays with one element, etc.)
-- Documents invariants clearly ("output should always have unit norm")
-
-**Hypothesis automatically shrinks failing examples** to minimal reproducible cases:
-
-
-```python
-@given(st.integers())
-def test_bad_assumption(x):
-    assert x < 100  # Fails!
-
-# Hypothesis tries: x=0 (pass), x=1000 (fail), x=500 (fail), ...
-
-# Finally reports: "Falsifying example: x=100" (minimal failing case)
-
-```
-
-
-**Clear interfaces: type hints and docstrings**
-
-
-**Type hints** (PEP 484) document expected types:
-
-
-```python
-from typing import List, Optional, Tuple
-import numpy as np
-import numpy.typing as npt
-
-def compute_statistics(
-    data: npt.NDArray[np.float64],
-    weights: Optional[npt.NDArray[np.float64]] = None,
-    ddof: int = 1
-) -> Tuple[float, float]:
-    """Compute mean and standard deviation.
+def monte_carlo_pi(n_samples: int, rng: Optional[np.random.Generator] = None) -> float:
+    """
+    Estimate π using Monte Carlo simulation.
     
     Args:
-        data: 1D array of values
-        weights: Optional weights for each value
-        ddof: Degrees of freedom for std (0 for population, 1 for sample)
+        n_samples: Number of random points
+        rng: Random number generator (if None, creates new one)
     
     Returns:
-        Tuple of (mean, std)
-    
-    Raises:
-        ValueError: If data is empty or weights have wrong shape
+        Estimate of π
     """
-    if len(data) == 0:
-        raise ValueError("Cannot compute statistics of empty array")
+    if rng is None:
+        rng = np.random.default_rng()
     
-    if weights is not None:
-        if weights.shape != data.shape:
-            raise ValueError(f"Weights shape {weights.shape} != data shape {data.shape}")
-        mean = np.average(data, weights=weights)
-        variance = np.average((data - mean)**2, weights=weights)
-        std = np.sqrt(variance * len(data) / (len(data) - ddof))
-    else:
-        mean = np.mean(data)
-        std = np.std(data, ddof=ddof)
+    # Generate random points in [0, 1] × [0, 1]
+    x = rng.random(n_samples)
+    y = rng.random(n_samples)
     
-    return mean, std
+    # Count points inside unit circle
+    inside = (x**2 + y**2) <= 1
+    pi_estimate = 4 * inside.mean()
+    
+    return pi_estimate
+
+# Reproducible usage
+rng = np.random.default_rng(42)
+print(monte_carlo_pi(100000, rng))  # 3.14392
+
+# Reset for exact reproduction
+rng = np.random.default_rng(42)
+print(monte_carlo_pi(100000, rng))  # 3.14392 ← identical
 
 ```
 
 
-**Benefits of type hints**:
+### 6. Parallel Randomness
 
-- Self-documenting code
-- IDEs provide better autocomplete
-- Static analysis with `mypy` catches type errors
-- Helps refactoring (changing a type signature shows all places that break)
 
-**NumPy-style docstrings** (PEP 257 + numpydoc conventions):
+**Problem: Shared State in Parallel Code**
 
-
-```python
-def bootstrap_ci(data, statistic, n_bootstrap, ci_level, rng):
-    """Compute bootstrap confidence interval for a statistic.
-    
-    Uses percentile method to estimate confidence interval by resampling
-    with replacement from the data.
-    
-    Parameters
-    ----------
-    data : array_like
-        1D array of observed data
-    statistic : callable
-        Function that computes statistic from data, signature: stat(data) -> float
-    n_bootstrap : int
-        Number of bootstrap samples to generate
-    ci_level : float
-        Confidence level (e.g., 0.95 for 95% CI)
-    rng : numpy.random.Generator
-        Random number generator for reproducibility
-    
-    Returns
-    -------
-    lower : float
-        Lower bound of confidence interval
-    upper : float
-        Upper bound of confidence interval
-    
-    Examples
-    --------
-    >>> rng = np.random.default_rng(42)
-    >>> data = np.array([1, 2, 3, 4, 5])
-    >>> lower, upper = bootstrap_ci(data, np.mean, 1000, 0.95, rng)
-    >>> print(f"95% CI: [{lower:.2f}, {upper:.2f}]")
-    95% CI: [2.20, 3.80]
-    
-    Notes
-    -----
-    The percentile method may have poor coverage for small samples or
-    skewed distributions. Consider BCa (bias-corrected and accelerated)
-    bootstrap for better coverage.
-    
-    References
-    ----------
-    .. [1] Efron, B., & Tibshirani, R. J. (1994). An introduction to the
-           bootstrap. CRC press.
-    """
-    data = np.asarray(data)
-    bootstrap_stats = np.empty(n_bootstrap)
-    
-    for i in range(n_bootstrap):
-        sample = rng.choice(data, size=len(data), replace=True)
-        bootstrap_stats[i] = statistic(sample)
-    
-    alpha = 1 - ci_level
-    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
-    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
-    
-    return lower, upper
-
-```
-
-
-**Sections in NumPy-style docstrings**:
-
-- Brief summary (one line)
-- Extended description (optional)
-- `Parameters`: Each parameter with type and description
-- `Returns`: Return values with types
-- `Raises`: Exceptions that may be raised
-- `Examples`: Doctests or usage examples
-- `Notes`: Implementation details, caveats
-- `References`: Citations
-
-**Avoiding common pitfalls**
-
-
-**Pitfall 1: Mutable default arguments**
-
-
-```python
-
-# WRONG: Default list is created once, shared across calls
-def append_to(item, lst=[]):
-    lst.append(item)
-    return lst
-
-print(append_to(1))  # [1]
-print(append_to(2))  # [1, 2]  ← Same list!
-
-# CORRECT: Use None as sentinel
-def append_to(item, lst=None):
-    if lst is None:
-        lst = []  # New list each call
-    lst.append(item)
-    return lst
-
-```
-
-
-**Pitfall 2: Global state**
-
-
-```python
-
-# WRONG: Global counter affects all calls
-counter = 0
-
-def increment():
-    global counter
-    counter += 1
-    return counter
-
-# Tests interfere with each other!
-
-# CORRECT: Explicit state
-class Counter:
-    def __init__(self):
-        self.count = 0
-    
-    def increment(self):
-        self.count += 1
-        return self.count
-
-```
-
-
-**Pitfall 3: Hidden side effects**
-
-
-```python
-
-# WRONG: Function modifies input
-def normalize(data):
-    mean = data.mean()
-    data -= mean  # Modifies input!
-    return data
-
-# Caller's data is changed unexpectedly
-
-# CORRECT: Explicit about mutation or return new array
-def normalize(data):
-    """Return normalized copy."""
-    return data - data.mean()
-
-def normalize_inplace(data):
-    """Normalize data in-place. Modifies input."""
-    data -= data.mean()
-    return data
-
-```
-
-
-**Pure functions: the gold standard**
-
-
-A pure function:
-
-1. Same inputs always produce same outputs (deterministic)
-2. No side effects (doesn't modify external state, no I/O)
-
-**Benefits**:
-
-- Trivially testable
-- Can be memoized (cache results)
-- Safe to parallelize
-- Easy to reason about
-
-**Example: Pure function**
-
-
-```python
-def zscore(data, ddof=1):
-    """Pure: same input → same output, no side effects."""
-    mean = np.mean(data)
-    std = np.std(data, ddof=ddof)
-    return (data - mean) / std
-
-```
-
-
-**Reusable code checklist**:
-
-- [ ] Pure functions for computation (separate from I/O)
-- [ ] Dependency injection (pass RNG, file handles, config)
-- [ ] Type hints for all public functions
-- [ ] Docstrings with Parameters, Returns, Examples
-- [ ] Unit tests for typical cases
-- [ ] Property-based tests for invariants
-- [ ] No mutable default arguments
-- [ ] No global state
-- [ ] Clear naming (verb functions, noun classes)
-- [ ] Single Responsibility Principle (each function does one thing)
-
-**When to break the rules**:
-
-- **Scripts and notebooks**: Purity and testing are less critical for one-off analyses
-- **Performance-critical code**: Side effects (in-place operations) may be necessary
-- **Prototyping**: Get it working first, refactor for testability later
-
-But production code, libraries, and repeated analyses should follow these principles.
-
-
-### Exercises
-
-
-**Foundational 1**: Write a function `bootstrap_ci(data, statistic_func, n_bootstrap, ci_level, rng)` that computes a bootstrap confidence interval. It must accept a `numpy.random.Generator` instance for reproducibility. Write pytest tests that verify: (a) output shape, (b) CI contains the true parameter for simulated data, (c) determinism given the same `rng`.
-
-
-**Expected Time (Proficient): 20–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                                 | 1                                      | 2                                               |
-
-| ----------- | ------------------------------------------------- | -------------------------------------- | ----------------------------------------------- |
-
-| Correctness | Bootstrap logic wrong or CI calculation incorrect | Bootstrap correct but tests incomplete | Correct bootstrap with comprehensive tests      |
-
-| Clarity     | Function interface unclear                        | Working but verbose                    | Clean interface with clear parameter naming     |
-
-| Robustness  | Fails on edge cases (small data)                  | Works for typical cases                | Handles edge cases, validates inputs            |
-
-| Testability | No tests or tests don't pass                      | Basic tests pass                       | All three test types pass with clear assertions |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-def bootstrap_ci(data, statistic_func, n_bootstrap, ci_level, rng):
-    data = np.asarray(data)
-    n = len(data)
-    bootstrap_stats = np.zeros(n_bootstrap)
-    
-    for i in range(n_bootstrap):
-        sample = rng.choice(data, size=n, replace=True)
-        bootstrap_stats[i] = statistic_func(sample)
-    
-    alpha = 1 - ci_level
-    lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
-    upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
-    return lower, upper
-
-```
-
-
-**Tests**:
-
-
-```python
-import pytest
-
-def test_output_shape():
-    rng = np.random.default_rng(42)
-    data = np.random.randn(100)
-    ci = bootstrap_ci(data, np.mean, 1000, 0.95, rng)
-    assert len(ci) == 2
-    assert ci[0] < ci[1]  # lower < upper
-
-def test_coverage():
-    rng = np.random.default_rng(42)
-    true_mean = 5.0
-    data = np.random.default_rng(123).normal(true_mean, 1, 1000)
-    ci = bootstrap_ci(data, np.mean, 2000, 0.95, rng)
-    assert ci[0] <= true_mean <= ci[1]
-
-def test_determinism():
-    data = np.arange(100)
-    ci1 = bootstrap_ci(data, np.mean, 1000, 0.95, np.random.default_rng(42))
-    ci2 = bootstrap_ci(data, np.mean, 1000, 0.95, np.random.default_rng(42))
-    assert ci1 == ci2
-
-```
-
-
-</details>
-
-
-**Foundational 2**: Refactor a function that reads a CSV, processes it, and writes results to a new CSV into three functions: `load_data(file_handle)`, `process(df)`, `save_results(df, file_handle)`. Write tests for `process` using in-memory DataFrames.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                            | 1                                      | 2                                                 |
-
-| ----------- | ---------------------------- | -------------------------------------- | ------------------------------------------------- |
-
-| Correctness | Refactored code doesn't work | Works but tests incomplete             | Refactored code works with comprehensive tests    |
-
-| Clarity     | Function boundaries unclear  | Separation exists but coupling remains | Clean separation of concerns, testable design     |
-
-| Robustness  | I/O errors not handled       | Basic error handling                   | Proper file handle usage, graceful error handling |
-
-| Testability | Tests require file I/O       | Some tests use in-memory data          | All process tests use in-memory DataFrames        |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Separate concerns—I/O functions take file handles, processing functions take DataFrames.
-
-
-**Implementation**:
-
-
-```python
-
-# BEFORE: Monolithic function
-def analyze_data(input_path, output_path):
-    df = pd.read_csv(input_path)
-    df['new_col'] = df['value'] * 2
-    df = df[df['new_col'] > 10]
-    df.to_csv(output_path)
-
-# AFTER: Separated concerns
-def load_data(file_handle):
-    return pd.read_csv(file_handle)
-
-def process(df):
-    df = df.copy()
-    df['new_col'] = df['value'] * 2
-    return df[df['new_col'] > 10]
-
-def save_results(df, file_handle):
-    df.to_csv(file_handle, index=False)
-
-```
-
-
-**Testing process() without files**:
-
-
-```python
-def test_process_doubles_values():
-    df = pd.DataFrame({'value': [5, 10, 15]})
-    result = process(df)
-    assert 'new_col' in result.columns
-    assert list(result['new_col']) == [20, 30]  # 10 filtered out
-
-def test_process_filters_correctly():
-    df = pd.DataFrame({'value': [1, 2, 100]})
-    result = process(df)
-    assert len(result) == 1  # Only 100*2=200 > 10
-
-```
-
-
-**Key insight**: `process()` is now a pure function—no side effects, easy to test with any DataFrame.
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Separate I/O from logic for testability. Pass file handles, not paths.
-
-
-**Before (untestable)**:
-
-
-```python
-def analyze(input_path, output_path):
-    df = pd.read_csv(input_path)
-    df['processed'] = df['value'] * 2  # Logic buried in I/O
-    df.to_csv(output_path)
-
-```
-
-
-**After (testable)**:
-
-
-```python
-def load_data(file_handle):
-    return pd.read_csv(file_handle)
-
-def process(df):
-    result = df.copy()
-    result['processed'] = result['value'] * 2
-    return result
-
-def save_results(df, file_handle):
-    df.to_csv(file_handle, index=False)
-
-def analyze(input_path, output_path):
-    with open(input_path) as f:
-        df = load_data(f)
-    result = process(df)
-    with open(output_path, 'w') as f:
-        save_results(result, f)
-
-```
-
-
-**Tests**:
-
-
-```python
-def test_process():
-    # No file I/O needed!
-    df = pd.DataFrame({'value': [1, 2, 3]})
-    result = process(df)
-    assert 'processed' in result.columns
-    assert list(result['processed']) == [2, 4, 6]
-    assert list(df['value']) == [1, 2, 3]  # Original unchanged
-
-def test_load_data():
-    from io import StringIO
-    csv_content = "value\n1\n2\n3"
-    df = load_data(StringIO(csv_content))
-    assert len(df) == 3
-
-```
-
-
-</details>
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                               | 1                                         | 2                                                 |
-
-| --------------------- | ------------------------------- | ----------------------------------------- | ------------------------------------------------- |
-
-| Correctness           | Coefficients wrong or fit fails | Coefficients correct but tests incomplete | Coefficients match lstsq, all tests pass          |
-
-| Clarity               | Class interface confusing       | Working but verbose                       | Clean sklearn-style interface                     |
-
-| Robustness            | No input validation             | Some validation                           | Informative errors for all dimension mismatches   |
-
-| Statistical soundness | Missing intercept handling      | Intercept handled                         | Proper intercept with correct matrix augmentation |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-class LinearRegression:
-    def __init__(self):
-        self.coef_ = None
-        self.intercept_ = None
-    
-    def fit(self, X, y):
-        X = np.asarray(X)
-        y = np.asarray(y)
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
-        if X.shape[0] != y.shape[0]:
-            raise ValueError(f"X has {X.shape[0]} samples, y has {y.shape[0]}")
-        
-        # Add intercept column
-        X_aug = np.column_stack([np.ones(X.shape[0]), X])
-        # Solve normal equations
-        coeffs, residuals, rank, s = np.linalg.lstsq(X_aug, y, rcond=None)
-        self.intercept_ = coeffs[0]
-        self.coef_ = coeffs[1:]
-        return self
-    
-    def predict(self, X):
-        X = np.asarray(X)
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
-        if X.shape[1] != len(self.coef_):
-            raise ValueError(f"Expected {len(self.coef_)} features, got {X.shape[1]}")
-        return X @ self.coef_ + self.intercept_
-
-```
-
-
-**Tests**:
-
-
-```python
-def test_coefficients_match_lstsq():
-    X = np.random.randn(100, 3)
-    y = X @ [1, 2, 3] + 5 + np.random.randn(100) * 0.1
-    model = LinearRegression().fit(X, y)
-    X_aug = np.column_stack([np.ones(100), X])
-    expected = np.linalg.lstsq(X_aug, y, rcond=None)[0]
-    assert np.allclose(model.intercept_, expected[0])
-    assert np.allclose(model.coef_, expected[1:])
-
-def test_dimension_mismatch_raises():
-    with pytest.raises(ValueError, match="samples"):
-        LinearRegression().fit(np.zeros((10, 2)), np.zeros(5))
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-class LinearRegression:
-    def __init__(self):
-        self.coef_ = None
-        self.intercept_ = None
-    
-    def fit(self, X, y):
-        X, y = np.asarray(X), np.asarray(y)
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
-        if len(X) != len(y):
-            raise ValueError(f"X has {len(X)} samples, y has {len(y)}")
-        
-        # Add intercept column
-        X_with_intercept = np.column_stack([np.ones(len(X)), X])
-        
-        # Solve via least squares
-        coeffs, *_ = np.linalg.lstsq(X_with_intercept, y, rcond=None)
-        self.intercept_ = coeffs[0]
-        self.coef_ = coeffs[1:]
-        return self
-    
-    def predict(self, X):
-        X = np.asarray(X)
-        if X.ndim == 1:
-            X = X.reshape(-1, 1)
-        if self.coef_ is None:
-            raise ValueError("Model not fitted. Call fit() first.")
-        if X.shape[1] != len(self.coef_):
-            raise ValueError(f"Expected {len(self.coef_)} features, got {X.shape[1]}")
-        return X @ self.coef_ + self.intercept_
-
-```
-
-
-**Tests**:
-
-
-```python
-def test_coefficients_match_lstsq():
-    X = np.array([[1], [2], [3]])
-    y = np.array([2, 4, 6])  # y = 2*x, no noise
-    model = LinearRegression().fit(X, y)
-    assert np.isclose(model.coef_[0], 2.0, atol=1e-10)
-    assert np.isclose(model.intercept_, 0.0, atol=1e-10)
-
-def test_dimension_mismatch():
-    model = LinearRegression()
-    with pytest.raises(ValueError, match="samples"):
-        model.fit(np.array([[1], [2]]), np.array([1, 2, 3]))
-
-```
-
-
-</details>
-
-
-**Proficiency 2**: Use Hypothesis to write property-based tests for a `normalize(X)` function. Properties to test: (a) output has unit norm along the specified axis, (b) output shape equals input shape, (c) zero vectors raise an error or return NaN (specify and test your choice).
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension     | 0                        | 1                                       | 2                                                  |
-
-| ------------- | ------------------------ | --------------------------------------- | -------------------------------------------------- |
-
-| Correctness   | Normalize function wrong | Function correct but tests incomplete   | Function correct with all property tests passing   |
-
-| Clarity       | Hypothesis usage unclear | Basic Hypothesis tests                  | Clean Hypothesis tests with appropriate strategies |
-
-| Robustness    | No zero vector handling  | Zero vectors handled but inconsistently | Clear design choice for zero vectors, tested       |
-
-| Test coverage | Only one property tested | Two properties tested                   | All three properties tested with edge cases        |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-def normalize(X, axis=1):
-    X = np.asarray(X, dtype=float)
-    norms = np.linalg.norm(X, axis=axis, keepdims=True)
-    if np.any(norms == 0):
-        raise ValueError("Cannot normalize zero vector")
-    return X / norms
-
-```
-
-
-**Hypothesis tests**:
-
-
-```python
-from hypothesis import given, assume
-import hypothesis.strategies as st
-import hypothesis.extra.numpy as hnp
-
-@given(hnp.arrays(dtype=float, shape=st.tuples(st.integers(1, 10), st.integers(1, 10))))
-def test_output_has_unit_norm(X):
-    assume(not np.any(np.linalg.norm(X, axis=1) == 0))  # Skip zero rows
-    result = normalize(X, axis=1)
-    norms = np.linalg.norm(result, axis=1)
-    assert np.allclose(norms, 1.0)
-
-@given(hnp.arrays(dtype=float, shape=st.tuples(st.integers(1, 10), st.integers(1, 10))))
-def test_output_shape_equals_input(X):
-    assume(not np.any(np.linalg.norm(X, axis=1) == 0))
-    result = normalize(X, axis=1)
-    assert result.shape == X.shape
-
-@given(st.integers(1, 10))
-def test_zero_vector_raises(n):
-    X = np.zeros((1, n))
-    with pytest.raises(ValueError, match="zero vector"):
-        normalize(X)
-
-```
-
-
-**Design choice**: Raise error on zero vectors (alternative: return NaN, but errors are more explicit).
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation** (design choice: return NaN for zero vectors):
-
-
-```python
-def normalize(X, axis=-1):
-    X = np.asarray(X)
-    norms = np.linalg.norm(X, axis=axis, keepdims=True)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        return X / norms  # Returns NaN for zero vectors
-
-```
-
-
-**Hypothesis tests**:
-
-
-```python
-from hypothesis import given, strategies as st, assume
-from hypothesis.extra.numpy import arrays
-
-@given(arrays(np.float64, shape=st.tuples(st.integers(1, 100), st.integers(1, 10))))
-def test_unit_norm(X):
-    # Skip if any row is zero vector
-    row_norms = np.linalg.norm(X, axis=1)
-    assume(np.all(row_norms > 1e-10))
-    
-    result = normalize(X, axis=1)
-    result_norms = np.linalg.norm(result, axis=1)
-    assert np.allclose(result_norms, 1.0, atol=1e-10)
-
-@given(arrays(np.float64, shape=st.tuples(st.integers(1, 50), st.integers(1, 10))))
-def test_shape_preserved(X):
-    result = normalize(X, axis=1)
-    assert result.shape == X.shape
-
-@given(st.integers(1, 10))
-def test_zero_vector_returns_nan(d):
-    X = np.zeros((1, d))
-    result = normalize(X, axis=1)
-    assert np.all(np.isnan(result))
-
-```
-
-
-**Key Hypothesis features**:
-
-- `arrays()` generates random numpy arrays
-- `assume()` filters invalid test cases
-- Automatically finds edge cases (very small values, etc.)
-
-</details>
-
-
-**Mastery**: Design and implement a mini-framework for statistical estimators with a common interface: `fit(data)`, `summary()`, `confidence_interval(level)`. Implement at least two estimators (e.g., MLE for normal distribution, method of moments for gamma). Write a test suite that verifies the interface contract for any conforming estimator. Use abstract base classes or protocols.
-
-
-**Expected Time (Proficient): 35–50 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension     | 0                                | 1                                | 2                                                     |
-
-| ------------- | -------------------------------- | -------------------------------- | ----------------------------------------------------- |
-
-| Correctness   | Estimators produce wrong results | One estimator correct            | Both estimators correct, match theoretical values     |
-
-| Clarity       | Interface design unclear         | Interface works but inconsistent | Clean ABC/Protocol with consistent interface          |
-
-| Robustness    | No input validation              | Some validation                  | Comprehensive validation, informative errors          |
-
-| Extensibility | Hard to add new estimators       | Possible but awkward             | Easy to add new estimators following pattern          |
-
-| Test coverage | No contract tests                | Basic contract tests             | Parametrized tests verify contract for all estimators |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Define interface via Protocol or ABC; each estimator implements the contract.
-
-
-**Implementation**:
-
-
-```python
-from abc import ABC, abstractmethod
-from typing import Protocol, Tuple
-from scipy import stats
-
-class StatisticalEstimator(Protocol):
-    def fit(self, data: np.ndarray) -> 'StatisticalEstimator': ...
-    def summary(self) -> dict: ...
-    def confidence_interval(self, level: float) -> Tuple[float, float]: ...
-
-class NormalMLE:
-    def __init__(self):
-        self.mu_ = None
-        self.sigma_ = None
-        self.n_ = None
-    
-    def fit(self, data):
-        data = np.asarray(data)
-        self.n_ = len(data)
-        self.mu_ = np.mean(data)
-        self.sigma_ = np.std(data, ddof=0)  # MLE uses ddof=0
-        return self
-    
-    def summary(self):
-        return {'mu': self.mu_, 'sigma': self.sigma_, 'n': self.n_}
-    
-    def confidence_interval(self, level=0.95):
-        se = self.sigma_ / np.sqrt(self.n_)
-        z = stats.norm.ppf((1 + level) / 2)
-        return (self.mu_ - z * se, self.mu_ + z * se)
-
-class GammaMoM:
-    def __init__(self):
-        self.alpha_ = None  # shape
-        self.beta_ = None   # rate
-    
-    def fit(self, data):
-        data = np.asarray(data)
-        mean = np.mean(data)
-        var = np.var(data, ddof=1)
-        self.alpha_ = mean**2 / var
-        self.beta_ = mean / var
-        return self
-    
-    def summary(self):
-        return {'alpha': self.alpha_, 'beta': self.beta_}
-    
-    def confidence_interval(self, level=0.95):
-        # Bootstrap CI for mean
-        pass  # Implementation similar to bootstrap_ci
-
-```
-
-
-**Interface contract tests**:
-
-
-```python
-@pytest.mark.parametrize('EstimatorClass', [NormalMLE, GammaMoM])
-def test_estimator_contract(EstimatorClass):
-    data = np.abs(np.random.randn(100)) + 1  # Positive for Gamma
-    est = EstimatorClass()
-    
-    # fit returns self
-    assert est.fit(data) is est
-    
-    # summary returns dict
-    summary = est.summary()
-    assert isinstance(summary, dict)
-    
-    # confidence_interval returns tuple of two floats
-    ci = est.confidence_interval(0.95)
-    assert len(ci) == 2
-    assert ci[0] < ci[1]
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Abstract base class**:
-
-
-```python
-from abc import ABC, abstractmethod
-from typing import Tuple, Dict, Any
-
-class Estimator(ABC):
-    @abstractmethod
-    def fit(self, data: np.ndarray) -> 'Estimator':
-        """Fit the estimator to data. Returns self."""
-        pass
-    
-    @abstractmethod
-    def summary(self) -> Dict[str, Any]:
-        """Return estimated parameters."""
-        pass
-    
-    @abstractmethod
-    def confidence_interval(self, level: float) -> Dict[str, Tuple[float, float]]:
-        """Return CIs for each parameter at given level."""
-        pass
-
-```
-
-
-**Implementations**:
-
-
-```python
-class NormalMLE(Estimator):
-    def __init__(self):
-        
-
-```
-
-
-**Interface tests**:
-
-
-```python
-@pytest.mark.parametrize('EstimatorClass', [NormalMLE, GammaMoM])
-def test_fit_returns_self(EstimatorClass):
-    est = EstimatorClass()
-    result = 
-
-```
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why use an abstract base class vs. duck typing for this interface?
-2. How would you extend this framework to support Bayesian estimators with priors?
-3. What design patterns would help add serialization/deserialization to estimators?
-4. How would you handle estimators that fail to converge?
-
-</details>
-
-
----
-
-
-## Day 6: Reproducibility, Randomness, and State
-
-
-### Concepts
-
-
-**Why reproducibility matters**
-
-
-Reproducible research means that someone else (including future you) can run your code and get the same results. This is essential for:
-
-- **Debugging**: You can reproduce bugs reliably
-- **Collaboration**: Team members can build on your work
-- **Production systems**: ML models must give consistent predictions
-1. **Controlling randomness**: Ensure stochastic algorithms produce the same results
-2. **Controlling environment**: Ensure dependencies and runtime are consistent
-
-**The problem with global random state:** **`np.random.seed()`**
-
-
-NumPy's legacy random number generator uses global state:
-
-
-```python
-import numpy as np
-
-# BAD: Global state
-np.random.seed(42)
-print(np.random.rand())  # 0.3745401188473625
-
-np.random.seed(42)
-print(np.random.rand())  # 0.3745401188473625 (same)
-
-```
-
-
-**Why this is problematic**:
-
-1. **Test interference**: Tests that run in different orders produce different results
-
-```python
-np.random.seed(42)
-
-def test_a():
-    x = np.random.rand()  # Consumes random state
-    assert x > 0
-
-def test_b():
-    y = np.random.rand()  # Gets different value depending on whether test_a ran first
-    # If test_a ran: y is second random number
-    # If test_b runs first: y is first random number
-    assert y < 1
-
-```
-
-1. **Parallel execution breaks**: Multiple workers share the same global RNG, causing race conditions
 
 ```python
 from multiprocessing import Pool
+import numpy as np
 
-np.random.seed(42)  # All workers see the same seed!
+def worker(seed):
+    np.random.seed(seed)  # Each worker needs different seed
+    return np.random.rand(3)
 
-def worker(i):
-    return np.random.rand()  # Race condition: order determines results
+# ❌ BAD: All workers get same seed
+with Pool(4) as pool:
+    results = pool.map(worker, [42, 42, 42, 42])  # All identical!
+
+# ✅ GOOD: Different seeds per worker
+with Pool(4) as pool:
+    results = pool.map(worker, [42, 43, 44, 45])  # Different results
+
+```
+
+
+**Better: Use SeedSequence**
+
+
+```python
+from numpy.random import SeedSequence, default_rng
+
+def worker_with_rng(seed):
+    rng = default_rng(seed)
+    return rng.random(3).tolist()
+
+# Generate child seeds from parent
+parent_seed = 42
+ss = SeedSequence(parent_seed)
+child_seeds = ss.spawn(4)  # Create 4 independent seeds
 
 with Pool(4) as pool:
-    results = pool.map(worker, range(100))
-    # Results are non-deterministic due to worker scheduling
+    results = pool.map(worker_with_rng, child_seeds)
+
+# Each worker gets independent, reproducible random stream
 
 ```
-
-1. **Hidden dependencies**: Function modifies global state, affecting unrelated code
-
-```python
-np.random.seed(42)
-
-def my_function():
-    noise = np.random.randn(100)  # Consumes 100 random numbers from global state
-    return data + noise
-
-my_function()
-
-# Global state has advanced by 100 numbers
-
-# Any subsequent np.random calls get different values than expected
-
-```
-
-
-**The modern solution:** **`numpy.random.Generator`**
-
-
-Create explicit RNG instances that are independent:
-
-
-```python
-import numpy as np
-
-# Create an explicit RNG instance
-rng = np.random.default_rng(42)
-
-print(rng.random())  # 0.7739560485559633
-
-# Create another independent RNG with the same seed
-rng2 = np.random.default_rng(42)
-print(rng2.random())  # 0.7739560485559633 (same)
-
-# But they don't interfere with each other
-print(rng.random())   # 0.4388784397520523
-print(rng2.random())  # 0.4388784397520523
-
-```
-
-
-**Key advantages**:
-
-1. **Explicit is better than implicit**: RNG is passed as a parameter
-
-```python
-
-# Good: RNG is explicit
-def bootstrap(data, n_samples, rng):
-    samples = []
-    for _ in range(n_samples):
-        sample = rng.choice(data, size=len(data), replace=True)
-        samples.append(np.mean(sample))
-    return samples
-
-# Usage
-rng = np.random.default_rng(42)
-result = bootstrap(data, 1000, rng)
-
-```
-
-1. **Tests are independent**: Each test creates its own RNG
-
-```python
-def test_a():
-    rng = np.random.default_rng(42)  # Local RNG
-    x = rng.random()
-    assert x > 0
-
-def test_b():
-    rng = np.random.default_rng(123)  # Different seed, independent
-    y = rng.random()
-    assert y < 1
-    # No interference with test_a!
-
-```
-
-1. **Parallel execution is deterministic**: Each worker gets independent stream
-
-```python
-from concurrent.futures import ProcessPoolExecutor
-
-def worker(args):
-    i, seed = args
-    rng = np.random.default_rng(seed)  # Independent RNG per worker
-    return rng.random()
-
-parent_rng = np.random.default_rng(42)
-child_seeds = parent_rng.spawn(4)  # Create 4 independent child RNGs
-
-with ProcessPoolExecutor(4) as executor:
-    results = list(executor.map(worker, enumerate(child_seeds)))
-    # Results are deterministic!
-
-```
-
-
-**Spawning independent random streams**
-
-
-The `spawn()` method creates statistically independent RNG streams:
-
-
-```python
-parent_rng = np.random.default_rng(42)
-
-# Spawn 10 independent child RNGs
-child_rngs = parent_rng.spawn(10)
-
-# Each child produces independent sequences
-for i, child in enumerate(child_rngs[:3]):
-    print(f"Child {i}: {child.random()}")
-
-# Child 0: 0.9827210214922279
-
-# Child 1: 0.45994261649548054
-
-# Child 2: 0.8595412699969661
-
-```
-
-
-**Statistical independence**: Spawned RNGs produce sequences that are uncorrelated:
-
-
-```python
-parent = np.random.default_rng(42)
-child1, child2 = parent.spawn(2)
-
-samples1 = child1.normal(size=10000)
-samples2 = child2.normal(size=10000)
-
-correlation = np.corrcoef(samples1, samples2)[0, 1]
-print(correlation)  # ~0.01 (essentially zero, within statistical noise)
-
-```
-
-
-**Migrating from old to new API**
-
-
-Old (global state):
-
-- `np.random.randn()` → `rng.standard_normal()`
-- `np.random.rand()` → `rng.random()`
-- Most other methods have the same name
-- Python version
-- Library versions (NumPy, pandas, scikit-learn, etc.)
-- Operating system
-- Hardware (CPU, GPU)
-- BLAS/LAPACK implementations
-
-**Pinning dependencies with** **`requirements.txt`**:
-
-
-```bash
-
-# Generate exact versions of all installed packages
-pip freeze > requirements.txt
-
-# requirements.txt:
-numpy==1.26.0
-pandas==2.1.0
-scikit-learn==1.3.0
-
-```
-
-
-**Recreate the environment**:
-
-
-```bash
-python -m venv myenv
-source myenv/bin/activate
-pip install -r requirements.txt
-
-```
-
-
-**Modern approach:** **`pyproject.toml`** **with Poetry or uv**:
-
-
-```toml
-[project]
-name = "my-analysis"
-version = "0.1.0"
-requires-python = ">=3.10"
-dependencies = [
-    "numpy==1.26.0",
-    "pandas==2.1.0",
-    "scipy==1.11.0",
-]
-
-```
-
-
-**Recording environment information in outputs**
-
-
-Always save environment info with your results:
-
-
-```python
-import sys
-import platform
-import numpy as np
-import pandas as pd
-from datetime import datetime
-import json
-
-def get_environment_info(seed=None):
-    return {
-        "timestamp": datetime.utcnow().isoformat(),
-        "python_version": sys.version,
-        "platform": platform.platform(),
-        "numpy_version": np.__version__,
-        "pandas_version": pd.__version__,
-        "random_seed": seed,
-    }
-
-# Save with results
-SEED = 42
-rng = np.random.default_rng(SEED)
-results = run_analysis(data, rng)
-
-output = {
-    "environment": get_environment_info(SEED),
-    "results": results
-}
-
-with open("analysis_results.json", "w") as f:
-    json.dump(output, f, indent=2)
-
-```
-
-
-Example output:
-
-
-```json
-{
-  "environment": {
-    "timestamp": "2024-01-15T10:30:00.123456",
-    "python_version": "3.11.5 (main, Sep 11 2023, 13:54:46)",
-    "platform": "Linux-5.15.0-86-generic-x86_64",
-    "numpy_version": "1.26.0",
-    "pandas_version": "2.1.0",
-    "random_seed": 42
-  },
-  "results": {...}
-}
-
-```
-
-
-**Sources of non-determinism you can't always control**
-
-
-Even with perfect RNG and environment control, some operations may not be bitwise reproducible:
-
-1. **Floating-point arithmetic order**
-
-```python
-
-# Different order of operations can give different results due to rounding
-a = 1e16 + 1.0 - 1e16  # 1.0
-b = 1e16 - 1e16 + 1.0  # 1.0
-
-# But: (1e16 + 1.0 + 1.0) - 1e16 ≠ 1e16 + (1.0 + 1.0) - 1e16 in some cases
-
-```
-
-1. **Parallel reductions**
-
-```python
-
-# NumPy may use different reduction orders depending on number of threads
-import os
-os.environ['OMP_NUM_THREADS'] = '1'  # Force single-threaded
-
-result = large_array.sum()  # May differ slightly with different thread counts
-
-```
-
-1. **Different BLAS implementations**
-
-```python
-
-# Intel MKL vs OpenBLAS may give slightly different results
-import numpy as np
-print(np.show_config())  # Check which BLAS you're using
-
-A = np.random.randn(1000, 1000)
-B = np.random.randn(1000, 1000)
-C = A @ B  # Result may differ in last few bits between BLAS implementations
-
-```
-
-1. **Hash randomization**
-
-```python
-
-# Python randomizes hash seeds by default for security
-
-# This affects dictionary/set ordering (though dicts are insertion-ordered in Python 3.7+)
-import os
-os.environ['PYTHONHASHSEED'] = '0'  # Disable hash randomization
-
-# But better: don't rely on dict/set ordering for reproducibility
-
-```
-
-
-**Best practices for reproducibility**
-
-1. ✓ **Always use explicit RNG instances** (`np.random.default_rng(seed)`)
-2. ✓ **Pass RNG as a function parameter** (dependency injection)
-3. ✓ **Pin exact dependency versions** (`requirements.txt` or `pyproject.toml`)
-4. ✓ **Document Python version** in README
-5. ✓ **Save environment info** with results (see example above)
-6. ✓ **Use virtual environments** (never install packages globally)
-7. ✓ **Set number of threads** if using parallel libraries:
-
-    ```python
-    import os
-    os.environ['OMP_NUM_THREADS'] = '1'
-    os.environ['MKL_NUM_THREADS'] = '1'
-    os.environ['OPENBLAS_NUM_THREADS'] = '1'
-    ```
-
-8. ✓ **Document hardware** if results are hardware-sensitive (GPU type, CPU architecture)
-9. ✓ **Test reproducibility** by running twice and comparing outputs:
-
-    ```python
-    result1 = run_analysis(seed=42)
-    result2 = run_analysis(seed=42)
-    assert np.array_equal(result1, result2), "Not reproducible!"
-    ```
-
-
-**When to relax reproducibility requirements**
-
-- **Exploratory analysis**: Exact reproducibility may not matter for quick investigations
-- **Hardware limitations**: Bitwise reproducibility across different GPUs is often impractical
-- **Performance trade-offs**: Forcing single-threaded execution may be too slow
-
-In these cases, focus on **statistical reproducibility** (results are similar within expected variation) rather than **bitwise reproducibility** (results are identical).
-
-
-**Example: Full reproducibility checklist**
-
-
-```python
-#!/usr/bin/env python3
-"""
-Reproducible analysis template.
-
-Usage:
-    python analysis.py --seed 42 --output results.json
-"""
-
-import numpy as np
-import pandas as pd
-import sys
-import json
-from datetime import datetime
-import argparse
-
-def get_env_info(seed):
-    return {
-        "timestamp": datetime.utcnow().isoformat(),
-        "python_version": sys.version,
-        "numpy_version": np.__version__,
-        "pandas_version": pd.__version__,
-        "seed": seed,
-    }
-
-def load_data(filepath):
-    """Load data (I/O separated from computation)."""
-    return pd.read_csv(filepath)
-
-def analyze(data, rng):
-    """Pure computation: data + RNG in, results out."""
-    # Reproducible analysis using explicit RNG
-    bootstrap_samples = []
-    for _ in range(1000):
-        sample_idx = rng.choice(len(data), size=len(data), replace=True)
-        sample = data.iloc[sample_idx]
-        bootstrap_samples.append(sample['value'].mean())
-    
-    return {
-        "mean": float(np.mean(bootstrap_samples)),
-        "ci_lower": float(np.percentile(bootstrap_samples, 2.5)),
-        "ci_upper": float(np.percentile(bootstrap_samples, 97.5)),
-    }
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--data', type=str, default='data.csv')
-    parser.add_argument('--output', type=str, default='results.json')
-    args = parser.parse_args()
-    
-    # Create explicit RNG
-    rng = np.random.default_rng(args.seed)
-    
-    # Load data
-    data = load_data(args.data)
-    
-    # Run analysis
-    results = analyze(data, rng)
-    
-    # Save with environment info
-    output = {
-        "environment": get_env_info(args.seed),
-        "results": results,
-    }
-    
-    with open(args.output, 'w') as f:
-        json.dump(output, f, indent=2)
-    
-    print(f"Results saved to {args.output}")
-
-if __name__ == '__main__':
-    main()
-
-```
-
-
-**Verification**:
-
-
-```bash
-
-# Run twice with same seed
-python analysis.py --seed 42 --output run1.json
-python analysis.py --seed 42 --output run2.json
-
-# Compare outputs (should be identical)
-diff run1.json run2.json  # No output = files are identical
-
-```
-
-
-### Exercises
-
-
-**Foundational 1**: Write a simulation function that generates `n` samples from a mixture of Gaussians. Demonstrate that using `np.random.seed` at the module level causes test interference when tests run in different orders. Refactor to use `Generator` instances.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                                            | 1                                     | 2                                               |
-
-| -------------- | -------------------------------------------- | ------------------------------------- | ----------------------------------------------- |
-
-| Correctness    | Cannot demonstrate interference or fix wrong | Demonstrates issue but fix incomplete | Clearly shows interference, fix works perfectly |
-
-| Clarity        | Code confusing, poor explanation             | Working but explanation weak          | Clear demonstration with good explanation       |
-
-| Robustness     | Only one test scenario                       | Multiple scenarios but incomplete     | Shows multiple test orderings, explains why     |
-
-| Best Practices | Still uses global state                      | Uses Generator but awkwardly          | Clean Generator injection, proper parameter     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Problem demonstration**:
-
-
-```python
-
-# BAD: Global state causes test interference
-import numpy as np
-np.random.seed(42)
-
-def sample_mixture(n, weights, means, stds):
-    component = np.random.choice(len(weights), size=n, p=weights)
-    return np.array([np.random.normal(means[c], stds[c]) for c in component])
-
-# Test A runs first, consumes random state
-def test_a():
-    result = sample_mixture(100, [0.5, 0.5], [0, 5], [1, 1])
-    assert len(result) == 100
-
-# Test B runs second, gets different random values!
-def test_b():
-    result = sample_mixture(100, [0.5, 0.5], [0, 5], [1, 1])
-    # If we expected specific values, this fails when test order changes
-
-```
-
-
-**Fixed with Generator**:
-
-
-```python
-def sample_mixture(n, weights, means, stds, rng):
-    """Generate samples from Gaussian mixture.
-    
-    Args:
-        rng: numpy.random.Generator instance
-    """
-    component = rng.choice(len(weights), size=n, p=weights)
-    return np.array([rng.normal(means[c], stds[c]) for c in component])
-
-def test_a():
-    rng = np.random.default_rng(42)  # Local RNG
-    result = sample_mixture(100, [0.5, 0.5], [0, 5], [1, 1], rng)
-    expected = sample_mixture(100, [0.5, 0.5], [0, 5], [1, 1], 
-                              np.random.default_rng(42))
-    assert np.array_equal(result, expected)  # Always passes
-
-def test_b():
-    rng = np.random.default_rng(123)  # Different seed, independent
-    result = sample_mixture(100, [0.5, 0.5], [0, 5], [1, 1], rng)
-    # No interference with test_a
-
-```
-
-
-**Key insight**: Each test creates its own RNG—test order doesn't matter.
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Bad version (global state)**:
-
-
-```python
-
-# simulation.py
-import numpy as np
-np.random.seed(42)  # Global state - BAD!
-
-def sample_mixture(n, means, stds, weights):
-    components = np.random.choice(len(means), size=n, p=weights)
-    return np.array([np.random.normal(means[c], stds[c]) for c in components])
-
-```
-
-
-**Test interference**:
-
-
-```python
-
-# test_a.py runs first: uses some random numbers
-
-# test_b.py runs second: gets different numbers than if run alone
-
-# pytest test_b.py → PASS
-
-# pytest test_a.py test_b.py → test_b.py FAILS
-
-```
-
-
-**Good version (explicit RNG)**:
-
-
-```python
-def sample_mixture(n, means, stds, weights, rng):
-    rng = np.random.default_rng(rng) if isinstance(rng, int) else rng
-    components = rng.choice(len(means), size=n, p=weights)
-    return np.array([rng.normal(means[c], stds[c]) for c in components])
-
-# Tests are independent
-def test_mixture():
-    samples = sample_mixture(100, [0, 5], [1, 1], [0.5, 0.5], rng=np.random.default_rng(42))
-    assert len(samples) == 100
-
-```
-
-
-**Key principle**: Each test creates its own RNG → no interference.
-
-
-</details>
-
-
-**Foundational 2**: Create a reproducibility report for an analysis: record Python version, NumPy version, pandas version, and random seed. Write a function `get_environment_info()` that returns this information as a dictionary. Include it in the output of any analysis script.
-
-
-**Expected Time (Proficient): 10–15 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                        | 1                                          | 2                                                |
-
-| ----------- | ---------------------------------------- | ------------------------------------------ | ------------------------------------------------ |
-
-| Correctness | Missing key version info or wrong format | Has versions but missing seed or timestamp | Complete: Python, NumPy, pandas, seed, timestamp |
-
-| Clarity     | Output format confusing                  | Readable but verbose                       | Clean JSON/dict format, easy to parse            |
-
-| Robustness  | Crashes if package not installed         | Basic error handling                       | Graceful handling of optional packages           |
-
-| Integration | Not integrated into workflow             | Manual integration                         | Automatic inclusion in output files              |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-import sys
-import platform
-import numpy as np
-import pandas as pd
-from datetime import datetime
-
-def get_environment_info(seed=None):
-    """Capture environment for reproducibility."""
-    return {
-        'timestamp': datetime.utcnow().isoformat(),
-        'python_version': sys.version,
-        'platform': platform.platform(),
-        'numpy_version': np.__version__,
-        'pandas_version': pd.__version__,
-        'random_seed': seed,
-    }
-
-def save_analysis_with_metadata(results, env_info, output_path):
-    """Save results with reproducibility metadata."""
-    output = {
-        'environment': env_info,
-        'results': results
-    }
-    with open(output_path, 'w') as f:
-        json.dump(output, f, indent=2, default=str)
-
-# Usage in analysis script
-if __name__ == '__main__':
-    SEED = 42
-    env = get_environment_info(seed=SEED)
-    rng = np.random.default_rng(SEED)
-    
-    # Run analysis...
-    results = {'mean': 3.14, 'std': 1.0}
-    
-    save_analysis_with_metadata(results, env, 'output.json')
-
-```
-
-
-**Output example**:
-
-
-```json
-{
-  "environment": {
-    "timestamp": "2024-01-15T10:30:00",
-    "python_version": "3.11.5",
-    "numpy_version": "1.26.0",
-    "pandas_version": "2.1.0",
-    "random_seed": 42
-  },
-  "results": {...}
-}
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-import sys
-import platform
-import numpy as np
-import pandas as pd
-from datetime import datetime
-
-def get_environment_info(seed=None):
-    return {
-        'timestamp': datetime.now().isoformat(),
-        'python_version': sys.version,
-        'platform': platform.platform(),
-        'numpy_version': np.__version__,
-        'pandas_version': pd.__version__,
-        'random_seed': seed,
-    }
-
-def save_with_reproducibility(results, output_path, seed):
-    """Save results with environment info."""
-    import json
-    output = {
-        'environment': get_environment_info(seed),
-        'results': results
-    }
-    with open(output_path, 'w') as f:
-        json.dump(output, f, indent=2, default=str)
-
-```
-
-
-**Usage**:
-
-
-```python
-SEED = 42
-rng = np.random.default_rng(SEED)
-results = run_analysis(data, rng)
-save_with_reproducibility(results, 'output.json', SEED)
-
-```
-
-
-**Output example**:
-
-
-```json
-{
-  "environment": {
-    "timestamp": "2024-01-15T10:30:00",
-    "python_version": "3.11.5",
-    "numpy_version": "1.26.0",
-    "pandas_version": "2.1.0",
-    "random_seed": 42
-  },
-  "results": {...}
-}
-
-```
-
-
-</details>
-
-
-**Proficiency 1**: Implement a `SplittableRNG` class that wraps a `Generator` and provides a `split()` method returning a new independent `SplittableRNG`. Use this to make a parallelizable bootstrap function where each worker gets an independent stream. Verify statistical independence of the streams.
-
-
-**Expected Time (Proficient): 20–30 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-class SplittableRNG:
-    def __init__(self, seed=None):
-        if isinstance(seed, np.random.Generator):
-            self._rng = seed
-        else:
-            self._rng = np.random.default_rng(seed)
-        self._spawn_counter = 0
-    
-    def split(self) -> 'SplittableRNG':
-        """Return a new independent SplittableRNG."""
-        # Use spawn() for proper stream splitting
-        child_bg = self._rng.bit_generator.spawn(1)[0]
-        child_rng = np.random.Generator(child_bg)
-        return SplittableRNG(child_rng)
-    
-    def random(self, size=None):
-        return self._rng.random(size)
-    
-    def choice(self, a, size=None, replace=True, p=None):
-        return self._rng.choice(a, size, replace, p)
-
-```
-
-
-**Parallel bootstrap**:
-
-
-```python
-from concurrent.futures import ProcessPoolExecutor
-
-def bootstrap_worker(args):
-    data, n_samples, rng_state = args
-    rng = SplittableRNG(rng_state)  # Each worker gets independent RNG
-    results = []
-    for _ in range(n_samples):
-        sample = rng.choice(data, len(data), replace=True)
-        results.append(np.mean(sample))
-    return results
-
-def parallel_bootstrap(data, n_total, n_workers, rng):
-    # Split RNG for each worker
-    worker_rngs = [rng.split() for _ in range(n_workers)]
-    samples_per_worker = n_total // n_workers
-    
-    with ProcessPoolExecutor(n_workers) as ex:
-        args = [(data, samples_per_worker, w._rng) for w in worker_rngs]
-        results = list(ex.map(bootstrap_worker, args))
-    return np.concatenate(results)
-
-```
-
-
-**Independence test**: Correlation between streams should be ~0.
-
-
-</details>
-
-
-**Proficiency 2**: Write a Monte Carlo simulation that exhibits non-reproducibility due to parallel execution with shared RNG state. Fix it using per-worker RNG instances spawned from a parent. Benchmark the overhead of proper RNG management.
-
-
-**Expected Time (Proficient): 20–28 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Broken version (shared state)**:
-
-
-```python
-np.random.seed(42)  # Shared global state
-
-def mc_worker_broken(n_samples):
-    # All workers draw from same global state - race condition!
-    return [np.random.random() for _ in range(n_samples)]
-
-# Results are non-deterministic due to thread scheduling
-with ThreadPoolExecutor(4) as ex:
-    results = list(ex.map(mc_worker_broken, [1000]*4))
-
-```
-
-
-**Fixed version (per-worker RNG)**:
-
-
-```python
-def mc_worker_fixed(args):
-    n_samples, seed = args
-    rng = np.random.default_rng(seed)
-    return [rng.random() for _ in range(n_samples)]
-
-def parallel_mc_fixed(n_samples, n_workers, base_seed):
-    parent_rng = np.random.default_rng(base_seed)
-    # Spawn independent child RNGs
-    child_seeds = parent_rng.spawn(n_workers)
-    
-    with ProcessPoolExecutor(n_workers) as ex:
-        args = [(n_samples // n_workers, seed) for seed in child_seeds]
-        results = list(ex.map(mc_worker_fixed, args))
-    return np.concatenate(results)
-
-# Deterministic: same results every time
-r1 = parallel_mc_fixed(10000, 4, 42)
-r2 = parallel_mc_fixed(10000, 4, 42)
-assert np.array_equal(r1, r2)
-
-```
-
-
-**Overhead benchmark**:
-
-- RNG creation: ~1µs per `default_rng()` call
-- Negligible vs typical simulation workload
-- Proper RNG adds <0.1% overhead for most Monte Carlo simulations
-
-</details>
-
-
-**Mastery**: Implement a decorator `@reproducible(seed_arg='rng')` that intercepts a function, logs the RNG state before execution, and enables replay of the exact same random sequence for debugging. The decorator must work with both `Generator` instances and integer seeds.
-
-
-**Expected Time (Proficient): 30–45 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Core idea**: Capture RNG bit_generator state before execution; allow replay.
-
-
-**Implementation**:
-
-
-```python
-import functools
-import numpy as np
-import json
-from pathlib import Path
-
-def reproducible(seed_arg='rng'):
-    """Decorator that logs RNG state for replay."""
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Find RNG in args/kwargs
-            rng = kwargs.get(seed_arg)
-            if rng is None:
-                # Check positional args via signature
-                import inspect
-                sig = inspect.signature(func)
-                params = list(sig.parameters.keys())
-                if seed_arg in params:
-                    idx = params.index(seed_arg)
-                    if idx < len(args):
-                        rng = args[idx]
-            
-            # Handle integer seed
-            if isinstance(rng, int):
-                rng = np.random.default_rng(rng)
-                # Update kwargs for the function
-                kwargs[seed_arg] = rng
-            
-            # Capture state before execution
-            if rng is not None:
-                state = rng.bit_generator.state
-                wrapper._last_state = state
-                wrapper._last_call = {'args': str(args), 'kwargs': str(kwargs)}
-            
-            return func(*args, **kwargs)
-        
-        wrapper._last_state = None
-        wrapper._last_call = None
-        
-        def replay():
-            """Replay last call with captured RNG state."""
-            if wrapper._last_state is None:
-                raise ValueError("No state captured")
-            rng = np.random.default_rng()
-            rng.bit_generator.state = wrapper._last_state
-            print(f"Replaying with state from: {wrapper._last_call}")
-            return rng
-        
-        wrapper.replay = replay
-        return wrapper
-    return decorator
-
-# Usage
-@reproducible(seed_arg='rng')
-def stochastic_analysis(data, n_samples, rng):
-    samples = rng.choice(data, size=(n_samples, len(data)), replace=True)
-    return samples.mean(axis=1)
-
-# First run
-rng = np.random.default_rng(42)
-result1 = stochastic_analysis([1, 2, 3, 4, 5], 100, rng)
-
-# Replay exact same sequence
-rng_replay = stochastic_analysis.replay()
-result2 = stochastic_analysis([1, 2, 3, 4, 5], 100, rng_replay)
-assert np.array_equal(result1, result2)
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```python
-import functools
-import json
-import logging
-
-logger = logging.getLogger(__name__)
-
-def reproducible(seed_arg='rng', log_file=None):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            # Get the RNG from args/kwargs
-            bound = inspect.signature(func).bind(*args, **kwargs)
-            bound.apply_defaults()
-            rng_or_seed = bound.arguments.get(seed_arg)
-            
-            # Convert to Generator and capture state
-            if isinstance(rng_or_seed, int):
-                rng = np.random.default_rng(rng_or_seed)
-                seed_info = {'type': 'int', 'value': rng_or_seed}
-            elif isinstance(rng_or_seed, np.random.Generator):
-                rng = rng_or_seed
-                # Capture bit_generator state for replay
-                state = rng.bit_generator.state
-                seed_info = {'type': 'state', 'state': state}
-            else:
-                raise TypeError(f"Expected int or Generator, got {type(rng_or_seed)}")
-            
-            # Log for reproducibility
-            log_entry = {
-                'function': func.__name__,
-                'seed_info': seed_info,
-                'timestamp': 
-
-```
-
-
-**Usage**:
-
-
-```python
-@reproducible(seed_arg='rng', log_file='rng_log.jsonl')
-def simulate(n, rng):
-    return rng.normal(0, 1, n)
-
-# Original run
-result = simulate(100, rng=42)
-
-# Later: replay from log file for debugging
-
-# Read state from log, use replay() to recreate exact RNG state
-
-```
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why capture Generator state rather than just the seed for reproducibility?
-2. How does this decorator interact with global random state vs. explicit RNG instances?
-3. What are the thread-safety implications of this approach?
-4. How would you extend this to handle functions that use multiple random sources?
-
-</details>
 
 
 ---
 
 
+## Hands-On Exercises
+
+
+### Exercise 6.1: Debug Reproducibility
+
+
+Why doesn't this give the same result twice?
+
+
+```python
+import numpy as np
+
+def simulate():
+    np.random.seed(42)
+    data = np.random.randn(100)
+    noise = np.random.randn(100)  # Second call!
+    return data + noise
+
+result1 = simulate()
+result2 = simulate()
+
+print(np.allclose(result1, result2))  # True ✓
+
+# But if we call it like this:
+result1 = simulate()
+_ = np.random.rand(10)  # Some other code uses random
+result2 = simulate()
+
+print(np.allclose(result1, result2))  # False ✗ Why?
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
+
+
+**Problem**: The global state is affected by any code that uses `np.random` between calls.
+
+
+```python
+
+# ✅ Fix: Use isolated generators
+def simulate(rng=None):
+    if rng is None:
+        rng = np.random.default_rng(42)
+    
+    data = rng.normal(0, 1, size=100)
+    noise = rng.normal(0, 1, size=100)
+    return data + noise
+
+# Now reproducible regardless of external code
+result1 = simulate()
+_ = np.random.rand(10)  # External randomness
+result2 = simulate()    # Still uses fresh RNG with seed 42
+
+print(np.allclose(result1, result2))  # True ✓
+
+```
+
+
+</details>
+
+
+### Exercise 6.2: Implement Reproducible Bootstrap
+
+
+Write a function that performs bootstrap confidence intervals with reproducible results.
+
+
+```python
+def bootstrap_ci(data, n_bootstrap=1000, confidence=0.95, rng=None):
+    """
+    Compute bootstrap confidence interval for the mean.
+    
+    Args:
+        data: Input array
+        n_bootstrap: Number of bootstrap samples
+        confidence: Confidence level (0-1)
+        rng: Random number generator
+    
+    Returns:
+        (lower, upper) confidence interval
+    """
+    # TODO: Implement
+    pass
+
+```
+
+
+<details>
+
+
+<summary>Solution</summary>
+
+
+```python
+import numpy as np
+
+def bootstrap_ci(data, n_bootstrap=1000, confidence=0.95, rng=None):
+    """Compute bootstrap confidence interval for the mean."""
+    if rng is None:
+        rng = np.random.default_rng()
+    
+    data = np.asarray(data)
+    n = len(data)
+    
+    # Generate bootstrap samples
+    bootstrap_means = []
+    for _ in range(n_bootstrap):
+        sample = rng.choice(data, size=n, replace=True)
+        bootstrap_means.append(sample.mean())
+    
+    bootstrap_means = np.array(bootstrap_means)
+    
+    # Compute percentile confidence interval
+    alpha = 1 - confidence
+    lower = np.percentile(bootstrap_means, 100 * alpha / 2)
+    upper = np.percentile(bootstrap_means, 100 * (1 - alpha / 2))
+    
+    return lower, upper
+
+# Test reproducibility
+data = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+
+rng1 = np.random.default_rng(42)
+ci1 = bootstrap_ci(data, rng=rng1)
+
+rng2 = np.random.default_rng(42)
+ci2 = bootstrap_ci(data, rng=rng2)
+
+print(ci1)  # (3.5, 7.5)
+print(ci2)  # (3.5, 7.5) ← identical!
+
+```
+
+
+</details>
+
+
+**Scoring Rubric - Exercise 6.1** (10 points)
+
+
+| Criterion                                | Points |
+
+| ---------------------------------------- | ------ |
+
+| Identifies global state as the problem   | 3      |
+
+| Uses `np.random.default_rng()` with seed | 3      |
+
+| RNG parameter with None default          | 2      |
+
+| Demonstrates reproducibility with test   | 2      |
+
+
+**Scoring Rubric - Exercise 6.2** (12 points)
+
+
+| Criterion                                   | Points |
+
+| ------------------------------------------- | ------ |
+
+| Correct bootstrap sampling with replacement | 3      |
+
+| Proper percentile calculation for CI        | 3      |
+
+| RNG parameter for reproducibility           | 3      |
+
+| Handles array conversion with `np.asarray`  | 1      |
+
+| Tests demonstrate reproducibility           | 2      |
+
+
+## Common Pitfalls
+
+
+| Pitfall                               | Why It's Bad                    | Fix                            |
+
+| ------------------------------------- | ------------------------------- | ------------------------------ |
+
+| Using `np.random.seed()` in functions | Modifies global state           | Pass `rng` parameter           |
+
+| Forgetting Python's `random` module   | Separate state from NumPy       | Seed both or use only one      |
+
+| Same seed for parallel workers        | Workers generate identical data | Use `SeedSequence.spawn()`     |
+
+| Not documenting seed values           | Can't reproduce results         | Log seeds in notebooks/scripts |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 7, verify you can:
+
+- [ ] Explain why global `np.random.seed()` is problematic
+- [ ] Use `np.random.Generator` for isolated random state
+- [ ] Write a function that accepts an `rng` parameter
+- [ ] Set up reproducible parallel computations
+- [ ] Debug a reproducibility issue in simulation code
+
+---
+
+
+## Resources
+
+- [NumPy Random Sampling](73)
+- [NEP 19: Random Number Generator Policy](74)
+- [Reproducible Research Best Practices](75)
+
 ## Day 7: Debugging, Profiling, and Python Capstone
 
-
-### Concepts
-
-
-**Debugging: From print statements to interactive debuggers**
+## Overview
 
 
-Debugging is the process of identifying and fixing bugs. Python offers several debugging strategies, from simple to sophisticated:
+**Focus**: Learn to debug and profile Python code efficiently. Topics include debuggers, logging, profiling tools, and the Week 1 Python capstone project.
 
 
-**1. Print debugging**: The most basic approach
+**Why it matters**: Debugging and performance optimization are critical skills. The capstone integrates all Week 1 concepts.
 
 
-```python
-def buggy_function(data):
-    print(f"DEBUG: data type = {type(data)}, len = {len(data)}")  # Debug output
-    result = []
-    for i in range(len(data)):
-        print(f"DEBUG: i = {i}, data[i] = {data[i]}")  # Track loop progress
-        result.append(data[i] * 2)
-    return result
-
-```
+---
 
 
-**Pros**: Simple, works everywhere, no setup
+## Learning Objectives
 
 
-**Cons**: Clutters code, must remove before commit, doesn't let you inspect state interactively
+By the end of Day 7, you will:
+
+- Use `pdb` and IDE debuggers effectively
+- Instrument code with logging instead of print statements
+- Profile code to identify bottlenecks
+- Optimize slow code using profiling insights
+- Complete the Week 1 Python capstone project
+
+---
 
 
-**2. Python debugger (pdb)**: Interactive debugging
+## Core Concepts
+
+
+### 1. Debugging with pdb
+
+
+**Basic Usage**
 
 
 ```python
 import pdb
 
-def buggy_function(data):
-    result = []
-    for i in range(len(data)):
+def buggy_function(x):
+    result = 0
+    for i in range(len(x)):
         pdb.set_trace()  # Execution pauses here
-        result.append(data[i] * 2)
+        result += x[i] ** 2
     return result
 
-```
+# When execution hits pdb.set_trace():
 
+# (Pdb) p i          # Print variable
 
-**Modern alternative**: Use `breakpoint()` (Python 3.7+) instead of `pdb.set_trace()`:
+# (Pdb) p result     # Print variable
 
+# (Pdb) n            # Next line
 
-```python
-def buggy_function(data):
-    result = []
-    for i in range(len(data)):
-        breakpoint()  # Cleaner syntax, same effect
-        result.append(data[i] * 2)
-    return result
+# (Pdb) c            # Continue
+
+# (Pdb) q            # Quit
 
 ```
 
 
-**Common pdb commands**:
-
-- `n` (next): Execute current line, step over function calls
-- `s` (step): Step into function calls
-- `c` (continue): Continue execution until next breakpoint
-- `p variable` (print): Print value of variable
-- `pp variable` (pretty-print): Print with better formatting
-- `l` (list): Show source code around current line
-- `w` (where): Show stack trace
-- `q` (quit): Exit debugger
-
-**Example debugging session**:
-
-
-```python
-def compute_mean(data):
-    total = 0
-    for i in range(len(data) + 1):  # BUG: off-by-one
-        breakpoint()
-        total += data[i]
-    return total / len(data)
-
-compute_mean([1, 2, 3])
-
-```
-
-
-**In debugger**:
-
-
-```bash
-> compute_mean()
--> total += data[i]
-(Pdb) p i
-0
-(Pdb) p len(data)
-3
-(Pdb) n
-> compute_mean()
--> total += data[i]
-(Pdb) p i
-1
-(Pdb) c  # Continue to next iteration
-
-# Eventually: IndexError when i=3
-(Pdb) p i
-3
-(Pdb) p data[i]  # Error! Index out of range
-
-```
-
-
-**3. Post-mortem debugging**: Debug after a crash
+**Post-Mortem Debugging**
 
 
 ```python
 import pdb
 
-def buggy_code():
-    x = [1, 2, 3]
-    return x[10]  # IndexError
+def divide(a, b):
+    return a / b
 
 try:
-    buggy_code()
+    divide(10, 0)
 except:
-    pdb.post_mortem()  # Drop into debugger at point of exception
+    pdb.post_mortem()  # Debug the exception after it occurred
 
 ```
 
 
-This lets you inspect the state when the exception occurred without re-running the code.
-
-
-**4. IPython debugger (ipdb)**: Enhanced pdb with syntax highlighting, tab completion
-
-
-```bash
-pip install ipdb
-
-```
-
-
-**Golden rule**: Profile before optimizing. Intuition about bottlenecks is often wrong.
-
-
-**Example of wrong intuition**:
+**Breakpoint() (Python 3.7+)**
 
 
 ```python
-
-# Which is slower?
-def approach_a(data):
-    return [x ** 2 for x in data]  # List comprehension
-
-def approach_b(data):
-    result = []
-    for x in data:
-        result.append(x ** 2)  # Explicit loop
-    return result
-
-# Intuition: "List comprehension is optimized, must be way faster"
-
-# Reality: Only ~10% faster (both are Python loops)
-
-# Real bottleneck: Using Python loop instead of NumPy vectorization
-def approach_c(data):
-    return np.array(data) ** 2  # 10-100x faster!
+def process_data(data):
+    cleaned = data.dropna()
+    breakpoint()  # Modern alternative to pdb.set_trace()
+    scaled = (cleaned - cleaned.mean()) / cleaned.std()
+    return scaled
 
 ```
 
 
-**2. cProfile**: Function-level profiling for entire programs
+### 2. Logging
+
+
+**Why Logging > Print**
+
+
+```python
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('debug.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+def process_data(data):
+    logger.debug(f"Input shape: {data.shape}")
+    logger.info("Starting data processing")
+    
+    if data.shape[0] == 0:
+        logger.warning("Empty dataset received")
+        return None
+    
+    try:
+        result = data.mean()
+        logger.info(f"Processing complete, result: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Processing failed: {e}")
+        raise
+
+```
+
+
+**Log Levels**
+
+
+| Level    | Use Case                                        |
+
+| -------- | ----------------------------------------------- |
+
+| DEBUG    | Detailed diagnostic info                        |
+
+| INFO     | Confirmation that things work as expected       |
+
+| WARNING  | Something unexpected, but code still works      |
+
+| ERROR    | Serious problem, code couldn't perform function |
+
+| CRITICAL | Program may crash                               |
+
+
+### 3. Profiling
+
+
+**Time Profiling with cProfile**
 
 
 ```python
 import cProfile
 import pstats
+import io
 
 def slow_function():
     total = 0
@@ -5846,85 +3911,72 @@ def slow_function():
         total += i ** 2
     return total
 
-def fast_function():
-    return sum(i ** 2 for i in range(1000000))
+# Profile the function
+profiler = cProfile.Profile()
+profiler.enable()
+result = slow_function()
+profiler.disable()
 
-def main():
+# Print stats sorted by cumulative time
+stats = pstats.Stats(profiler)
+stats.sort_stats('cumulative')
+stats.print_stats(10)  # Top 10 functions
+
+# Alternative: profile with context manager
+with cProfile.Profile() as pr:
     slow_function()
-    fast_function()
+    
 
-# Profile the code
-cProfile.run('main()', 'profile_stats')
+# Save stats to file for later analysis
+pr.dump_stats('profile_output.prof')
 
-# Analyze results
-stats = pstats.Stats('profile_stats')
-stats.sort_stats('cumulative')  # Sort by cumulative time
-stats.print_stats(10)  # Show top 10 functions
+# Visualize with: snakeviz profile_output.prof
 
 ```
 
 
-**Output interpretation**:
-
-
-```javascript
-ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-     1    0.150    0.150    0.200    0.200 script.py:3(slow_function)
-     1    0.080    0.080    0.080    0.080 script.py:9(fast_function)
-
-```
-
-- `ncalls`: Number of times function was called
-- `tottime`: Total time in function (excluding subcalls)
-- `cumtime`: Cumulative time (including subcalls)
-- `percall`: Time per call
-
-**3. line_profiler**: Line-by-line timing
+**Line Profiling with line_profiler**
 
 
 ```bash
-pip install line_profiler
+
+# Install: pip install line_profiler
 
 ```
 
 
 ```python
 
-# Add @profile decorator to functions you want to profile
+# Add @profile decorator
 @profile
-def analyze_data(data):
-    result = []  # Line 1
-    for item in data:  # Line 2
-        if item > 0:  # Line 3
-            result.append(item ** 2)  # Line 4
-    return result  # Line 5
+def process_data(data):
+    result = []                           # Line 1
+    for i in range(len(data)):            # Line 2
+        if data[i] > 0:                   # Line 3
+            result.append(data[i] ** 2)   # Line 4
+    return result                         # Line 5
+
+# Run: kernprof -l -v script.py
+
+# Output shows time spent on each line:
+
+# Line #  Hits     Time  Per Hit  % Time  Line Contents
+
+#      2  1000    500.0      0.5    10.0  for i in range(len(data)):
+
+#      3  1000    200.0      0.2     4.0      if data[i] > 0:
+
+#      4   800   4000.0      5.0    80.0          result.append(data[i] ** 2)
 
 ```
 
 
-**Output**:
-
-
-```javascript
-Line #  Hits    Time     Per Hit   % Time  Line Contents
-=======================================================
-     1     1       2.0      2.0      0.0  result = []
-     2  1000     500.0      0.5      5.0  for item in data:
-     3  1000     800.0      0.8      8.0      if item > 0:
-     4   500    8700.0     17.4     87.0          result.append(item ** 2)
-     5     1       0.0      0.0      0.0  return result
-
-```
-
-
-This shows line 4 (the append) is the bottleneck (87% of time).
-
-
-**4. memory_profiler**: Track memory usage
+**Memory Profiling with memory_profiler**
 
 
 ```bash
-pip install memory_profiler
+
+# Install: pip install memory_profiler
 
 ```
 
@@ -5934,772 +3986,606 @@ from memory_profiler import profile
 
 @profile
 def memory_hog():
-    big_list = [0] * 10000000  # Allocates ~76MB
-    big_dict = {i: i**2 for i in range(1000000)}  # More memory
-    return big_list, big_dict
+    a = [1] * (10 ** 6)        # ~8 MB
+    b = [2] * (2 * 10 ** 7)    # ~160 MB
+    del b                       # Free memory
+    return a
+
+# Run: python -m memory_profiler script.py
+
+# Output shows memory usage per line:
+
+# Line #    Mem usage    Increment  Line Contents
+
+#      4     50.0 MiB     0.0 MiB   a = [1] * (10 ** 6)
+
+#      5    210.0 MiB   160.0 MiB   b = [2] * (2 * 10 ** 7)
+
+#      6     50.0 MiB  -160.0 MiB   del b
 
 ```
 
 
-```bash
-python -m memory_profiler script.py
+### 4. Optimization Strategies
 
-```
 
-
-**Output**:
-
-
-```javascript
-Line #    Mem usage    Increment   Line Contents
-================================================
-     3     50.0 MiB     50.0 MiB   @profile
-     4     50.0 MiB      0.0 MiB   def memory_hog():
-     5    126.0 MiB     76.0 MiB       big_list = [0] * 10000000
-     6    202.0 MiB     76.0 MiB       big_dict = {i: i**2 for i in range(1000000)}
-     7    202.0 MiB      0.0 MiB       return big_list, big_dict
-
-```
-
-
-Shows memory growing from 50MB → 126MB → 202MB.
-
-
-**Common performance issues and how to find them**
-
-
-**Issue 1: Unnecessary copies**
-
-
-```python
-
-# BAD: Creates copy on every iteration
-for i in range(len(df)):
-    row = df.iloc[i].copy()  # Slow!
-    process(row)
-
-# GOOD: Iterate without copying
-for _, row in df.iterrows():  # Still not ideal, but no explicit copy
-    process(row)
-
-# BEST: Vectorize
-df['result'] = df['column'].apply(process)
-
-```
-
-
-**How to detect**: Use `line_profiler` to find slow lines, check for `.copy()` calls.
-
-
-**How to detect**: `cProfile` will show your loop function taking lots of time. Convert to NumPy.
-
-
-**Issue 3: Repeated DataFrame operations**
-
-
-```python
-
-# BAD: Recomputes groupby each time (O(n) work repeated)
-for group_name in df['group'].unique():
-    subset = df[df['group'] == group_name]  # Scans whole df each time!
-    process(subset)
-
-# GOOD: Group once, iterate over groups
-for group_name, subset in df.groupby('group'):
-    process(subset)
-
-```
-
-
-**How to detect**: `cProfile` shows pandas grouping/filtering functions called many times.
-
-
-**Issue 4: Inefficient data structures**
-
-
-```python
-
-# BAD: List lookup is O(n)
-blacklist = ['spam', 'eggs', 'foo', 'bar']  # List
-if user_input in blacklist:  # O(n) search
-    reject()
-
-# GOOD: Set lookup is O(1)
-blacklist = {'spam', 'eggs', 'foo', 'bar'}  # Set
-if user_input in blacklist:  # O(1) search
-    reject()
-
-```
-
-
-**Profiling workflow**:
-
-1. **Measure first**: Run `cProfile` to get baseline and identify slow functions
-2. **Focus effort**: Only optimize functions that take >10% of total time (Amdahl's Law)
-3. **Drill down**: Use `line_profiler` on slow functions to find exact bottleneck lines
-4. **Optimize**: Apply vectorization, better algorithms, caching, etc.
-5. **Measure again**: Verify speedup matches prediction
-
-The Python capstone integrates all Week 1 material. You will implement a complete statistical analysis pipeline with proper structure, testing, reproducibility, and performance.
-
-
-### Exercises
-
-
-**Foundational 1**: Given a slow function (provided), use `cProfile` to identify the bottleneck. Write a report documenting: (a) the profiling output, (b) which function consumed the most time, (c) your hypothesis for why.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension   | 0                                        | 1                                       | 2                                                    |
-
-| ----------- | ---------------------------------------- | --------------------------------------- | ---------------------------------------------------- |
-
-| Correctness | Profiling output wrong or misinterpreted | Identifies slowest function incorrectly | Correctly identifies bottleneck with evidence        |
-
-| Clarity     | Report unclear or missing sections       | Has sections but explanation weak       | Clear report with all three parts documented         |
-
-| Analysis    | No hypothesis given                      | Hypothesis superficial                  | Hypothesis explains root cause (loops, copies, etc.) |
-
-| Tool Usage  | Cannot run cProfile                      | Basic cProfile usage                    | Uses pstats to sort and filter results               |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Slow function example**:
-
-
-```python
-def slow_analysis(data):
-    results = []
-    for i in range(len(data)):
-        for j in range(len(data)):
-            dist = np.sqrt(np.sum((data[i] - data[j])**2))
-            results.append(dist)
-    return np.array(results)
-
-```
-
-
-**Profiling with cProfile**:
-
-
-```python
-import cProfile
-import pstats
-
-data = np.random.randn(500, 10)
-
-```
-
-
-**Example output**:
-
-
-```javascript
-ncalls  tottime  cumtime  filename:lineno(function)
-250000    2.5    2.5      {built-in method numpy.sum}
-250000    1.8    4.3      {built-in method numpy.sqrt}
-     1    0.8    5.1      slow_analysis
-
-```
-
-
-**Report**:
-
-- **Bottleneck**: `numpy.sum` called 250,000 times (n² calls)
-- **Cumulative time**: 2.5s in sum alone
-- **Hypothesis**: Calling NumPy functions inside Python loops has overhead. Each call has fixed cost (~1µs), so 250k calls = 250ms just in call overhead. The loop structure prevents vectorization.
-
-**Fix**: Vectorize: `np.linalg.norm(data\[:, None, :\] - data\[None, :, :\], axis=2)`
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Example slow function**:
-
-
-```python
-def slow_analysis(data):
-    result = []
-    for i in range(len(data)):
-        for j in range(len(data)):
-            result.append(data[i] * data[j])  # O(n²) list appends
-    return np.array(result).reshape(len(data), len(data))
-
-```
-
-
-**Profiling**:
-
-
-```python
-import cProfile
-import pstats
-
-data = np.random.randn(1000)
-
-# Method 1: Simple profiling
-cProfile.run('slow_analysis(data)', sort='cumulative')
-
-# Method 2: Detailed analysis
-profiler = cProfile.Profile()
-profiler.enable()
-result = slow_analysis(data)
-profiler.disable()
-
-stats = pstats.Stats(profiler)
-stats.sort_stats('cumulative')
-stats.print_stats(10)  # Top 10 functions
-
-```
-
-
-**Sample output analysis**:
-
-
-```javascript
- ncalls  tottime  cumtime  filename:lineno(function)
-      1    0.100   15.200  script.py:1(slow_analysis)
-1000000    5.100    5.100  {method 'append' of 'list'}
-      1    8.000    8.000  {built-in method numpy.array}
-
-```
-
-
-**Report**:
-
-- Bottleneck: `list.append` called 1M times (5.1s) + `numpy.array` conversion (8s)
-- Hypothesis: Growing list requires repeated reallocation; final conversion copies all data
-- Fix: Use `np.outer(data, data)` → vectorized, single allocation, <10ms
-
-</details>
-
-
-**Foundational 2**: Use `pdb` to debug a function with an off-by-one error in array indexing. Document the debugging session: what breakpoints you set, what variables you inspected, how you identified the bug.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Buggy function**:
-
-
-```python
-def compute_differences(arr):
-    """Compute difference between consecutive elements."""
-    n = len(arr)
-    diffs = np.zeros(n)  # BUG: should be n-1
-    for i in range(n):   # BUG: should be range(n-1)
-        diffs[i] = arr[i+1] - arr[i]  # IndexError when i = n-1
-    return diffs
-
-```
-
-
-**Debugging session**:
-
-
-```python
-import pdb
-
-arr = np.array([1, 2, 4, 7])
-
-# Method 1: Insert breakpoint in code
-def compute_differences_debug(arr):
-    n = len(arr)
-    diffs = np.zeros(n)
-    for i in range(n):
-        pdb.set_trace()  # or just: breakpoint()
-        diffs[i] = arr[i+1] - arr[i]
-    return diffs
-
-# Method 2: Post-mortem debugging
-try:
-    compute_differences(arr)
-except IndexError:
-    pdb.post_mortem()  # Drops into debugger at exception
-
-```
-
-
-**PDB commands used**:
-
-
-```javascript
-(Pdb) p n          # Print n → 4
-(Pdb) p i          # Print i → 3 (last iteration)
-(Pdb) p arr[i+1]   # IndexError! i+1 = 4, out of bounds
-(Pdb) p len(arr)   # 4 - confirms array length
-(Pdb) p range(n)   # range(0, 4) - loops 0,1,2,3
-(Pdb) q            # Quit debugger
-
-```
-
-
-**Fix**:
-
-
-```python
-diffs = np.zeros(n - 1)  # Correct size
-for i in range(n - 1):   # Correct range
-
-```
-
-
-**Or vectorized**: `diffs = np.diff(arr)`
-
-
-</details>
-
-
-**Proficiency 1**: Profile a data processing pipeline end-to-end. Identify the three slowest operations. For each, either optimize it or document why optimization is not worthwhile (Amdahl's law reasoning).
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Pipeline to profile**:
-
-
-```python
-def data_pipeline(filepath):
-    df = 
-
-```
-
-
-**Profiling**:
-
-
-```python
-import cProfile
-
-```
-
-
-**Results** (hypothetical):
-
-
-| Step                  | Time | % of Total |
-
-| --------------------- | ---- | ---------- |
-
-| Load (read_csv)       | 2.0s | 20%        |
-
-| Clean (dropna)        | 0.3s | 3%         |
-
-| Normalize (transform) | 1.5s | 15%        |
-
-| Compute (apply)       | 6.2s | 62%        |
-
-
-**Analysis**:
-
-1. **Compute (62%)**: Worth optimizing. Rewrite `expensive_computation` in vectorized NumPy or Numba. Potential 10x speedup → 6.2s → 0.6s.
-2. **Load (20%)**: Could use `pyarrow` or `polars` for 2x speedup, but only saves 1s. Moderate priority.
-3. **Normalize (15%)**: Replace `transform(lambda)` with direct pandas operations: `df.groupby()\['value'\].transform('mean')`. 3x speedup.
-
-**Amdahl's law**: If compute is 62% and we make it infinitely fast, max speedup = 1/(1-0.62) = 2.6x. But realistic 10x on compute: new compute = 0.62/10 = 6.2%, total speedup = 10s → 4.4s = 2.3x.
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Example pipeline**:
-
-
-```python
-def pipeline(df):
-    df = load_data(df)           # 0.5s (10%)
-    df = clean_data(df)          # 0.3s (6%)
-    df = compute_features(df)    # 3.0s (60%) <-- BOTTLENECK
-    df = train_model(df)         # 1.0s (20%)
-    save_results(df)             # 0.2s (4%)
-    return df  # Total: 5.0s
-
-```
-
-
-**Profiling**:
-
-
-```python
-with cProfile.Profile() as pr:
-    result = pipeline(df)
-
-stats = pstats.Stats(pr)
-stats.sort_stats('cumulative')
-stats.print_stats(20)
-
-```
-
-
-**Three slowest operations**:
-
-1. `compute_features`: 3.0s (60%)
-    - **Optimize**: Vectorize, use NumPy instead of loops
-    - After: 0.3s. Pipeline: 2.3s. **Speedup: 2.2x**
-2. `train_model`: 1.0s (20%)
-    - **Optimize**: Already uses sklearn, limited room
-    - Could parallelize CV, but adds complexity
-    - **Decision**: Skip, Amdahl's law: max 1.25x speedup
-3. `load_data`: 0.5s (10%)
-    - **Optimize**: Use Parquet instead of CSV
-    - After: 0.1s. But only 8% of new total.
-    - **Decision**: Worth it if running many times
-
-**Amdahl's Law applied**:
-
-- If `compute_features` is 60% and we make it instant: max speedup = 1/(1-0.6) = 2.5x
-- If `train_model` is 20% (now 43% of new total): max additional speedup = 1.75x
-- Diminishing returns after the first optimization
-
-</details>
-
-
-**Proficiency 2**: Use `memory_profiler` to identify a memory leak in a function that processes data in chunks but accidentally retains references to old chunks. Fix the leak and verify memory usage is now constant.
-
-
-**Expected Time (Proficient): 20–28 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension           | 0                          | 1                                     | 2                                                        |
-
-| ------------------- | -------------------------- | ------------------------------------- | -------------------------------------------------------- |
-
-| Tool Usage          | Cannot run memory_profiler | Runs but output not interpreted       | Uses @profile decorator, interprets output correctly     |
-
-| Leak Identification | Cannot find leak source    | Finds leak but wrong root cause       | Correctly identifies retained reference pattern          |
-
-| Fix Quality         | Fix doesn't work           | Fix works but introduces other issues | Clean fix, removes accumulation, preserves functionality |
-
-| Verification        | No verification            | Claims fixed without evidence         | Shows before/after memory profile proving constant usage |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Leaky function**:
-
-
-```python
-def process_chunks_leaky(filepath, chunk_size=10000):
-    all_chunks = []  # BUG: Retains all chunks!
-    results = []
-    
-    for chunk in 
-
-```
-
-
-**Using memory_profiler**:
-
-
-```bash
-pip install memory_profiler
-python -m memory_profiler 
-
-```
-
-
-**Or with decorator**:
-
-
-```python
-from memory_profiler import profile
-
-@profile
-def process_chunks_leaky(filepath, chunk_size=10000):
-    ...
-
-```
-
-
-**Output showing leak**:
-
-
-```javascript
-Line #    Mem usage    Increment
-     5     50.0 MiB     0.0 MiB   all_chunks = []
-     8     60.0 MiB    10.0 MiB   all_chunks.append(chunk)  # Chunk 1
-     8     70.0 MiB    10.0 MiB   all_chunks.append(chunk)  # Chunk 2
-     8     80.0 MiB    10.0 MiB   all_chunks.append(chunk)  # Chunk 3...
-
-```
-
-
-**Fixed function**:
-
-
-```python
-def process_chunks_fixed(filepath, chunk_size=10000):
-    results = []
-    
-    for chunk in 
-
-```
-
-
-**Verification**: Memory stays constant at ~50-60 MiB regardless of file size.
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Buggy function with memory leak**:
-
-
-```python
-class ChunkProcessor:
-    def __init__(self):
-        self.all_chunks = []  # BUG: accumulates all chunks!
-    
-    def process_file(self, filepath, chunk_size=10000):
-        results = []
-        for chunk in 
-
-```
-
-
-**Profiling with memory_profiler**:
-
-
-```python
-
-# Install: pip install memory_profiler
-
-# Add decorator to function:
-from memory_profiler import profile
-
-@profile
-def process_file_leaky(filepath):
-    processor = ChunkProcessor()
-    return processor.process_file(filepath)
-
-# Run: python -m memory_profiler 
-
-```
-
-
-**Output showing leak**:
-
-
-```javascript
-Line #    Mem usage    Increment   Line Contents
-   10     50.0 MiB     0.0 MiB    for chunk in 
-
-```
-
-
-**Fixed version**:
-
-
-```python
-class ChunkProcessor:
-    def process_file(self, filepath, chunk_size=10000):
-        results = []
-        for chunk in 
-
-```
-
-
-**Verification**: Memory stays ~constant (small growth for results only).
-
-
-</details>
-
-
-**Proficiency 3 (Read & Critique)**: Review the following code written by a colleague. Identify at least 5 issues (bugs, performance problems, style issues, or missing edge case handling). For each issue, explain what's wrong and provide a fix.
+**Strategy 1: Vectorize Loops**
 
 
 ```python
 import numpy as np
-import pandas as pd
+import time
 
-def analyze_experiment(data_file, n_bootstrap=1000):
-    np.random.seed(42)
-    
-    df = pd.read_csv(data_file)
-    treatment = df[df.group == 'treatment'].value
-    control = df[df.group == 'control'].value
-    
-    diffs = []
-    for i in range(n_bootstrap):
-        t_sample = np.random.choice(treatment, len(treatment))
-        c_sample = np.random.choice(control, len(control))
-        diffs.append(t_sample.mean() - c_sample.mean())
-    
-    ci_low = np.percentile(diffs, 2.5)
-    ci_high = np.percentile(diffs, 97.5)
-    
-    df['normalized'] = (df.value - df.value.mean()) / df.value.std()
-    
-    return ci_low, ci_high
+# ❌ Slow: Python loop
+def sum_of_squares_loop(data):
+    result = 0
+    for x in data:
+        result += x ** 2
+    return result
+
+# ✅ Fast: Vectorized
+def sum_of_squares_vectorized(data):
+    return np.sum(data ** 2)
+
+data = np.random.randn(1000000)
+
+start = time.perf_counter()
+sum_of_squares_loop(data)
+loop_time = time.perf_counter() - start
+
+start = time.perf_counter()
+sum_of_squares_vectorized(data)
+vec_time = time.perf_counter() - start
+
+print(f"Speedup: {loop_time / vec_time:.0f}x")  # ~100x
 
 ```
 
 
-**Expected Time (Proficient): 15–20 minutes**
+**Strategy 2: Use Appropriate Data Structures**
 
-<details>
-<summary>Solution Sketch</summary>
 
-**Issues to identify**:
+```python
 
-1. **Global random state** (`np.random.seed(42)`): Not reproducible for parallel code, affects other code. Fix: Use `rng = np.random.default_rng(42)` and pass explicitly.
-2. **SettingWithCopyWarning** (`df['normalized'] = ...`): `df[`[`df.group`](http://df.group/) `== ...]` may return a view. Fix: Use `.loc` or work on `.copy()`.
-3. **Unused result**: `normalized` column is computed but never returned or used. Fix: Remove dead code or return it.
-4. **Python loop for bootstrap**: Slow for large `n_bootstrap`. Fix: Vectorize with NumPy: `t_samples = rng.choice(treatment, (n_bootstrap, len(treatment)))`.
-5. **No input validation**: Doesn't check if groups exist, file format, or handle NaN. Fix: Add validation and error messages.
-6. **Hardcoded CI level** (2.5, 97.5): Should be parameterized. Fix: Add `ci_level` parameter.
-7. **List append in loop**: Minor, but `diffs` could pre-allocate. Fix: `np.empty(n_bootstrap)`.
+# ❌ Slow: List lookup
+def count_occurrences_list(data, value):
+    return data.count(value)  # O(n) every time
 
-</details>
+# ✅ Fast: Dictionary/Counter
+from collections import Counter
+
+def count_occurrences_dict(data):
+    return Counter(data)  # O(n) once, then O(1) lookups
+
+data = [1, 2, 3, 1, 2, 1] * 10000
+counts = count_occurrences_dict(data)
+print(counts[1])  # Instant lookup
+
+```
+
+
+**Strategy 3: Cache Expensive Computations**
+
+
+```python
+from functools import lru_cache
+
+# ❌ Slow: Recomputes every time
+def fibonacci(n):
+    if n < 2:
+        return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+# ✅ Fast: Caches results
+@lru_cache(maxsize=None)
+def fibonacci_cached(n):
+    if n < 2:
+        return n
+    return fibonacci_cached(n - 1) + fibonacci_cached(n - 2)
+
+# fibonacci(35) takes ~5 seconds
+
+# fibonacci_cached(35) takes ~0.0001 seconds
+
+```
 
 
 ---
 
 
-### Python Capstone
+## Week 1 Python Capstone
 
 
-**Task**: Implement a complete Bayesian A/B testing analysis pipeline.
+### Project: Statistical Analysis Pipeline
 
 
-**Cumulative Skills Checklist**
+**Expected Time (Proficient): 90-120 minutes**
 
 
-This capstone must demonstrate ALL skills from Days 1-7. Your implementation will be evaluated on:
+Build a complete statistical analysis pipeline that integrates all Week 1 concepts.
 
 
-**From Day 1 (Functions & Modules):**
-
-- [ ] Proper module structure (separate files for data generation, analysis, visualization)
-- [ ] First-class functions used where appropriate (e.g., passing statistical functions as arguments)
-- [ ] Comprehensions and generator expressions for data processing (no unnecessary lists)
-
-**From Day 2 (Memory Model):**
-
-- [ ] Conscious use of views vs copies (document where you use `.copy()` and why)
-- [ ] No accidental memory bloat (verify with memory profiler)
-
-**From Day 3 (Broadcasting & Vectorization):**
-
-- [ ] All statistical computations vectorized (no Python loops over samples)
-- [ ] Correct axis parameter usage in NumPy operations
-- [ ] Broadcasting used for efficiency where applicable
-
-**From Day 5 (Testable Code):**
-
-- [ ] Pure functions throughout (analysis functions have no side effects)
-- [ ] Dependency injection for RNG (all randomness takes `rng` parameter)
-- [ ] pytest test suite with ≥80% coverage
-- [ ] Hypothesis property tests for ≥2 invariants
-- [ ] Type hints on all functions (passes `mypy --strict`)
-- [ ] Docstrings in NumPy format for all public functions
-
-**From Day 6 (Reproducibility):**
-
-- [ ] Explicit RNG throughout: `rng = np.random.default_rng(seed)`
-- [ ] Bitwise-identical results across runs with same seed
-- [ ] RNG spawning if using parallel processing (no global state)
-- [ ] Environment captured (document NumPy/SciPy versions in requirements.txt)
-
-**From Day 7 (Debugging & Profiling):**
-
-- [ ] Profiled with cProfile: no function >30% of runtime
-- [ ] Profiled with memory_profiler: no unbounded memory growth
-- [ ] Profile results documented in design document
-- [ ] At least one optimization based on profiling results (document before/after)
-
-**Passing Threshold:** Complete ≥90% of checklist items AND score ≥1.5/2.0 on rubric below.
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension               | 0                                     | 1                                     | 2                                                    |
-
-| ----------------------- | ------------------------------------- | ------------------------------------- | ---------------------------------------------------- |
-
-| Statistical Correctness | Wrong statistical methods             | Methods correct but edge cases fail   | All methods correct, handles edge cases              |
-
-| Architecture            | Monolithic, untestable                | Some separation but tight coupling    | Clean modules, dependency injection, pure functions  |
-
-| Reproducibility         | Results vary between runs             | Reproducible with manual seed setting | Bitwise identical results, explicit RNG throughout   |
-
-| Testing                 | No tests or tests don't pass          | Basic unit tests only                 | Unit + property + integration tests, all passing     |
-
-| Performance             | Profile shows major bottleneck (>50%) | No function >30% but memory grows     | Balanced profile, constant memory                    |
-
-| Code Quality            | flake8/mypy errors                    | Passes linting with warnings          | Passes flake8 + mypy --strict, clean code            |
-
-| Documentation           | No design document                    | Document <500 words or superficial    | 500+ words explaining design decisions and tradeoffs |
-
-
-</details>
+**Validation Requirement**: Your implementation must produce results that match reference implementations (NumPy/SciPy functions) within numerical tolerance of **±1e-6** (relative error) for all test cases. Include validation tests in your test suite.
 
 
 **Requirements**:
 
-1. **Data generation module**: Generate synthetic A/B test data with configurable effect sizes, sample sizes, and noise levels. Must use explicit RNG for reproducibility.
-2. **Analysis module**: Implement both frequentist (two-sample t-test, permutation test) and Bayesian (conjugate Beta-Binomial for conversion rates) analyses. All functions must be pure (no side effects) and accept RNG instances where randomness is needed.
-3. **Visualization module**: Generate publication-quality plots of posterior distributions, credible intervals, and decision boundaries.
-4. **CLI interface**: A command-line tool that accepts parameters, runs the analysis, and outputs results to JSON and PNG files.
-5. **Test suite**: Pytest tests covering: (a) unit tests for each statistical function with known inputs/outputs, (b) property-based tests for invariants, (c) integration tests for the full pipeline.
-6. **Reproducibility**: Running the pipeline twice with the same seed must produce bitwise-identical results.
+1. **Functions and Modules** (Day 1)
+    - Create a reusable module with type-hinted functions
+    - Use context managers for file I/O
+2. **Memory Management** (Day 2)
+    - Correctly handle NumPy views and copies
+    - Avoid unintended mutations
+3. **Vectorization** (Day 3)
+    - Vectorize all computations (no Python loops over data)
+    - Use broadcasting for matrix operations
+4. **Data Processing** (Day 4)
+    - Use Pandas with `.loc` (no chained indexing)
+    - Implement method chaining
+5. **Testing** (Day 5)
+    - Write unit tests with pytest
+    - Achieve >80% code coverage
+6. **Reproducibility** (Day 6)
+    - Accept `rng` parameter for all random operations
+    - Document all random seeds
+7. **Debugging & Profiling** (Day 7)
+    - Use logging instead of print statements
+    - Profile code and optimize bottlenecks
 
-**Success Criteria**:
-
-- `cProfile` shows no single function consuming more than 30% of runtime for the default workload
-- Memory usage does not grow unboundedly for increasing sample sizes
-- Code passes `flake8` and `mypy --strict` with no errors
-- A written document (500+ words) explains design decisions: why this module structure, why these abstractions, what tradeoffs were made
-<details>
-<summary>Oral Defense Questions</summary>
-1. Walk me through your decision to separate frequentist and Bayesian analysis into different modules. What coupling exists between them?
-2. How did you ensure bitwise reproducibility across the entire pipeline? Show me the code paths that consume randomness.
-3. Your profiling shows function X takes 25% of runtime. What would you do if it needed to be faster? What are the tradeoffs?
-4. Explain your choice of prior for the Bayesian analysis. How would results change with a different prior?
-5. If I wanted to extend this to handle multiple variants (A/B/C/D testing), what would need to change? Would your current abstractions help or hinder?
-6. How did you decide which invariants to test with property-based testing? Give me an example of a property test that caught a real bug.
-
-</details>
+**Assessment Structure**: The checklist below ensures you've applied all Week 1 concepts. After verifying all checklist items, score your work using the rubric that follows. **You must score ≥1.5/2.0 on EACH rubric dimension to claim proficiency.** The checklist is for self-assessment of completeness; the rubric is the proficiency gate.
 
 
-## 📄 Week 2: C++ (Days 8-14)
+### Implementation Checklist
+
+- [ ] **Module structure**: Code organized into importable module with `__init__.py`
+- [ ] **Type hints**: All functions have type annotations
+- [ ] **Docstrings**: All functions have numpy-style docstrings
+- [ ] **Context managers**: File I/O uses `with` statements
+- [ ] **No mutations**: Functions don't unexpectedly modify inputs
+- [ ] **Vectorized**: No Python loops over data arrays
+- [ ] **Broadcasting**: Uses NumPy broadcasting correctly
+- [ ] **Pandas best practices**: Uses `.loc`, method chaining, no `SettingWithCopyWarning`
+- [ ] **Unit tests**: Tests cover main functions with pytest
+- [ ] **Reproducible**: Random operations use `rng` parameter
+- [ ] **Logging**: Uses logging module (not print)
+- [ ] **Profiled**: Code has been profiled and optimized
+
+### Proficiency Rubric
+
+
+| Dimension          | 0 (Not Met)                                                              | 1 (Partial)                                                 | 2 (Proficient)                                                        |
+
+| ------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+
+| **Code Quality**   | Multiple style violations, no type hints or docstrings                   | Some type hints/docstrings, inconsistent style              | Comprehensive type hints, docstrings, PEP 8 compliant                 |
+
+| **Functionality**  | Core functionality missing or broken                                     | Basic functionality works with minor bugs                   | All features work correctly, handles edge cases                       |
+
+| **Best Practices** | Ignores Week 1 patterns (mutations, loops over arrays, print statements) | Applies some patterns (vectorization OR testing OR logging) | Consistently applies patterns (vectorization AND testing AND logging) |
+
+| **Testing**        | No tests or <50% coverage                                                | Some tests, 50-80% coverage                                 | Comprehensive tests, >80% coverage, uses fixtures                     |
+
+
+**Scoring**: You must score ≥1.5/2.0 on EACH dimension. Scoring 2.0 on some and 0 on others does NOT constitute proficiency.
+
+
+### Starter Template
+
+
+```python
+"""stats_pipeline.py - Statistical Analysis Pipeline
+
+This module provides a complete statistical analysis pipeline
+integrating all Week 1 Python concepts.
+
+Example:
+    >>> from stats_pipeline import StatsPipeline
+    >>> import numpy as np
+    >>> rng = np.random.default_rng(42)
+    >>> pipeline = StatsPipeline(rng=rng)
+    >>> result = pipeline.analyze('data.csv')
+"""
+import logging
+import numpy as np
+import pandas as pd
+from pathlib import Path
+from typing import Optional, Union
+from numpy.typing import NDArray
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class StatsPipeline:
+    """Statistical analysis pipeline with reproducible random operations.
+    
+    Parameters
+    ----------
+    rng : np.random.Generator, optional
+        Random number generator for reproducibility.
+        If None, creates new Generator with random seed.
+    
+    Attributes
+    ----------
+    rng : np.random.Generator
+        The random number generator used for all random operations.
+    """
+    
+    def __init__(self, rng: Optional[np.random.Generator] = None):
+        self.rng = rng if rng is not None else np.random.default_rng()
+        logger.info("StatsPipeline initialized")
+    
+    def load_data(self, filepath: Union[str, Path]) -> pd.DataFrame:
+        """Load data from CSV file.
+        
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to the CSV file.
+            
+        Returns
+        -------
+        pd.DataFrame
+            Loaded data.
+        """
+        logger.debug(f"Loading data from {filepath}")
+        with open(filepath, 'r') as f:
+            df = pd.read_csv(f)
+        logger.info(f"Loaded {len(df)} rows")
+        return df
+    
+    def compute_statistics(self, data: NDArray[np.float64]) -> dict:
+        """Compute summary statistics using vectorized operations.
+        
+        Parameters
+        ----------
+        data : ndarray
+            Input data array (not modified).
+            
+        Returns
+        -------
+        dict
+            Dictionary containing mean, std, median, and percentiles.
+        """
+        # Work on a copy to avoid mutation
+        arr = np.asarray(data).copy()
+        
+        # Vectorized computations (no loops)
+        stats = {
+            'mean': np.mean(arr),
+            'std': np.std(arr, ddof=1),
+            'median': np.median(arr),
+            'p25': np.percentile(arr, 25),
+            'p75': np.percentile(arr, 75),
+        }
+        
+        logger.debug(f"Computed statistics: {stats}")
+        return stats
+    
+    def bootstrap_ci(
+        self,
+        data: NDArray[np.float64],
+        statistic: str = 'mean',
+        n_bootstrap: int = 10000,
+        confidence: float = 0.95
+    ) -> tuple[float, float]:
+        """Compute bootstrap confidence interval.
+        
+        Parameters
+        ----------
+        data : ndarray
+            Input data array.
+        statistic : str
+            Statistic to compute ('mean' or 'median').
+        n_bootstrap : int
+            Number of bootstrap samples.
+        confidence : float
+            Confidence level (e.g., 0.95 for 95% CI).
+            
+        Returns
+        -------
+        tuple
+            (lower_bound, upper_bound) of confidence interval.
+        """
+        arr = np.asarray(data)
+        n = len(arr)
+        
+        # Vectorized bootstrap: generate all indices at once
+        indices = self.rng.integers(0, n, size=(n_bootstrap, n))
+        samples = arr[indices]  # Shape: (n_bootstrap, n)
+        
+        # Compute statistic for all samples at once (vectorized)
+        if statistic == 'mean':
+            bootstrap_stats = np.mean(samples, axis=1)
+        elif statistic == 'median':
+            bootstrap_stats = np.median(samples, axis=1)
+        else:
+            raise ValueError(f"Unknown statistic: {statistic}")
+        
+        # Percentile CI
+        alpha = 1 - confidence
+        lower = np.percentile(bootstrap_stats, 100 * alpha / 2)
+        upper = np.percentile(bootstrap_stats, 100 * (1 - alpha / 2))
+        
+        logger.info(f"Bootstrap {confidence*100}% CI for {statistic}: ({lower:.4f}, {upper:.4f})")
+        return (lower, upper)
+
+
+# Tests (run with: pytest stats_pipeline.py -v)
+def test_compute_statistics():
+    """Test that statistics match NumPy reference."""
+    rng = np.random.default_rng(42)
+    pipeline = StatsPipeline(rng=rng)
+    
+    data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    stats = pipeline.compute_statistics(data)
+    
+    assert np.isclose(stats['mean'], np.mean(data), rtol=1e-6)
+    assert np.isclose(stats['std'], np.std(data, ddof=1), rtol=1e-6)
+    assert np.isclose(stats['median'], np.median(data), rtol=1e-6)
+
+
+def test_bootstrap_reproducibility():
+    """Test that bootstrap is reproducible with same RNG."""
+    data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    
+    rng1 = np.random.default_rng(42)
+    pipeline1 = StatsPipeline(rng=rng1)
+    ci1 = pipeline1.bootstrap_ci(data, n_bootstrap=1000)
+    
+    rng2 = np.random.default_rng(42)
+    pipeline2 = StatsPipeline(rng=rng2)
+    ci2 = pipeline2.bootstrap_ci(data, n_bootstrap=1000)
+    
+    assert ci1 == ci2, "Bootstrap should be reproducible with same seed"
+
+
+def test_no_mutation():
+    """Test that input data is not modified."""
+    rng = np.random.default_rng(42)
+    pipeline = StatsPipeline(rng=rng)
+    
+    data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    original = data.copy()
+    
+    pipeline.compute_statistics(data)
+    pipeline.bootstrap_ci(data)
+    
+    assert np.array_equal(data, original), "Input data should not be modified"
+
+```
+
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                      | Why It's Bad                     | Fix                                      |
+
+| ---------------------------- | -------------------------------- | ---------------------------------------- |
+
+| Using print() for debugging  | Output persists in production    | Use logging with appropriate levels      |
+
+| Profiling without hypothesis | Waste time optimizing wrong code | Profile first, then optimize bottlenecks |
+
+| Over-optimization            | Premature optimization is evil   | Optimize only proven bottlenecks         |
+
+| Not removing debug code      | `pdb.set_trace()` in production  | Use breakpoint() with env variable       |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+After completing Day 7, verify you can:
+
+- [ ] Use `pdb` or IDE debugger to step through code
+- [ ] Configure and use Python's logging module
+- [ ] Profile code with cProfile and identify bottlenecks
+- [ ] Optimize slow code using appropriate strategies
+- [ ] **Complete the Week 1 Python capstone with proficiency score ≥1.5/2.0 on each dimension**
+
+---
+
+
+## Resources
+
+- [Python Debugging with pdb](%7B%7B76%7D%7D)
+- [Logging HOWTO](%7B%7B77%7D%7D)
+- [Python Profilers](%7B%7B78%7D%7D)
+- [Optimization Tips](%7B%7B79%7D%7D) in production</td>
+
+<td>Use breakpoint() with env variable</td>
+
+
+</tr>
+
+
+</table>
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+After completing Day 7, verify you can:
+
+- [ ] Use `pdb` or IDE debugger to step through code
+- [ ] Configure and use Python's logging module
+- [ ] Profile code with cProfile and identify bottlenecks
+- [ ] Optimize slow code using appropriate strategies
+- [ ] **Complete the Week 1 Python capstone with proficiency score ≥1.5/2.0 on each dimension**
+
+---
+
+
+## Resources
+
+- [Python Debugging with pdb](76)
+- [Logging HOWTO](77)
+- [Python Profilers](78)
+- [Optimization Tips](79)
+
+---
+
+
+## Learning Path
+
+
+**Sequential progression**: Each day builds on concepts from previous days. Complete them in order.
+
+
+**Time commitment**: Plan 3-4 hours per day (includes reading, exercises, and practice).
+
+
+**Proficiency gate**: Day 7 includes a capstone project. You must score ≥1.5/2.0 on each rubric dimension to claim Week 1 proficiency.
+
+
+---
+
+
+## Key Themes
+
+
+### For R Users
+
+- **Memory semantics**: Python uses references, not copy-on-write
+- **Vectorization**: NumPy requires explicit broadcasting rules
+- **Pandas quirks**: Avoid chained indexing and `SettingWithCopyWarning`
+
+### For MATLAB Users
+
+- **Module system**: Code organization differs from MATLAB's path-based approach
+- **Zero-indexing**: Arrays start at 0, not 1
+- **Random state**: Must explicitly manage `rng` objects
+
+### For All Backgrounds
+
+- **Type hints**: Modern Python uses optional type annotations
+- **Testing culture**: Unit tests are expected, not optional
+- **Reproducibility**: Statistical code must be deterministic
+
+---
+
+
+## Prerequisites
+
+
+Before starting Week 1, ensure you have:
+
+- [ ] Python 3.9+ installed
+- [ ] NumPy, Pandas, Pytest installed (`pip install numpy pandas pytest`)
+- [ ] Basic Python syntax familiarity (variables, loops, conditionals)
+- [ ] Experience with statistical computing in R, MATLAB, or similar
+
+---
+
+
+## Success Criteria
+
+
+By the end of Week 1, you should be able to:
+
+- Write type-hinted, well-documented Python functions
+- Explain when NumPy operations create views vs. copies
+- Vectorize computations without Python loops
+- Use Pandas correctly (no chained indexing)
+- Write unit tests with pytest
+- Manage random state for reproducible simulations
+- Debug and profile code to identify bottlenecks
+- **Complete the capstone project with proficiency scores ≥1.5/2.0**
+
+---
+
+
+## Daily Self-Assessment
+
+
+Each day includes a self-assessment checklist. Before moving to the next day, verify you can complete all items. If not, review the exercises and resources.
+
+
+---
+
+
+## Getting Help
+
+
+If you encounter difficulties:
+
+1. **Re-read the relevant section**: Concepts build on each other
+2. **Work through exercises**: Hands-on practice is essential
+3. **Check resources**: Each day links to official documentation
+4. **Review error messages**: Python errors are usually informative
+
+---
+
+
+## Next Steps
+
+
+Ready to begin? Start with <page url="[https://www.notion.so/ff5ab5e0e9e747e5b66b030e825a109d">Day](https://www.notion.so/ff5ab5e0e9e747e5b66b030e825a109d%22%3EDay) 1: Functions, Modules, and Idiomatic Python</page>.
+
+
+## Week 2: C++ (Days 8-14)
+
+## Overview
+
+
+Week 2 focuses on **C++ proficiency** for statisticians and data scientists who need high-performance computing. By the end of this week, you will understand C++'s memory model, write efficient code using the STL, and integrate C++ with Python.
+
+
+---
+
+
+## Week Structure
+
+
+This week is organized into 7 daily modules, each covering a critical C++ concept:
+
 
 ## Day 8: References, Pointers, and Ownership
 
-
-### Concepts
-
-
-**Pointers vs References: Two ways to refer to objects**
+## Overview
 
 
-Both pointers and references allow you to refer to an object without copying it. Understanding when to use each is fundamental to C++.
+**Focus**: Understand C++'s memory model, including pointers, references, and ownership semantics. Learn when to use stack vs. heap allocation and how to reason about resource lifetime.
+
+
+**Why it matters**: Memory management is C++'s superpower and greatest pitfall. Understanding references and pointers is fundamental to writing correct C++ code.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 8, you will:
+
+- Distinguish between references and pointers
+- Use pass-by-reference correctly for function parameters
+- Understand stack vs. heap allocation
+- Reason about object lifetime and ownership
+- Avoid dangling pointers and references
+- Use smart pointers for automatic memory management
+
+---
+
+
+## Core Concepts
+
+
+### 1. Pointers vs References
+
+
+**Both allow you to refer to objects without copying, but with different semantics.**
 
 
 **References** are aliases for existing objects:
@@ -6746,7 +4632,7 @@ std::cout << x;   // Prints 20
 - **Use references** for function parameters (avoiding copies) and return values when the object definitely exists
 - **Use pointers** when you need to represent "optional" (can be null), rebinding, or dynamic allocation
 
-**Pass by value vs reference vs pointer**:
+### 2. Pass by Value vs Reference vs Pointer
 
 
 ```c++
@@ -6778,7 +4664,7 @@ void process_ptr(std::vector<int>* v) {
 **Golden rule**: For function parameters, prefer `const T&` for input, `T&` for output/inout, and `T*` only when null is valid.
 
 
-**Ownership: Who is responsible for cleanup?**
+### 3. Ownership: Who is Responsible for Cleanup?
 
 
 Ownership determines who is responsible for freeing memory. C++ requires explicit reasoning about ownership to avoid leaks and use-after-free bugs.
@@ -6858,7 +4744,7 @@ std::cout << ptr2.use_count();  // 1
 **Cost**: Reference counting has overhead (atomic operations for thread safety)
 
 
-**Dangling pointers and references**
+### 4. Dangling Pointers and References
 
 
 A **dangling pointer** refers to memory that has been freed:
@@ -6917,142 +4803,93 @@ std::string get_name() {
 - Never return references to local variables
 - Use linters (clang-tidy warns about these)
 
-**Lifetime rules**:
-
-1. Stack objects live until the end of their scope
-2. Heap objects live until explicitly deleted (or smart pointer cleaned up)
-3. References/pointers must not outlive the object they refer to
-
-**Visual mental model**:
+### 5. Stack vs Heap Allocation
 
 
-```javascript
-Stack:                    Heap:
-┌─────────────┐          ┌──────────┐
-│ int x = 10  │          │  ???     │ ← Orphaned memory (leak)
-├─────────────┤          ├──────────┤
-│ int& r = x  │────┐     │  42      │ ← ptr points here
-├─────────────┤    │     └──────────┘
-│ int* ptr ────────┼──────────────┘
-└─────────────┘    │
-                   └──→ r is an alias for x
-
-```
-
-
-**The Rule of Zero**: If you use smart pointers and containers, you rarely need to write `delete` explicitly. Aim for:
-
-- No raw `new`/`delete` in user code
-- Use `std::vector`, `std::string`, smart pointers
-- Compiler-generated destructors "just work"
-
-**Modern C++ ownership guidelines**:
+**Stack allocation**:
 
 
 ```c++
-// RAW POINTERS (old C++ style) - DON'T DO THIS
-int* data = new int[1000];
-// ... use data ...
-delete[] data;  // Easy to forget!
+int x = 10;  // Allocated on stack
+double arr[100];  // 800 bytes on stack
 
-// SMART POINTERS (modern C++) - PREFER THIS
+```
+
+- **Fast**: Just pointer arithmetic
+- **Limited size**: Typically 1-8 MB total
+- **Automatic cleanup**: Destroyed when scope ends
+- **Use for**: Small objects with known lifetime
+
+**Heap allocation**:
+
+
+```c++
+int* ptr = new int(10);  // Allocated on heap
+double* arr = new double[100];  // Heap array
+
+delete ptr;      // Manual cleanup required
+delete[] arr;    // Array delete
+
+```
+
+- **Slower**: Allocator overhead
+- **Large**: Limited only by system RAM
+- **Manual cleanup**: Must call delete
+- **Use for**: Large objects, dynamic sizes, unclear lifetime
+
+**Modern C++ avoids raw** **`new`****/****`delete`**. Use smart pointers or containers:
+
+
+```c++
+// GOOD: Smart pointer handles cleanup
 auto data = std::make_unique<std::vector<int>>(1000);
-// ... use data ...
-// Automatic cleanup, no delete needed!
 
-// OR EVEN BETTER: Just use the container directly
+// EVEN BETTER: Container handles everything
 std::vector<int> data(1000);
-// ... use data ...
-// Automatic cleanup
 
 ```
 
 
-**Passing smart pointers to functions**:
+### 6. Build Systems and Debugging
 
 
-```c++
-// GOOD: Pass by reference if not transferring ownership
-void process(const std::vector<int>& data) { /* read-only */ }
-void modify(std::vector<int>& data) { /* can modify */ }
+**Compilation and Linking**:
 
-// BAD: Copying shared_ptr when you just need to read
-void process_bad(std::shared_ptr<std::vector<int>> data) {
-    // Copies the shared_ptr, increments ref count unnecessarily
-}
+- Compilation translates source to object files (`.o`)
+- Linking combines object files into an executable
+- Common flags: `-O2` (optimization), `-g` (debug symbols), `-Wall -Wextra` (warnings), `-std=c++17` (standard version)
 
-// GOOD: Pass raw pointer or reference when not transferring ownership
-void process_good(const std::vector<int>* data) {
-    if (!data) return;
-    // Use data
-}
+**Debuggers**: `gdb` and `lldb` enable breakpoints, stepping, and variable inspection.
 
-// Transfer unique ownership: take by value
-void take_ownership(std::unique_ptr<Data> data) {
-    // Caller must std::move(data)
-}
+
+**Sanitizers** catch memory errors at runtime:
+
+
+```bash
+g++ -fsanitize=address,undefined -g -o program program.cpp
+./program
 
 ```
 
 
-The stack is fast (pointer arithmetic) but limited in size (typically 1-8 MB). The heap is slower (allocator overhead) but large. Choose based on object lifetime and size.
+**Build Systems**:
 
+- **Makefile**: Traditional Unix build tool, simple for small projects
+- **CMake**: Modern standard, generates platform-specific build files
 
-Modern C++ avoids raw `new`/`delete`. Use smart pointers (`std::unique_ptr`, `std::shared_ptr`) or containers that manage memory internally.
-
-
-Compilation translates source to object files (`.o`). Linking combines object files into an executable. Common flags: `-O2` (optimization), `-g` (debug symbols), `-Wall -Wextra` (warnings), `-std=c++17` (standard version).
-
-
-Debuggers: `gdb` and `lldb` enable breakpoints, stepping, and variable inspection. Sanitizers (`-fsanitize=address,undefined`) catch memory errors at runtime.
-
-
-### Build Systems: Makefile vs CMake
-
-
-**Makefile** is the traditional Unix build tool. Simple for small projects but becomes unwieldy for complex builds. Example:
-
-
-```makefile
-CXX = g++
-CXXFLAGS = -std=c++17 -O2 -Wall -Wextra
-
-main: main.o utils.o
-	$(CXX) $(CXXFLAGS) -o main main.o utils.o
-
-main.o: main.cpp utils.h
-	$(CXX) $(CXXFLAGS) -c main.cpp
-
-utils.o: utils.cpp utils.h
-	$(CXX) $(CXXFLAGS) -c utils.cpp
-
-clean:
-	rm -f *.o main
-
-```
-
-
-**CMake** is the modern standard for C++ projects. It generates platform-specific build files (Makefiles, Ninja, Visual Studio projects). CMake is declarative and handles dependencies, compiler detection, and cross-platform builds automatically.
-
-
-Basic CMakeLists.txt:
+**Basic CMakeLists.txt**:
 
 
 ```javascript
 cmake_minimum_required(VERSION 3.16)
 project(MyProject VERSION 1.0 LANGUAGES CXX)
 
-# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Compiler warnings
 add_compile_options(-Wall -Wextra -Wpedantic)
-
-# Create executable from sources
 add_executable(main main.cpp utils.cpp)
 
-# Optional: Enable sanitizers for debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(main PRIVATE -fsanitize=address,undefined)
     target_link_options(main PRIVATE -fsanitize=address,undefined)
@@ -7061,926 +4898,101 @@ endif()
 ```
 
 
-**CMake workflow:**
+---
 
 
-```bash
+## Hands-On Exercises
 
-# Create build directory (out-of-source build)
-mkdir build && cd build
 
-# Configure (generates Makefiles)
-cmake -DCMAKE_BUILD_TYPE=Release ..
-
-# Build
-cmake --build .
-
-# Or use make directly
-make -j$(nproc)
-
-```
-
-
-**When to use which:**
-
-- Makefile: Tiny projects, learning compilation, quick scripts
-- CMake: Any project with multiple files, dependencies, or collaborators
-
-**Foundational 1**: Write a program that allocates an array of 1,000,000 doubles on the stack. Observe the stack overflow. Then allocate the same array on the heap using `new[]`. Verify it succeeds. Remember to `delete[]`.
-
-
-**Expected Time (Proficient): 10–15 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                             | 1                                      | 2                                                     |
-
-| ----------------- | ----------------------------- | -------------------------------------- | ----------------------------------------------------- |
-
-| Correctness       | Neither version compiles/runs | Only heap version works, no stack demo | Both versions: stack overflow observed, heap succeeds |
-
-| Memory Management | Missing delete[] (leak)       | delete[] present but wrong form        | Correct delete[] for array, no leaks                  |
-
-| Understanding     | Cannot explain difference     | Vague explanation                      | Explains stack size limit vs heap, allocation speed   |
-
-| Code Quality      | Does not compile              | Compiles with warnings                 | Clean code, no warnings with -Wall                    |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Stack overflow demonstration**:
-
-
-```c++
-#include <iostream>
-
-int main() {
-    // This will likely crash - stack overflow
-    // double arr[1000000];  // 8MB on stack, typical limit is 1-8MB
-    
-    // Heap allocation succeeds
-    double* arr = new double[1000000];
-    std::cout << "Allocated " << sizeof(double) * 1000000 / 1e6 << " MB on heap" << std::endl;
-    
-    // Use the array
-    for (int i = 0; i < 1000000; i++) {
-        arr[i] = i * 0.1;
-    }
-    
-    // MUST free heap memory
-    delete[] arr;
-    
-    return 0;
-}
-
-```
-
-
-**Compile and run**:
-
-
-```bash
-g++ -o stack_heap stack_heap.cpp
-./stack_heap  # Works for heap version
-
-# To see stack overflow, uncomment the stack array:
-
-# Segmentation fault (core dumped)
-
-```
-
-
-**Key differences**:
-
-- Stack: automatic cleanup, limited size (~1-8MB), very fast
-- Heap: manual cleanup required, virtually unlimited, slower allocation
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Stack overflow version**:
-
-
-```c++
-#include <iostream>
-
-int main() {
-    // Stack allocation - will overflow!
-    // 1M doubles = 8MB, typical stack is 1-8MB
-    double arr[1000000];  // Segmentation fault on most systems
-    arr[0] = 1.0;
-    std::cout << arr[0] << std::endl;
-    return 0;
-}
-
-```
-
-
-**Compile and run**: `g++ -o stack_test stack.cpp && ./stack_test`
-
-
-**Result**: Segmentation fault (stack overflow)
-
-
-**Heap allocation version (correct)**:
-
-
-```c++
-#include <iostream>
-
-int main() {
-    // Heap allocation - succeeds
-    double* arr = new double[1000000];  // ~8MB on heap
-    arr[0] = 1.0;
-    arr[999999] = 2.0;
-    std::cout << arr[0] << " " << arr[999999] << std::endl;
-    
-    delete[] arr;  // CRITICAL: free the memory
-    arr = nullptr; // Good practice: prevent dangling pointer
-    return 0;
-}
-
-```
-
-
-**Key points**:
-
-- Stack: ~1-8MB typical limit, automatic cleanup
-- Heap: limited only by system RAM, manual cleanup required
-- `delete[]` for arrays, `delete` for single objects
-
-</details>
-
-
-**Foundational 2**: Compile a simple program with `-g` and no optimization. Use `gdb` to set a breakpoint, step through execution, and print variable values. Document the commands used.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension     | 0                               | 1                              | 2                                             |
-
-| ------------- | ------------------------------- | ------------------------------ | --------------------------------------------- |
-
-| Compilation   | Cannot compile with debug flags | Uses -g but wrong optimization | Correct: -g -O0 for full debug info           |
-
-| GDB Usage     | Cannot start gdb session        | Uses break and run only        | Uses break, run, next, step, print, continue  |
-
-| Debugging     | Cannot inspect variables        | Prints simple variables        | Inspects containers, local vars, expressions  |
-
-| Documentation | No commands documented          | Some commands listed           | Complete session transcript with explanations |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Simple program** (debug_example.cpp):
-
-
-```c++
-#include <iostream>
-#include <vector>
-
-int sum_vector(const std::vector<int>& v) {
-    int total = 0;
-    for (size_t i = 0; i < v.size(); i++) {
-        total += v[i];
-    }
-    return total;
-}
-
-int main() {
-    std::vector<int> nums = {1, 2, 3, 4, 5};
-    int result = sum_vector(nums);
-    std::cout << "Sum: " << result << std::endl;
-    return 0;
-}
-
-```
-
-
-**Compile with debug symbols**:
-
-
-```bash
-g++ -g -O0 -o debug_example debug_example.cpp
-
-```
-
-
-**GDB session**:
-
-
-```bash
-gdb ./debug_example
-
-```
-
-
-**Commands used**:
-
-
-```javascript
-(gdb) break sum_vector           # Set breakpoint at function
-(gdb) run                        # Start program
-(gdb) print v                    # Print vector (shows size and data)
-(gdb) print v.size()             # Print size: 5
-(gdb) print total                # Print current total: 0
-(gdb) next                       # Step over one line
-(gdb) print i                    # Print loop counter
-(gdb) print v[i]                 # Print current element
-(gdb) continue                   # Run to next breakpoint or end
-(gdb) quit                       # Exit gdb
-
-```
-
-
-**Tip**: Use `layout src` for split view with source code.
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Program** (debug_example.cpp):
-
-
-```c++
-#include <iostream>
-#include <vector>
-
-int compute_sum(const std::vector<int>& v) {
-    int sum = 0;
-    for (int x : v) {
-        sum += x;
-    }
-    return sum;
-}
-
-int main() {
-    std::vector<int> data = {1, 2, 3, 4, 5};
-    int result = compute_sum(data);
-    std::cout << "Sum: " << result << std::endl;
-    return 0;
-}
-
-```
-
-
-**Compile**: `g++ -g -O0 -o debug_example debug_example.cpp`
-
-
-**GDB session**:
-
-
-```bash
-$ gdb ./debug_example
-(gdb) break main              # Set breakpoint at main
-(gdb) break compute_sum       # Set breakpoint at function
-(gdb) run                     # Start program
-(gdb) next                    # Step to next line (n for short)
-(gdb) print data              # Print vector (p for short)
-(gdb) print data.size()       # Print size
-(gdb) continue                # Continue to next breakpoint (c)
-(gdb) print sum               # Print local variable
-(gdb) print x                 # Print loop variable
-(gdb) step                    # Step into function (s)
-(gdb) backtrace               # Show call stack (bt)
-(gdb) info locals             # Show all local variables
-(gdb) quit                    # Exit gdb (q)
-
-```
-
-
-**Key GDB commands**: break, run, next/step, print, continue, backtrace, quit
-
-
-</details>
-
-
-**Proficiency 1**: Write a program with an intentional memory leak (allocate without freeing). Compile with `-fsanitize=address` and observe the error report. Fix the leak. Then introduce a use-after-free bug and observe that report.
-
-
-**Expected Time (Proficient): 15–22 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                             | 1                                  | 2                                                 |
-
-| -------------- | ----------------------------- | ---------------------------------- | ------------------------------------------------- |
-
-| ASan Setup     | Cannot compile with sanitizer | Compiles but output not understood | Compiles correctly, interprets ASan output        |
-
-| Leak Detection | Cannot create detectable leak | Leak detected but wrong fix        | Leak created, detected, correctly fixed           |
-
-| UAF Detection  | Cannot create UAF bug         | UAF created but not explained      | UAF created, ASan report interpreted correctly    |
-
-| Understanding  | Cannot explain error reports  | Partial explanation                | Explains stack trace, allocation site, error type |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Memory leak program** (leak.cpp):
-
-
-```c++
-#include <iostream>
-
-int main() {
-    int* arr = new int[1000];
-    arr[0] = 42;
-    std::cout << arr[0] << std::endl;
-    // BUG: forgot delete[] arr;
-    return 0;
-}
-
-```
-
-
-**Compile with AddressSanitizer**:
-
-
-```bash
-g++ -fsanitize=address -g -o leak leak.cpp
-./leak
-
-```
-
-
-**ASan output**:
-
-
-```javascript
-=================================================================
-==12345==ERROR: LeakSanitizer: detected memory leaks
-Direct leak of 4000 byte(s) in 1 object(s) allocated from:
-    #0 operator new[](unsigned long)
-    #1 main leak.cpp:4
-SUMMARY: AddressSanitizer: 4000 byte(s) leaked in 1 allocation(s).
-
-```
-
-
-**Use-after-free program**:
-
-
-```c++
-int main() {
-    int* arr = new int[100];
-    delete[] arr;
-    arr[0] = 42;  // BUG: use after free!
-    return 0;
-}
-
-```
-
-
-**ASan output**:
-
-
-```javascript
-=================================================================
-==12345==ERROR: AddressSanitizer: heap-use-after-free on address 0x...
-WRITE of size 4 at 0x... thread T0
-    #0 main uaf.cpp:4
-0x... is located 0 bytes inside of 400-byte region freed by thread T0 here:
-    #0 operator delete[](void*)
-    #1 main uaf.cpp:3
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Memory leak**:
-
-
-```c++
-// leak.cpp
-int main() {
-    int* p = new int[100];  // Allocated
-    p[0] = 42;
-    // No delete[] - LEAK!
-    return 0;
-}
-
-```
-
-
-**Compile and run**:
-
-
-```bash
-g++ -fsanitize=address -g -o leak leak.cpp
-./leak
-
-```
-
-
-**ASan output**:
-
-
-```javascript
-==12345==ERROR: LeakSanitizer: detected memory leaks
-Direct leak of 400 byte(s) in 1 object(s)
-    #0 in operator new[](unsigned long)
-    #1 in main leak.cpp:3
-
-```
-
-
-**Use-after-free**:
-
-
-```c++
-// uaf.cpp
-int main() {
-    int* p = new int[100];
-    p[0] = 42;
-    delete[] p;
-    int x = p[0];  // USE-AFTER-FREE!
-    return x;
-}
-
-```
-
-
-**ASan output**:
-
-
-```javascript
-==12346==ERROR: AddressSanitizer: heap-use-after-free
-READ of size 4 at 0x... thread T0
-    #0 in main uaf.cpp:5
-0x... is located 0 bytes inside of 400-byte region freed by
-    #0 in operator delete[](void*)
-    #1 in main uaf.cpp:4
-
-```
-
-
-**Fix**: Set pointer to nullptr after delete: `p = nullptr;`
-
-
-</details>
-
-
-**Proficiency 2**: Create a multi-file project with a header (`.h`), implementation (`.cpp`), and main file. Write a `Makefile` that compiles incrementally (only recompiles changed files). Verify incremental compilation works by modifying one file and observing which files are recompiled.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                            | 1                                | 2                                               |
-
-| ----------------- | ---------------------------- | -------------------------------- | ----------------------------------------------- |
-
-| Project Structure | Files don't compile together | Compiles but structure unclear   | Clean separation: header, impl, main            |
-
-| Header Guards     | Missing or incorrect         | Present but inconsistent         | Correct #ifndef/#define/#endif pattern          |
-
-| Makefile          | Does not work                | Works but recompiles everything  | Correct dependencies, incremental compilation   |
-
-| Verification      | No verification              | Claims incremental without proof | Demonstrates touch + make shows partial rebuild |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Project structure**:
-
-
-```javascript
-project/
-├── include/
-│   └── stats.h
-├── src/
-│   └── stats.cpp
-├── main.cpp
-└── Makefile
-
-```
-
-
-**stats.h**:
-
-
-```c++
-#ifndef STATS_H
-#define STATS_H
-#include <vector>
-double mean(const std::vector<double>& v);
-double variance(const std::vector<double>& v);
-#endif
-
-```
-
-
-**stats.cpp**:
-
-
-```c++
-#include "stats.h"
-#include <numeric>
-double mean(const std::vector<double>& v) {
-    return std::accumulate(v.begin(), v.end(), 0.0) / v.size();
-}
-double variance(const std::vector<double>& v) {
-    double m = mean(v);
-    double sum = 0;
-    for (double x : v) sum += (x - m) * (x - m);
-    return sum / (v.size() - 1);
-}
-
-```
-
-
-**Makefile**:
-
-
-```makefile
-CXX = g++
-CXXFLAGS = -Wall -Wextra -std=c++17 -I include
-
-SRCS = main.cpp src/stats.cpp
-OBJS = $(SRCS:.cpp=.o)
-TARGET = program
-
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-main.o: include/stats.h
-src/stats.o: include/stats.h
-
-clean:
-	rm -f $(OBJS) $(TARGET)
-
-.PHONY: clean
-
-```
-
-
-**Testing incremental compilation**:
-
-
-```bash
-make           # Compiles everything
-touch src/stats.cpp
-make           # Only recompiles stats.o and relinks
-
-```
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**File structure**:
-
-
-```javascript
-project/
-  ├── math_utils.h
-  ├── math_utils.cpp
-  ├── main.cpp
-  └── Makefile
-
-```
-
-
-**math_utils.h**:
-
-
-```c++
-#ifndef MATH_UTILS_H
-#define MATH_UTILS_H
-double compute_mean(const double* arr, int n);
-double compute_std(const double* arr, int n);
-#endif
-
-```
-
-
-**math_utils.cpp**:
-
-
-```c++
-#include "math_utils.h"
-#include <cmath>
-
-double compute_mean(const double* arr, int n) {
-    double sum = 0;
-    for (int i = 0; i < n; i++) sum += arr[i];
-    return sum / n;
-}
-// ... compute_std implementation
-
-```
-
-
-**Makefile**:
-
-
-```makefile
-CXX = g++
-CXXFLAGS = -Wall -Wextra -g -O2
-
-# Target executable
-TARGET = stats_app
-
-# Object files
-OBJS = main.o math_utils.o
-
-# Default target
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-# Pattern rule for .cpp -> .o
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Dependencies
-main.o: main.cpp math_utils.h
-math_utils.o: math_utils.cpp math_utils.h
-
-.PHONY: clean
-clean:
-	rm -f $(OBJS) $(TARGET)
-
-```
-
-
-**Incremental compilation test**:
-
-
-```bash
-make           # Compiles everything
-touch math_utils.cpp
-make           # Only recompiles math_utils.o and relinks
-
-```
-
-
-</details>
-
-
-**Mastery**: Write a program that measures allocation time for: (a) stack allocation of a 1000-element array inside a loop (1M iterations), (b) heap allocation with `new[]`/`delete[]` each iteration, (c) heap allocation once, reused across iterations. Report the timing differences and explain them in terms of allocator behavior.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension               | 0                                  | 1                                  | 2                                                |
-
-| ----------------------- | ---------------------------------- | ---------------------------------- | ------------------------------------------------ |
-
-| Implementation          | Code doesn't compile               | Runs but timing methodology flawed | All three cases implemented, proper timing       |
-
-| Optimization Prevention | Compiler optimizes away allocation | Partial prevention                 | Uses volatile or side effects correctly          |
-
-| Measurement             | No timing reported                 | Times reported without analysis    | Clear comparison table with ratios               |
-
-| Explanation             | No explanation                     | Mentions speed difference only     | Explains allocator overhead, syscalls, free list |
-
-| Compilation             | Wrong optimization level           | Compiles but inconsistent flags    | Compiled with -O2, consistent methodology        |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```c++
-#include <iostream>
-#include <chrono>
-#include <vector>
-
-using Clock = std::chrono::high_resolution_clock;
-
-int main() {
-    const int ITERATIONS = 1000000;
-    const int SIZE = 1000;
-    volatile double sum = 0;  // Prevent optimization
-    
-    // (a) Stack allocation in loop
-    auto start = Clock::now();
-    for (int iter = 0; iter < ITERATIONS; iter++) {
-        double arr[SIZE];  // Stack allocation
-        for (int i = 0; i < SIZE; i++) arr[i] = i;
-        sum += arr[0];
-    }
-    auto stack_time = Clock::now() - start;
-    
-    // (b) Heap allocation each iteration
-    start = Clock::now();
-    for (int iter = 0; iter < ITERATIONS; iter++) {
-        double* arr = new double[SIZE];
-        for (int i = 0; i < SIZE; i++) arr[i] = i;
-        sum += arr[0];
-        delete[] arr;
-    }
-    auto heap_each_time = Clock::now() - start;
-    
-    // (c) Heap allocation once, reused
-    start = Clock::now();
-    double* arr = new double[SIZE];
-    for (int iter = 0; iter < ITERATIONS; iter++) {
-        for (int i = 0; i < SIZE; i++) arr[i] = i;
-        sum += arr[0];
-    }
-    delete[] arr;
-    auto heap_once_time = Clock::now() - start;
-    
-    std::cout << "Stack each iter: " 
-              << std::chrono::duration<double>(stack_time).count() << "s\n";
-    std::cout << "Heap each iter:  " 
-              << std::chrono::duration<double>(heap_each_time).count() << "s\n";
-    std::cout << "Heap once:       " 
-              << std::chrono::duration<double>(heap_once_time).count() << "s\n";
-    
-    return 0;
-}
-
-```
-
-
-**Typical results**:
-
-
-```javascript
-Stack each iter: 0.8s
-Heap each iter:  2.5s
-Heap once:       0.8s
-
-```
-
-
-**Explanation**:
-
-- Stack: Just pointer adjustment (~1 instruction)
-- Heap each: malloc/free overhead (~100-1000 cycles per call)
-- Heap once: Amortized to near-zero per iteration
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```c++
-#include <iostream>
-#include <chrono>
-
-const int ARRAY_SIZE = 1000;
-const int ITERATIONS = 1000000;
-
-volatile double sink;  // Prevent optimization
-
-void benchmark_stack() {
-    for (int i = 0; i < ITERATIONS; i++) {
-        double arr[ARRAY_SIZE];  // Stack allocation
-        arr[0] = i;
-        sink = arr[0];
-    }
-}
-
-void benchmark_heap_repeated() {
-    for (int i = 0; i < ITERATIONS; i++) {
-        double* arr = new double[ARRAY_SIZE];  // Heap alloc
-        arr[0] = i;
-        sink = arr[0];
-        delete[] arr;  // Heap free
-    }
-}
-
-void benchmark_heap_reused() {
-    double* arr = new double[ARRAY_SIZE];  // Allocate once
-    for (int i = 0; i < ITERATIONS; i++) {
-        arr[0] = i;
-        sink = arr[0];
-    }
-    delete[] arr;
-}
-
-int main() {
-    auto time_it = [](auto fn, const char* name) {
-        auto start = std::chrono::high_resolution_clock::now();
-        fn();
-        auto end = std::chrono::high_resolution_clock::now();
-        auto ms = std::chrono::duration<double, std::milli>(end - start).count();
-        std::cout << name << ": " << ms << " ms" << std::endl;
-    };
-    
-    time_it(benchmark_stack, "Stack");
-    time_it(benchmark_heap_repeated, "Heap (repeated)");
-    time_it(benchmark_heap_reused, "Heap (reused)");
-    return 0;
-}
-
-```
-
-
-**Typical results** (compile with `-O2`):
-
-- Stack: ~5ms
-- Heap (repeated): ~500ms
-- Heap (reused): ~3ms
-
-**Explanation**:
-
-- Stack: Just pointer arithmetic (move stack pointer)
-- Heap repeated: malloc/free overhead (lock, search free list, bookkeeping) × 1M
-- Heap reused: One alloc + pure computation ≈ stack speed
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why does the allocator lock affect performance in single-threaded code?
-2. How would these timings change with a custom arena allocator?
-3. What compiler optimizations might affect these measurements?
-4. When would repeated heap allocation be acceptable in production code?
-
-</details>
+The exercises from the original curriculum provide hands-on practice with these concepts. Work through them to solidify your understanding of stack/heap allocation, debugging with gdb, memory sanitizers, and building multi-file projects with Makefiles.
 
 
 ---
 
 
+## Common Pitfalls
+
+
+| Pitfall                        | Why It's Bad                               | Fix                                                    |
+
+| ------------------------------ | ------------------------------------------ | ------------------------------------------------------ |
+
+| Using raw `new`/`delete`       | Easy to forget cleanup, not exception-safe | Use smart pointers or containers                       |
+
+| Returning reference to local   | Undefined behavior                         | Return by value or use smart pointers                  |
+
+| Not checking for `nullptr`     | Crashes on dereference                     | Always check pointers from uncertain sources           |
+
+| Mixing `delete` and `delete[]` | Undefined behavior                         | Use `delete[]` for arrays, `delete` for single objects |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 9, verify you can:
+
+- [ ] Explain the difference between a reference and a pointer
+- [ ] Write a function that takes `const T&` parameters correctly
+- [ ] Use `std::unique_ptr` to manage heap memory
+- [ ] Identify a dangling pointer or reference in code
+- [ ] Compile a program with debug symbols and use gdb to inspect variables
+- [ ] Run AddressSanitizer and interpret its output
+
+---
+
+
+## Resources
+
+- [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/)
+- [cppreference.com](http://cppreference.com/)
+- [GDB Tutorial](https://www.cs.cmu.edu/~gilpin/tutorial/)
+- [Sanitizers Documentation](https://github.com/google/sanitizers)
+
 ## Day 9: Smart Pointers and Ownership Semantics
 
-
-### Concepts
-
-
-Pointers hold memory addresses. Dereferencing (`*ptr`) accesses the value. The address-of operator (`&x`) yields a pointer to `x`. Null pointers (`nullptr`) represent "points to nothing."
+## Overview
 
 
-References are aliases. Once bound, a reference cannot be rebound. References cannot be null. Use references for function parameters to avoid copying. Use `const` references for input parameters that should not be modified.
+**Focus**: Master smart pointers and understand ownership semantics in depth. Learn when to use `unique_ptr`, `shared_ptr`, and `weak_ptr`.
 
 
-Ownership: who is responsible for freeing a resource? Raw pointers do not convey ownership. Smart pointers do: `unique_ptr` has exclusive ownership (cannot be copied, only moved); `shared_ptr` has shared ownership (reference counted); `weak_ptr` observes without owning.
+**Why it matters**: Smart pointers are C++'s solution to manual memory management. They encode ownership in the type system, making memory bugs impossible at compile time.
 
 
-Dangling pointers/references occur when the referent is destroyed. This is undefined behavior. Sanitizers catch some cases; discipline catches others.
+---
 
 
-### Deep Dive: Ownership and Lifetime
+## Learning Objectives
 
 
-**Why this matters**: C++ gives you manual control over memory, but with that power comes responsibility. Misunderstanding ownership is the #1 cause of memory bugs: leaks (forgot to free), double-frees (freed twice), and use-after-free (accessed after freeing). Smart pointers solve these problems by encoding ownership in the type system.
+By the end of Day 9, you will:
+
+- Use `std::unique_ptr` for exclusive ownership
+- Use `std::shared_ptr` for shared ownership
+- Use `std::weak_ptr` to break reference cycles
+- Understand when each smart pointer is appropriate
+- Implement the Rule of Three (or Rule of Zero)
+- Avoid memory leaks through RAII
+
+---
 
 
-**Mental model**: Every allocated object has an **owner**—the entity responsible for freeing it. Raw pointers don't indicate ownership; smart pointers do:
+## Core Concepts
 
-- `unique_ptr<T>`: **Exclusive ownership**. Only one owner exists. When it goes out of scope, resource is freed. Cannot be copied (would create two owners), only moved (transfers ownership).
-- `shared_ptr<T>`: **Shared ownership**. Multiple owners via reference counting. Resource freed when last owner is destroyed.
-- `weak_ptr<T>`: **Observer**. Doesn't own, just watches. Breaks cycles in shared_ptr graphs.
 
-**Worked example**: Why raw pointers are dangerous
+### 1. Why Smart Pointers?
+
+
+**The problem with raw pointers**:
 
 
 ```c++
-#include <iostream>
-#include <memory>
-
 void dangling_pointer_bug() {
     int* ptr = new int(42);
     delete ptr;          // Free the memory
-    // ptr still holds the address, but memory is freed
     std::cout << *ptr;   // BUG: use-after-free (undefined behavior)
 }
 
@@ -7999,7 +5011,7 @@ void leak_bug() {
 ```
 
 
-**Solution: unique_ptr encodes ownership**
+**Solution: Smart pointers encode ownership**:
 
 
 ```c++
@@ -8010,408 +5022,153 @@ void safe_with_unique_ptr() {
     // No leak, no double-free, no use-after-free possible
 }
 
-void transfer_ownership() {
-    std::unique_ptr<int> owner1 = std::make_unique<int>(42);
-    std::unique_ptr<int> owner2 = std::move(owner1);  // Transfer ownership
-    
-    // owner1 is now nullptr (no longer owns)
-    // owner2 owns the resource
-    
-    // This would crash (accessing nullptr):
-    // std::cout << *owner1;  
-    
-    std::cout << *owner2 << std::endl;  // Works
-}
-
 ```
 
 
-**Visualization of ownership transfer**:
+### 2. `std::unique_ptr`: Exclusive Ownership
 
 
-```javascript
-Before move:          After std::move(owner1):
-owner1 → [42]         owner1 → nullptr
-owner2 → (empty)      owner2 → [42]
-
-```
-
-
-**Key insight**: `unique_ptr` makes ownership **explicit** and **enforced**:
-
-- **Explicit**: The type tells you "this pointer owns the resource."
-- **Enforced**: Compiler prevents copying (which would violate uniqueness). Only moving is allowed, which clearly transfers ownership.
-
-**Rule of thumb for choosing**:
-
-- Default to **`unique_ptr`** for exclusive ownership (most common case)
-- Use **`shared_ptr`** only when multiple owners truly need to keep the object alive
-- Use **`weak_ptr`** to observe shared resources without extending lifetime (breaks cycles)
-- **Never use raw** **`new`****/****`delete`** in modern C++—use smart pointers or containers
-
-### Exercises
-
-
-**Foundational 1**: Write a function `void swap(int& a, int& b)` that swaps two integers via references. Write a second version `void swap_ptr(int* a, int* b)` using pointers. Demonstrate both work correctly. Explain when you would choose each.
-
-
-**Expected Time (Proficient): 10–15 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                              | 1                                 | 2                                                      |
-
-| ----------------- | ------------------------------ | --------------------------------- | ------------------------------------------------------ |
-
-| Reference Version | Does not compile or swap fails | Works but uses wrong syntax       | Correct swap using references                          |
-
-| Pointer Version   | Does not compile or crashes    | Works but missing dereference     | Correct swap with proper dereferencing                 |
-
-| Demonstration     | No test output                 | Tests one version only            | Before/after output for both versions                  |
-
-| Explanation       | No comparison given            | Mentions difference superficially | Explains nullability, syntax clarity, style guidelines |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**Basic usage**:
 
 
 ```c++
-#include <iostream>
+#include <memory>
 
-// Reference version
-void swap_ref(int& a, int& b) {
-    int temp = a;
-    a = b;
-    b = temp;
-}
+// Create unique_ptr
+std::unique_ptr<int> ptr = std::make_unique<int>(42);
 
-// Pointer version
-void swap_ptr(int* a, int* b) {
-    int temp = *a;
-    *a = *b;
-    *b = temp;
-}
+// Access value
+std::cout << *ptr << std::endl;  // Dereference
+std::cout << ptr.get() << std::endl;  // Get raw pointer
 
-int main() {
-    int x = 10, y = 20;
-    
-    std::cout << "Before: x=" << x << ", y=" << y << std::endl;
-    swap_ref(x, y);
-    std::cout << "After ref swap: x=" << x << ", y=" << y << std::endl;
-    
-    swap_ptr(&x, &y);
-    std::cout << "After ptr swap: x=" << x << ", y=" << y << std::endl;
-    
-    return 0;
+// Transfer ownership
+std::unique_ptr<int> ptr2 = std::move(ptr);
+// Now ptr is nullptr, ptr2 owns the object
+
+// This would crash (accessing nullptr):
+// std::cout << *ptr;
+
+// This is safe:
+if (ptr2) {
+    std::cout << *ptr2 << std::endl;
 }
 
 ```
 
 
-**When to choose each**:
-
-- **References**: Cleaner syntax, cannot be null, cannot be reseated. Use when parameter is always valid.
-- **Pointers**: Can be null (optional parameters), can be reseated, works with C APIs. Use when nullability is meaningful.
-
-```c++
-// Reference: cleaner call syntax
-swap_ref(x, y);  // Obvious x and y are modified
-
-// Pointer: explicit that modification happens
-swap_ptr(&x, &y);  // & makes modification visible at call site
-
-```
-
-
-**Style note**: Google style prefers pointers for output parameters to make modification visible; references for const input parameters.
-
-
-</details>
-
-
-**Foundational 2**: Write a function that returns a reference to a local variable. Compile and run it. Observe undefined behavior (may appear to work, may crash, may return garbage). Enable sanitizers and observe the diagnostic.
-
-
-**Expected Time (Proficient): 10–15 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension       | 0                                | 1                                       | 2                                              |
-
-| --------------- | -------------------------------- | --------------------------------------- | ---------------------------------------------- |
-
-| Bug Creation    | Cannot create dangling reference | Creates bug but returns pointer instead | Correctly returns reference to local           |
-
-| UB Observation  | Does not run the code            | Runs but doesn't note behavior          | Documents observed UB (value, crash, etc.)     |
-
-| Sanitizer Usage | Cannot compile with sanitizers   | Compiles but ignores output             | Uses -fsanitize=address, interprets output     |
-
-| Understanding   | Cannot explain the bug           | Vague explanation                       | Explains stack lifetime, why reference dangles |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Dangling reference** (dangling.cpp):
+**Cannot copy (ownership is exclusive)**:
 
 
 ```c++
-#include <iostream>
+std::unique_ptr<int> ptr1 = std::make_unique<int>(42);
+// std::unique_ptr<int> ptr2 = ptr1;  // ERROR! Cannot copy
 
-int& get_dangling() {
-    int local = 42;  // Stack variable
-    return local;    // BUG: returning reference to local!
-}  // local destroyed here
-
-int main() {
-    int& ref = get_dangling();
-    std::cout << ref << std::endl;  // Undefined behavior!
-    return 0;
-}
+// But can move (transfer ownership):
+std::unique_ptr<int> ptr2 = std::move(ptr1);  // OK
 
 ```
 
 
-**Without sanitizers**: May print 42, garbage, or crash (undefined behavior).
-
-
-**With sanitizers**:
-
-
-```bash
-g++ -fsanitize=address -g -o dangling dangling.cpp
-./dangling
-
-```
-
-
-**ASan output**:
-
-
-```javascript
-=================================================================
-==12345==ERROR: AddressSanitizer: stack-use-after-return
-READ of size 4 at 0x...
-    #0 main dangling.cpp:9
-Address 0x... is located in stack of thread T0 at offset 32 in frame
-    #0 get_dangling() dangling.cpp:3
-
-```
-
-
-**Compiler warning** (with -Wall):
-
-
-```javascript
-warning: reference to local variable 'local' returned
-
-```
-
-
-**Fix**: Return by value, or allocate on heap with smart pointer.
-
-
-</details>
-
-
-**Proficiency 1**: Implement a `Matrix` class that allocates its data on the heap. Implement the destructor to free memory. Demonstrate that without a proper copy constructor, copying a `Matrix` leads to double-free. Implement the copy constructor and copy assignment operator (Rule of Three).
-
-
-**Expected Time (Proficient): 22–30 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension        | 0                               | 1                                 | 2                                              |
-
-| ---------------- | ------------------------------- | --------------------------------- | ---------------------------------------------- |
-
-| Initial Bug      | Cannot demonstrate double-free  | Shows crash but doesn't explain   | Demonstrates shallow copy leads to double-free |
-
-| Copy Constructor | Missing or shallow copy         | Deep copies but misses edge cases | Correct deep copy, allocates new memory        |
-
-| Copy Assignment  | Missing or incorrect            | Works but leaks or unsafe         | Handles self-assignment, frees old memory      |
-
-| Rule of Three    | Missing destructor or operators | Has all three but inconsistent    | Complete: destructor, copy ctor, copy assign   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Initial class with double-free bug**:
+**Factory pattern**:
 
 
 ```c++
-class Matrix {
-private:
-    double* data;
-    size_t rows, cols;
+class Widget {
 public:
-    Matrix(size_t r, size_t c) : rows(r), cols(c) {
-        data = new double[rows * cols]();
+    Widget(int value) : value_(value) {}
+    int value() const { return value_; }
+private:
+    int value_;
+};
+
+// Factory function returning unique_ptr
+std::unique_ptr<Widget> create_widget(int value) {
+    return std::make_unique<Widget>(value);
+}
+
+// Usage
+auto widget = create_widget(42);
+std::cout << widget->value() << std::endl;
+
+```
+
+
+### 3. `std::shared_ptr`: Shared Ownership
+
+
+**Basic usage**:
+
+
+```c++
+// Create shared_ptr - multiple owners allowed
+std::shared_ptr<int> ptr1 = std::make_shared<int>(42);
+std::shared_ptr<int> ptr2 = ptr1;  // Both own the object
+
+std::cout << ptr1.use_count();  // 2 (reference count)
+
+// Object deleted when last shared_ptr is destroyed
+ptr1.reset();  // ptr1 no longer owns it
+std::cout << ptr2.use_count();  // 1
+
+// When ptr2 goes out of scope, object is deleted
+
+```
+
+
+**Use case: Shared resources**:
+
+
+```c++
+class Image {
+public:
+    Image(const std::string& path) {
+        std::cout << "Loading " << path << std::endl;
+        // ... expensive loading ...
     }
-    ~Matrix() {
-        delete[] data;  // Destructor frees memory
+    ~Image() {
+        std::cout << "Unloading image" << std::endl;
     }
-    // No copy constructor/assignment - compiler generates shallow copy!
+};
+
+class Sprite {
+private:
+    std::shared_ptr<Image> image_;
+public:
+    Sprite(std::shared_ptr<Image> img) : image_(img) {}
 };
 
 int main() {
-    Matrix a(10, 10);
-    Matrix b = a;  // Shallow copy: 
+    // Load image once, share among sprites
+    auto image = std::make_shared<Image>("texture.png");
+    
+    Sprite sprite1(image);
+    Sprite sprite2(image);
+    Sprite sprite3(image);
+    
+    // Image stays loaded while any sprite exists
+    // Automatically unloaded when last sprite is destroyed
+}
 
 ```
 
 
-**Rule of Three implementation**:
+**Cost of shared_ptr**:
+
+- Reference counting requires atomic operations (thread-safe)
+- Slightly slower than unique_ptr
+- Two allocations: object + control block (use `make_shared` to reduce to one)
+
+### 4. `std::weak_ptr`: Breaking Cycles
+
+
+**The problem: Reference cycles cause leaks**:
 
 
 ```c++
-class Matrix {
-private:
-    double* data;
-    size_t rows, cols;
-    
-public:
-    // Constructor
-    Matrix(size_t r, size_t c) : rows(r), cols(c) {
-        data = new double[rows * cols]();
-    }
-    
-    // Destructor
-    ~Matrix() {
-        delete[] data;
-    }
-    
-    // Copy constructor
-    Matrix(const Matrix& other) : rows(other.rows), cols(other.cols) {
-        data = new double[rows * cols];
-        std::copy(
-
-```
-
-
-**Now safe**:
-
-
-```c++
-Matrix a(10, 10);
-Matrix b = a;     // Deep copy: separate allocations
-b = a;            // Assignment: works correctly
-
-```
-
-
-</details>
-
-
-**Proficiency 2**: Refactor the `Matrix` class to use `std::unique_ptr<double[]>` for storage. Implement move constructor and move assignment. Delete copy constructor and copy assignment. Verify that moving is efficient (no data copying) and copying fails to compile.
-
-
-**Expected Time (Proficient): 20–28 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension        | 0                               | 1                                 | 2                                             |
-
-| ---------------- | ------------------------------- | --------------------------------- | --------------------------------------------- |
-
-| unique_ptr Usage | Cannot use unique_ptr for array | Uses unique_ptr but wrong syntax  | Correct unique_ptr<double[]> with make_unique |
-
-| Move Constructor | Missing or copies data          | Moves but doesn't null source     | Efficient move with std::move, noexcept       |
-
-| Move Assignment  | Missing or incorrect            | Works but unsafe                  | Handles self-assign, releases old resource    |
-
-| Copy Deletion    | Copy still works                | Deleted but error message unclear | Copy deleted, demonstrates compile error      |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**unique_ptr-based Matrix**:
-
-
-```c++
-#include <memory>
-#include <algorithm>
-
-class Matrix {
-private:
-    std::unique_ptr<double[]> data;
-    size_t rows, cols;
-    
-public:
-    // Constructor
-    Matrix(size_t r, size_t c) : rows(r), cols(c) {
-        data = std::make_unique<double[]>(rows * cols);
-    }
-    
-    // Move constructor
-    Matrix(Matrix&& other) noexcept 
-        : data(std::move(
-
-```
-
-
-**Verification**: Move is O(1), no data copying. After move, source is empty.
-
-
-</details>
-
-
-**Mastery**: Implement a graph data structure where nodes are allocated on the heap and edges are `shared_ptr<Node>`. Demonstrate that a cycle (A→B→A) causes a memory leak due to reference counting. Fix using `weak_ptr` for back-edges. Verify no leak with sanitizers.
-
-
-**Expected Time (Proficient): 28–40 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension       | 0                                 | 1                               | 2                                              |
-
-| --------------- | --------------------------------- | ------------------------------- | ---------------------------------------------- |
-
-| Graph Structure | Cannot implement node/edge        | Works but incorrect ownership   | Clean Node struct with shared_ptr edges        |
-
-| Cycle Leak Demo | Cannot create cycle               | Creates cycle but no leak proof | Demonstrates leak with ASan or destructor logs |
-
-| weak_ptr Fix    | Cannot use weak_ptr               | Uses weak_ptr incorrectly       | Back-edges as weak_ptr, breaks cycle           |
-
-| Verification    | No verification                   | Claims fixed without proof      | ASan shows no leak, destructors called         |
-
-| Understanding   | Cannot explain reference counting | Partial explanation             | Explains why cycle prevents count reaching 0   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Graph with cycle causing leak**:
-
-
-```c++
-#include <memory>
-#include <vector>
-#include <string>
-
 struct Node {
     std::string name;
-    std::vector<std::shared_ptr<Node>> edges;
+    std::vector<std::shared_ptr<Node>> children;
+    std::shared_ptr<Node> parent;  // Problem!
     
     Node(const std::string& n) : name(n) {
         std::cout << "Node " << name << " created\n";
@@ -8422,91 +5179,286 @@ struct Node {
 };
 
 void create_cycle_leak() {
-    auto a = std::make_shared<Node>("A");
-    auto b = std::make_shared<Node>("B");
+    auto parent = std::make_shared<Node>("Parent");
+    auto child = std::make_shared<Node>("Child");
     
-    a->edges.push_back(b);  // A -> B
-    b->edges.push_back(a);  // B -> A (cycle!)
+    parent->children.push_back(child);  // Parent -> Child (strong)
+    child->parent = parent;              // Child -> Parent (strong) - CYCLE!
     
-    // ref count: a=2 (local + b's edge), b=2 (local + a's edge)
-}  // Locals destroyed: a=1, b=1. Never reach 0. LEAK!
+    // ref counts: parent=2, child=2
+    // When function ends: parent=1, child=1
+    // Neither reaches 0 → LEAK!
+}
 
 ```
 
 
-**Fixed with weak_ptr for back-edges**:
+**Solution: Use** **`weak_ptr`** **for back-references**:
 
 
 ```c++
 struct Node {
     std::string name;
-    std::vector<std::shared_ptr<Node>> children;   // Strong refs
-    std::vector<std::weak_ptr<Node>> back_edges;   // Weak refs
+    std::vector<std::shared_ptr<Node>> children;
+    std::weak_ptr<Node> parent;  // Weak reference doesn't prevent destruction
     
     Node(const std::string& n) : name(n) {}
     ~Node() { std::cout << "Node " << name << " destroyed\n"; }
 };
 
 void create_cycle_fixed() {
-    auto a = std::make_shared<Node>("A");
-    auto b = std::make_shared<Node>("B");
+    auto parent = std::make_shared<Node>("Parent");
+    auto child = std::make_shared<Node>("Child");
     
-    a->children.push_back(b);    // A -> B (strong)
-    b->back_edges.push_back(a);  // B -> A (weak, doesn't prevent destruction)
+    parent->children.push_back(child);  // Parent -> Child (strong)
+    child->parent = parent;              // Child -> Parent (weak) - No cycle!
     
-}  // a destroyed (count 1->0), then b destroyed. No leak!
+    // When function ends: parent ref count 1→0, destroyed
+    // Then child ref count 1→0, destroyed
+    // No leak!
+}
 
 ```
 
 
-**Verify with ASan**:
+**Using weak_ptr**:
 
 
-```bash
-g++ -fsanitize=address -g -o graph graph.cpp
-./graph  # No leak reported for fixed version
+```c++
+std::weak_ptr<Node> weak = shared;  // Create weak_ptr from shared_ptr
+
+// To access, must convert to shared_ptr:
+if (auto strong = weak.lock()) {  // Returns shared_ptr or nullptr
+    std::cout << strong->name << std::endl;  // Safe to use
+} else {
+    std::cout << "Object has been destroyed" << std::endl;
+}
 
 ```
 
 
-</details>
+### 5. Rule of Three (or Rule of Zero)
 
-<details>
-<summary>Oral Defense Questions</summary>
-1. How do you decide which edges should be weak vs. strong in a general graph?
-2. What happens if you try to access a weak_ptr whose target has been destroyed?
-3. When would unique_ptr be preferable to shared_ptr for graph edges?
-4. How does the destructor order matter when breaking cycles?
 
-</details>
+**Rule of Three**: If your class needs a custom destructor, it likely needs custom copy constructor and copy assignment operator.
+
+
+**Example: Managing a resource**:
+
+
+```c++
+class DynamicArray {
+private:
+    int* data_;
+    size_t size_;
+
+public:
+    // Constructor
+    explicit DynamicArray(size_t size) 
+        : data_(new int[size]), size_(size) {}
+    
+    // Destructor
+    ~DynamicArray() {
+        delete[] data_;
+    }
+    
+    // Copy constructor (deep copy)
+    DynamicArray(const DynamicArray& other) 
+        : data_(new int[other.size_]), size_(other.size_) {
+        std::copy(other.data_, other.data_ + size_, data_);
+    }
+    
+    // Copy assignment operator
+    DynamicArray& operator=(const DynamicArray& other) {
+        if (this != &other) {  // Self-assignment check
+            delete[] data_;  // Free existing resource
+            size_ = other.size_;
+            data_ = new int[size_];
+            std::copy(other.data_, other.data_ + size_, data_);
+        }
+        return *this;
+    }
+    
+    // Accessors
+    size_t size() const { return size_; }
+    int& operator[](size_t i) { return data_[i]; }
+    const int& operator[](size_t i) const { return data_[i]; }
+};
+
+// Usage showing Rule of Three in action:
+void demonstrate_rule_of_three() {
+    DynamicArray arr1(5);        // Constructor
+    arr1[0] = 42;
+    
+    DynamicArray arr2 = arr1;    // Copy constructor (deep copy)
+    arr2[0] = 100;               // Doesn't affect arr1
+    
+    DynamicArray arr3(10);
+    arr3 = arr1;                 // Copy assignment (deep copy)
+    
+    // When function ends, all three are safely destroyed
+    // Without Rule of Three: double-free crash!
+}
+
+```
+
+
+**Rule of Zero**: Prefer using existing RAII types instead of manual resource management:
+
+
+```c++
+class BetterDynamicArray {
+private:
+    std::vector<int> data_;  // std::vector handles everything!
+
+public:
+    explicit BetterDynamicArray(size_t size) : data_(size) {}
+    
+    // No destructor, copy constructor, or copy assignment needed!
+    // Compiler-generated versions use vector's implementations
+    
+    size_t size() const { return data_.size(); }
+    int& operator[](size_t i) { return data_[i]; }
+};
+
+```
+
+
+### 6. Passing Smart Pointers
+
+
+**Best practices**:
+
+
+```c++
+// GOOD: Pass by reference if not transferring ownership
+void process(const std::vector<int>& data) { /* read-only */ }
+void modify(std::vector<int>& data) { /* can modify */ }
+
+// BAD: Copying shared_ptr when you just need to read
+void process_bad(std::shared_ptr<std::vector<int>> data) {
+    // Copies the shared_ptr, increments ref count unnecessarily
+}
+
+// GOOD: Pass raw pointer or reference when not transferring ownership
+void process_good(const std::vector<int>* data) {
+    if (!data) return;
+    // Use data
+}
+
+// Transfer unique ownership: take by value, caller uses std::move
+void take_ownership(std::unique_ptr<Data> data) {
+    // Function now owns data
+}
+
+// Usage:
+auto data = std::make_unique<Data>();
+take_ownership(std::move(data));  // Transfers ownership
+// data is now nullptr
+
+```
 
 
 ---
 
 
+## Hands-On Exercises
+
+
+The original curriculum includes exercises for:
+
+- Implementing swap functions with references vs pointers
+- Creating dangling references and observing undefined behavior
+- Implementing the Rule of Three for a Matrix class
+- Using smart pointers to break reference cycles
+- Refactoring code to use move-only types
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                       | Why It's Bad                     | Fix                                     |
+
+| ----------------------------- | -------------------------------- | --------------------------------------- |
+
+| Forgetting Rule of Three      | Double-free or shallow copy bugs | Implement all three or use Rule of Zero |
+
+| Circular `shared_ptr`         | Memory leak from reference cycle | Use `weak_ptr` for back-references      |
+
+| Passing `shared_ptr` by value | Unnecessary ref count overhead   | Pass by `const&` or raw pointer         |
+
+| Copying when you should move  | Performance loss                 | Use `std::move` for transfer            |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 10, verify you can:
+
+- [ ] Use `std::unique_ptr` for exclusive ownership
+- [ ] Use `std::shared_ptr` for shared ownership
+- [ ] Use `std::weak_ptr` to break reference cycles
+- [ ] Implement the Rule of Three correctly
+- [ ] Explain when to use Rule of Zero instead
+- [ ] Pass smart pointers efficiently to functions
+
+---
+
+
+## Resources
+
+- [C++ Core Guidelines: Smart Pointers](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#Rr-smartptrparam)
+- [cppreference: unique_ptr](https://en.cppreference.com/w/cpp/memory/unique_ptr)
+- [cppreference: shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr)
+- [Understanding Smart Pointers](https://www.internalpointers.com/post/beginner-s-look-smart-pointers-modern-c)
+
 ## Day 10: RAII, Move Semantics, and Destructors
 
-
-**Scope Note for 2-Week Timeline**: This day focuses on RAII fundamentals and basic `unique_ptr` usage. Advanced move semantics topics (Rule of Five, move constructors, move assignment operators, `std::move` internals, and lvalue/rvalue distinctions) are deferred to _Optional Week 3 (Day 19: C++ Numerical Patterns and RAII)_ to maintain a realistic pace for the core 2-week curriculum. You can use smart pointers effectively without understanding move semantics internals.
-
-
-**For this day, focus on**: Understanding RAII philosophy, using `unique_ptr` for automatic cleanup, and recognizing when destructors run. Skip exercises marked "[Week 3]" unless you're continuing beyond core proficiency.
+## Overview
 
 
-### Concepts
+**Focus**: Understand RAII (Resource Acquisition Is Initialization) fundamentals and basic `unique_ptr` usage. Learn how C++ guarantees deterministic cleanup.
 
 
-**RAII: Resource Acquisition Is Initialization**
+**Scope Note**: This day focuses on RAII philosophy and using smart pointers effectively. Advanced move semantics topics (Rule of Five, move constructors/assignment, `std::move` internals, lvalue/rvalue distinctions) are deferred to Week 3 for the 2-week timeline.
 
 
-RAII is C++'s fundamental idiom for resource management. The core idea: tie resource lifetime to object lifetime.
+**Why it matters**: RAII is C++'s fundamental idiom for resource management. It converts manual cleanup into compiler-enforced guarantees, eliminating an entire class of bugs.
 
 
-**The principle**:
+---
 
-- Acquire resources (memory, files, locks, sockets) in the constructor
-- Release resources in the destructor
-- The compiler guarantees destructors run when objects go out of scope
+
+## Learning Objectives
+
+
+By the end of Day 10, you will:
+
+- Understand the RAII principle and philosophy
+- Use `unique_ptr` for automatic cleanup
+- Recognize when destructors run
+- Write RAII wrappers for custom resources
+- Understand exception safety through RAII
+
+---
+
+
+## Core Concepts
+
+
+### 1. RAII: Resource Acquisition Is Initialization
+
+
+**The core principle**: Tie resource lifetime to object lifetime.
+
+- **Acquire resources** (memory, files, locks, sockets) in the constructor
+- **Release resources** in the destructor
+- **The compiler guarantees** destructors run when objects go out of scope
 
 **Why this matters**: No manual cleanup code. No forgotten cleanup. Exception-safe by design.
 
@@ -8542,241 +5494,109 @@ void process_file_good(const std::string& filename) {
 
 **RAII guarantees**:
 
-1. **Automatic cleanup**: Destructor runs when scope ends (normal return, exception, early return)
-2. **Exception safety**: Resources released even during stack unwinding
+1. **Automatic cleanup**: Destructor runs when scope ends
+2. **Exception safety**: Resources released during stack unwinding
 3. **No leaks**: Impossible to forget cleanup
 
-**Common RAII types in standard library**:
+### 2. Common RAII Types
+
+
+**Standard library RAII types**:
 
 - `std::unique_ptr`, `std::shared_ptr`: Manage heap memory
 - `std::vector`, `std::string`: Manage dynamic arrays
 - `std::ifstream`, `std::ofstream`: Manage files
 - `std::lock_guard`, `std::unique_lock`: Manage mutexes
-- `std::thread`: Manage threads (must join or detach)
 
-**Implementing RAII: The Rule of Five**
-
-
-If your class manages a resource, you need to implement five special member functions:
-
-1. **Destructor**: Release the resource
-2. **Copy constructor**: How to copy the resource
-3. **Copy assignment operator**: How to copy-assign
-4. **Move constructor**: How to transfer ownership
-5. **Move assignment operator**: How to move-assign
-
-**Example: Managing a dynamic array**
+**Example: RAII ensures cleanup during exceptions**
 
 
 ```c++
-class DynamicArray {
-private:
-    int* data_;
-    size_t size_;
+#include <iostream>
+#include <memory>
 
+class Resource {
 public:
-    // Constructor: Acquire resource
-    explicit DynamicArray(size_t size) 
-        : data_(new int[size]), size_(size) {
-        std::cout << "Allocated " << size << " ints\n";
-    }
-    
-    // Destructor: Release resource
-    ~DynamicArray() {
-        delete[] data_;
-        std::cout << "Freed array\n";
-    }
-    
-    // Copy constructor: Deep copy
-    DynamicArray(const DynamicArray& other) 
-        : data_(new int[other.size_]), size_(other.size_) {
-        std::copy(other.data_, other.data_ + size_, data_);
-        std::cout << "Copied array\n";
-    }
-    
-    // Copy assignment: Deep copy with self-assignment check
-    DynamicArray& operator=(const DynamicArray& other) {
-        if (this != &other) {  // Self-assignment check
-            delete[] data_;  // Release old resource
-            data_ = new int[other.size_];  // Acquire new resource
-            size_ = other.size_;
-            std::copy(other.data_, other.data_ + size_, data_);
-            std::cout << "Copy-assigned array\n";
-        }
-        return *this;
-    }
-    
-    // Move constructor: Transfer ownership
-    DynamicArray(DynamicArray&& other) noexcept 
-        : data_(other.data_), size_(other.size_) {
-        other.data_ = nullptr;  // Leave source in valid state
-        other.size_ = 0;
-        std::cout << "Moved array\n";
-    }
-    
-    // Move assignment: Transfer ownership
-    DynamicArray& operator=(DynamicArray&& other) noexcept {
-        if (this != &other) {
-            delete[] data_;  // Release old resource
-            data_ = other.data_;  // Take ownership
-            size_ = other.size_;
-            other.data_ = nullptr;  // Leave source valid
-            other.size_ = 0;
-            std::cout << "Move-assigned array\n";
-        }
-        return *this;
-    }
-    
-    size_t size() const { return size_; }
-    int& operator[](size_t i) { return data_[i]; }
+    Resource() { std::cout << "Resource acquired\n"; }
+    ~Resource() { std::cout << "Resource released\n"; }
 };
 
+void might_throw(bool should_throw) {
+    Resource r;  // RAII: acquired here
+    
+    std::cout << "Using resource...\n";
+    
+    if (should_throw) {
+        throw std::runtime_error("Error!");
+        // Destructor still called during stack unwinding
+    }
+    
+    std::cout << "Finished normally\n";
+}  // Destructor called here if no exception
+
+int main() {
+    try {
+        might_throw(true);
+    } catch (...) {
+        std::cout << "Exception caught\n";
+    }
+    // Output shows resource was released despite exception!
+    
+    return 0;
+}
+
 ```
 
 
-**The Rule of Zero**: Prefer using existing RAII types
+### 3. Writing RAII Wrappers
 
 
-If you can use standard library types, you don't need to implement the Rule of Five:
+**Pattern for custom resources**:
 
 
 ```c++
-class BetterDynamicArray {
+class FileHandle {
 private:
-    std::vector<int> data_;  // std::vector handles everything!
-
+    FILE* file;
+    
 public:
-    explicit BetterDynamicArray(size_t size) : data_(size) {}
+    FileHandle(const std::string& path, const std::string& mode) {
+        file = std::fopen(path.c_str(), mode.c_str());
+        if (!file) {
+            throw std::runtime_error("Failed to open: " + path);
+        }
+    }
     
-    // No destructor, copy/move constructors needed!
-    // Compiler-generated versions use vector's implementations
+    ~FileHandle() {
+        if (file) {
+            std::fclose(file);
+        }
+    }
     
-    size_t size() const { return data_.size(); }
-    int& operator[](size_t i) { return data_[i]; }
+    // Non-copyable
+    FileHandle(const FileHandle&) = delete;
+    FileHandle& operator=(const FileHandle&) = delete;
+    
+    // Movable
+    FileHandle(FileHandle&& other) noexcept : file(other.file) {
+        other.file = nullptr;
+    }
+    
+    size_t read(void* buffer, size_t size, size_t count) {
+        return std::fread(buffer, size, count, file);
+    }
 };
 
-```
-
-
-**Move semantics: Transferring ownership efficiently**
-
-
-**The problem**: Copying large objects is expensive
-
-
-```c++
-std::vector<int> create_vector() {
-    std::vector<int> v(1000000);
-    // ... fill vector ...
-    return v;  // Without move: copies 1M ints!
-}
-
-std::vector<int> result = create_vector();  // Expensive copy?
-
-```
-
-
-**The solution**: Move semantics transfer ownership instead of copying
-
-
-```c++
-std::vector<int> result = create_vector();  
-// With move: just transfers pointer, O(1) operation!
-
-```
-
-
-**Lvalues vs Rvalues**:
-
-- **Lvalue**: Has a name, has an address, persists beyond expression
-    - Examples: variables, function parameters, dereferences
-- **Rvalue**: Temporary, no name, dies at end of expression
-    - Examples: literals (42), temporary objects, function return values
-
-```c++
-int x = 42;        // x is lvalue, 42 is rvalue
-int y = x;         // y is lvalue, x is lvalue
-int z = x + y;     // z is lvalue, (x + y) is rvalue (temporary)
-
-std::string s1 = "hello";           // s1 is lvalue
-std::string s2 = s1;                // Copy: s1 is lvalue
-std::string s3 = std::string("hi"); // Move: temporary is rvalue
-std::string s4 = std::move(s1);     // Move: std::move casts to rvalue
-// s1 is now in "moved-from" state (valid but unspecified)
-
-```
-
-
-**`std::move`****: Casting to rvalue reference**
-
-
-`std::move` doesn't move anything—it just casts an lvalue to an rvalue reference, enabling move operations:
-
-
-```c++
-std::vector<int> v1(1000);
-std::vector<int> v2 = std::move(v1);  // Transfer ownership
-// v1 is now empty (moved-from state)
-// v2 owns the data
-
-std::cout << v1.size();  // 0 (valid but empty)
-std::cout << v2.size();  // 1000
-
-```
-
-
-**When moves happen automatically**:
-
-1. Returning local variables: `return local_var;` (copy elision or move)
-2. Passing temporaries: `func(std::vector<int>(100));`
-3. Initializing from temporary: `std::vector<int> v = create_vec();`
-
-**When to use** **`std::move`** **explicitly**:
-
-1. Moving into containers: `vec.push_back(std::move(large_obj));`
-2. Transferring ownership: `unique_ptr<T> p2 = std::move(p1);`
-3. Avoiding copies in algorithms: `std::sort(v.begin(), v.end());` (automatic)
-
-**Move semantics rules**:
-
-1. Move constructors/assignment should be `noexcept` (enables optimizations)
-2. Moved-from objects must be in a valid state (destructible, assignable)
-3. Don't use an object after moving from it (except to assign or destroy)
-
-**Perfect forwarding**: Preserving value category
-
-
-```c++
-template<typename T>
-void wrapper(T&& arg) {  // Universal reference
-    // Forward arg preserving its value category
-    real_function(std::forward<T>(arg));
+void use_file() {
+    FileHandle f("data.txt", "r");
+    // Use f...
+    // Automatic cleanup when f goes out of scope
 }
 
 ```
 
 
-**Copy elision and RVO (Return Value Optimization)**
-
-
-Modern compilers elide copies entirely:
-
-
-```c++
-std::vector<int> create() {
-    std::vector<int> v(1000);
-    return v;  // No copy, no move—direct construction at call site!
-}
-
-std::vector<int> result = create();  // Zero-cost!
-
-```
-
-
-Since C++17, this is **guaranteed** for temporaries (not just an optimization).
-
-
-**Destructors: Cleanup guarantees**
+### 4. Destructors: Cleanup Guarantees
 
 
 **When destructors run**:
@@ -8784,22 +5604,6 @@ Since C++17, this is **guaranteed** for temporaries (not just an optimization).
 1. **Automatic objects**: End of scope
 2. **Dynamic objects**: When `delete` is called
 3. **During exception unwinding**: For all constructed objects on the stack
-
-```c++
-void example() {
-    Resource r1;  // Constructor runs
-    
-    if (condition) {
-        Resource r2;  // Constructor runs
-        // ...
-    }  // r2 destructor runs here
-    
-    throw std::runtime_error("error");
-    
-}  // r1 destructor runs during stack unwinding
-
-```
-
 
 **Destructor best practices**:
 
@@ -8819,7 +5623,7 @@ private:
     int* data_;
 public:
     Derived() : data_(new int[100]) {}
-    ~Derived() override { delete[] data_; }  // Properly cleans up
+    ~Derived() override { delete[] data_; }
 };
 
 // Safe polymorphic deletion:
@@ -8829,7 +5633,7 @@ delete ptr;  // Calls Derived::~Derived() then Base::~Base()
 ```
 
 
-**Exception safety and RAII**
+### 5. Exception Safety and RAII
 
 
 **The problem**: Exceptions can skip cleanup code
@@ -8861,1105 +5665,197 @@ void safe() {
 **The three exception safety guarantees**:
 
 1. **Basic guarantee**: Invariants preserved, no leaks
-2. **Strong guarantee**: Operation succeeds completely or has no effect (transactional)
+2. **Strong guarantee**: Operation succeeds completely or has no effect
 3. **Nothrow guarantee**: Operation never throws (marked `noexcept`)
 
 **RAII provides at least the basic guarantee automatically**.
 
 
-**Scope guards**: Running cleanup code at scope exit
+### 6. The Rule of Zero
+
+
+**Prefer using existing RAII types**:
+
+
+If you can use standard library types, you don't need custom destructors:
 
 
 ```c++
-// C++11 onwards (using lambda)
-template<typename F>
-struct ScopeGuard {
-    F func;
-    ~ScopeGuard() { func(); }
-};
-
-void example() {
-    FILE* f = fopen("file.txt", "r");
-    auto guard = ScopeGuard{[f](){ fclose(f); }};
-    
-    // ... use f ...
-    // May throw, may return early
-    
-    // Guard destructor always runs, closing file
-}
-
-```
-
-
-C++20 adds `std::scope_exit` for this pattern.
-
-
-RAII (Resource Acquisition Is Initialization) ties resource lifetime to object lifetime. The constructor acquires the resource; the destructor releases it. This guarantees cleanup even when exceptions occur.
-
-
-Examples: `std::vector` acquires memory in its constructor and frees it in its destructor. `std::fstream` opens a file in its constructor and closes it in its destructor. `std::lock_guard` acquires a mutex in its constructor and releases it in its destructor.
-
-
-Custom RAII classes wrap non-RAII resources. Pattern: constructor acquires, destructor releases, delete copy operations (or implement them correctly), implement move operations.
-
-
-Exception safety levels: basic (no leaks, invariants maintained), strong (operation succeeds or has no effect), no-throw. RAII enables basic safety automatically.
-
-
-### Deep Dive: RAII and Deterministic Cleanup
-
-
-**Why this matters**: In C++, you don't have a garbage collector. RAII (Resource Acquisition Is Initialization) is the idiom that makes C++ memory management practical. It ties resource lifetime to object lifetime, guaranteeing cleanup even when exceptions are thrown. Every C++ standard library container and smart pointer uses RAII.
-
-
-**Mental model**: Think of RAII as **scope-based cleanup**. When an object goes out of scope, its destructor runs. Period. No matter how the scope exits—normal return, early return, exception—the destructor runs. This makes cleanup **deterministic** and **automatic**.
-
-
-```javascript
-void function() {
-    RAIIObject obj;  // Constructor acquires resource
-    
-    // Use obj...
-    
-}  // ← Scope ends: destructor releases resource automatically
-
-```
-
-
-Compare to manual cleanup (error-prone):
-
-
-```c++
-// Manual cleanup - FRAGILE
-void manual_way() {
-    FILE* f = fopen("data.txt", "r");  // Acquire
-    if (!f) return;                     // Error handling
-    
-    // ... use file ...
-    
-    if (error) {
-        fclose(f);  // Must remember to clean up here
-        return;
-    }
-    
-    // ... more code ...
-    
-    fclose(f);  // And here. Easy to forget!
-}
-
-```
-
-
-**RAII way (robust)**:
-
-
-```c++
-class FileHandle {
-    FILE* file;
-public:
-    FileHandle(const std::string& path, const std::string& mode) {
-        file = std::fopen(path.c_str(), mode.c_str());
-        if (!file) throw std::runtime_error("Failed to open");
-    }
-    
-    ~FileHandle() {  // Cleanup guaranteed
-        if (file) std::fclose(file);
-    }
-    
-    // Prevent copying
-    FileHandle(const FileHandle&) = delete;
-    FileHandle& operator=(const FileHandle&) = delete;
-};
-
-void raii_way() {
-    FileHandle f("data.txt", "r");  // Acquire in constructor
-    
-    // ... use file ...
-    
-    if (error) return;  // Cleanup happens automatically
-    
-    // ... more code ...
-    
-    throw std::exception();  // Cleanup happens automatically
-    
-}  // Cleanup happens automatically
-
-```
-
-
-**Worked example**: RAII ensures cleanup during exceptions
-
-
-```c++
-#include <iostream>
-#include <memory>
-
-class Resource {
-public:
-    Resource() { std::cout << "Resource acquired\n"; }
-    ~Resource() { std::cout << "Resource released\n"; }
-};
-
-void might_throw(bool should_throw) {
-    Resource r;  // RAII: acquired here
-    
-    std::cout << "Using resource...\n";
-    
-    if (should_throw) {
-        throw std::runtime_error("Error!");
-        // Destructor still called during stack unwinding
-    }
-    
-    std::cout << "Finished normally\n";
-}  // Destructor called here if no exception
-
-int main() {
-    std::cout << "=== Normal path ===";
-    might_throw(false);
-    
-    std::cout << "\n=== Exception path ===";
-    try {
-        might_throw(true);
-    } catch (...) {
-        std::cout << "Exception caught\n";
-    }
-    
-    return 0;
-}
-
-```
-
-
-**Output**:
-
-
-```javascript
-=== Normal path ===
-Resource acquired
-Using resource...
-Finished normally
-Resource released
-
-=== Exception path ===
-Resource acquired
-Using resource...
-Resource released      ← Cleanup happened despite exception!
-Exception caught
-
-```
-
-
-**Key insight**: RAII converts **manual bookkeeping** (must remember to call cleanup) into **compiler-enforced guarantees** (destructor always called). This eliminates an entire class of bugs.
-
-
-**Common RAII patterns**:
-
-- **Memory**: `std::unique_ptr`, `std::shared_ptr`, `std::vector` (manages its own buffer)
-- **Files**: `std::fstream` (closes on destruction)
-- **Locks**: `std::lock_guard`, `std::unique_lock` (unlocks on destruction)
-- **Custom resources**: Database connections, network sockets, GPU contexts
-
-Every time you acquire a resource, immediately wrap it in an RAII class.
-
-
-### Exercises
-
-
-**Foundational 1**: Write an RAII wrapper for `FILE*` (C-style file handle). The constructor opens the file, the destructor closes it. Provide `read` and `write` methods. Demonstrate that the file is closed even if an exception is thrown.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension      | 0                            | 1                                      | 2                                     |
-
-| -------------- | ---------------------------- | -------------------------------------- | ------------------------------------- |
-
-| Constructor    | Does not open file correctly | Opens file but no error handling       | Opens file, throws on failure         |
-
-| Destructor     | Does not close file          | Closes but may double-close            | Closes correctly, handles null        |
-
-| Copy Semantics | Allows dangerous copy        | Deletes copy but no move               | Non-copyable, movable                 |
-
-| Exception Demo | No exception test            | Exception thrown but cleanup not shown | Demonstrates file closed on exception |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**RAII wrapper for FILE***:
-
-
-```c++
-#include <cstdio>
-#include <stdexcept>
-#include <string>
-
-class FileHandle {
+class DataProcessor {
 private:
-    FILE* file;
-    
+    std::vector<int> data_;           // RAII: automatic cleanup
+    std::unique_ptr<Cache> cache_;    // RAII: automatic cleanup
+    std::string name_;                 // RAII: automatic cleanup
+
 public:
-    FileHandle(const std::string& path, const std::string& mode) {
-        file = std::fopen(path.c_str(), mode.c_str());
-        if (!file) {
-            throw std::runtime_error("Failed to open: " + path);
-        }
-    }
+    DataProcessor(size_t size, const std::string& name) 
+        : data_(size), cache_(std::make_unique<Cache>()), name_(name) {}
     
-    ~FileHandle() {
-        if (file) {
-            std::fclose(file);
-        }
-    }
-    
-    // Non-copyable
-    FileHandle(const FileHandle&) = delete;
-    FileHandle& operator=(const FileHandle&) = delete;
-    
-    // Movable
-    FileHandle(FileHandle&& other) noexcept : file(other.file) {
-        other.file = nullptr;
-    }
-    
-    size_t read(void* buffer, size_t size, size_t count) {
-        return std::fread(buffer, size, count, file);
-    }
-    
-    size_t write(const void* buffer, size_t size, size_t count) {
-        return std::fwrite(buffer, size, count, file);
-    }
+    // No destructor needed! Compiler-generated one works perfectly
+    // No copy constructor needed! Compiler handles it correctly
+    // No copy assignment needed! Compiler handles it correctly
 };
 
-void process_file() {
-    FileHandle f("data.txt", "r");
-    
-    char buffer[1024];
-    
-
 ```
 
 
-</details>
-
-
-**Foundational 2**: Use `std::lock_guard` to protect a shared counter accessed by multiple threads. Demonstrate that without the guard, data races cause incorrect counts. With the guard, counts are correct. Use `-fsanitize=thread` to detect races.
-
-
-**Expected Time (Proficient): 15–22 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension          | 0                        | 1                                        | 2                                       |
-
-| ------------------ | ------------------------ | ---------------------------------------- | --------------------------------------- |
-
-| Thread Creation    | Cannot create threads    | Creates but doesn't join properly        | Creates and joins all threads correctly |
-
-| Race Demonstration | No race shown            | Race exists but output correct by chance | Shows incorrect count without lock      |
-
-| lock_guard Usage   | Missing or incorrect     | Works but scope too wide/narrow          | Correct RAII lock scope, count correct  |
-
-| TSan Usage         | Cannot compile with TSan | Compiles but ignores warnings            | TSan detects race, interprets output    |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Without lock_guard (data race)**:
-
-
-```c++
-#include <thread>
-#include <mutex>
-#include <vector>
-#include <iostream>
-
-int counter = 0;
-std::mutex mtx;
-
-void increment_unsafe(int n) {
-    for (int i = 0; i < n; i++) {
-        counter++;  // DATA RACE!
-    }
-}
-
-void increment_safe(int n) {
-    for (int i = 0; i < n; i++) {
-        std::lock_guard<std::mutex> lock(mtx);  // RAII lock
-        counter++;
-    }  // lock released automatically
-}
-
-int main() {
-    std::vector<std::thread> threads;
-    
-    // Unsafe version
-    counter = 0;
-    for (int i = 0; i < 10; i++) {
-        threads.emplace_back(increment_unsafe, 10000);
-    }
-    for (auto& t : threads) t.join();
-    std::cout << "Unsafe: " << counter << " (expected 100000)\n";
-    
-    // Safe version
-    threads.clear();
-    counter = 0;
-    for (int i = 0; i < 10; i++) {
-        threads.emplace_back(increment_safe, 10000);
-    }
-    for (auto& t : threads) t.join();
-    std::cout << "Safe: " << counter << " (expected 100000)\n";
-    
-    return 0;
-}
-
-```
-
-
-**Compile with ThreadSanitizer**:
-
-
-```bash
-g++ -fsanitize=thread -g -o race race.cpp -pthread
-./race
-
-```
-
-
-**TSan output** (unsafe version):
-
-
-```javascript
-WARNING: ThreadSanitizer: data race
-  Write of size 4 at 0x... by thread T2:
-    #0 increment_unsafe(int) race.cpp:9
-  Previous write of size 4 at 0x... by thread T1:
-    #0 increment_unsafe(int) race.cpp:9
-
-```
-
-
-</details>
-
-
-**Proficiency 1**: Implement an RAII wrapper for a database connection (simulated: constructor prints "connected", destructor prints "disconnected"). Ensure the wrapper is move-only (non-copyable). Write code that demonstrates connection cleanup on scope exit, including when exceptions are thrown.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension        | 0                               | 1                                          | 2                                         |
-
-| ---------------- | ------------------------------- | ------------------------------------------ | ----------------------------------------- |
-
-| RAII Pattern     | Resource not tied to lifetime   | Constructor/destructor work but incomplete | Clean acquire in ctor, release in dtor    |
-
-| Move Semantics   | Copy allowed (dangerous)        | Move works but copy not deleted            | Move-only: move ctor/assign, copy deleted |
-
-| Move Correctness | Move leaves source in bad state | Move works but no null check in dtor       | Move transfers ownership, source safe     |
-
-| Exception Demo   | No exception test               | Exception thrown but output unclear        | Shows "disconnected" printed on exception |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Move-only database connection wrapper**:
-
-
-```c++
-#include <iostream>
-#include <string>
-#include <stdexcept>
-
-class DatabaseConnection {
-private:
-    bool connected = false;
-    std::string name;
-    
-public:
-    explicit DatabaseConnection(const std::string& db_name) : name(db_name) {
-        std::cout << "Connected to " << name << std::endl;
-        connected = true;
-    }
-    
-    ~DatabaseConnection() {
-        if (connected) {
-            std::cout << "Disconnected from " << name << std::endl;
-        }
-    }
-    
-    // Non-copyable
-    DatabaseConnection(const DatabaseConnection&) = delete;
-    DatabaseConnection& operator=(const DatabaseConnection&) = delete;
-    
-    // Movable
-    DatabaseConnection(DatabaseConnection&& other) noexcept 
-        : connected(other.connected), name(std::move(
-
-```
-
-
-</details>
-
-
-**Proficiency 2**: Implement a `ScopedTimer` class that records the start time in its constructor and prints the elapsed time in its destructor. Use it to measure function execution time by placing a `ScopedTimer` at the start of a function. Demonstrate it works correctly even if the function returns early or throws.
-
-
-**Expected Time (Proficient): 15–22 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension            | 0                         | 1                                  | 2                                            |
-
-| -------------------- | ------------------------- | ---------------------------------- | -------------------------------------------- |
-
-| Timer Implementation | Cannot measure time       | Measures but wrong units/precision | Uses chrono correctly, millisecond precision |
-
-| RAII Pattern         | Requires manual stop call | Auto-prints but leaks or crashes   | Clean auto-print in destructor               |
-
-| Early Return         | Not tested                | Tested but timer doesn't fire      | Timer prints on early return                 |
-
-| Exception Safety     | Not tested                | Tested but timer doesn't fire      | Timer prints when exception thrown           |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**ScopedTimer implementation**:
-
-
-```c++
-#include <chrono>
-#include <iostream>
-#include <string>
-
-class ScopedTimer {
-private:
-    std::string name;
-    std::chrono::high_resolution_clock::time_point start;
-    
-public:
-    explicit ScopedTimer(const std::string& n = "Timer") : name(n) {
-        start = std::chrono::high_resolution_clock::now();
-    }
-    
-    ~ScopedTimer() {
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration<double, std::milli>(end - start);
-        std::cout << name << ": " << duration.count() << " ms" << std::endl;
-    }
-    
-    // Non-copyable, non-movable
-    ScopedTimer(const ScopedTimer&) = delete;
-    ScopedTimer& operator=(const ScopedTimer&) = delete;
-};
-
-// Usage examples
-double compute_sum(int n) {
-    ScopedTimer timer("compute_sum");
-    double sum = 0;
-    for (int i = 0; i < n; i++) {
-        sum += i * 0.001;
-        if (i == n/2) return sum;  // Early return: timer still fires
-    }
-    return sum;
-}
-
-void risky_function() {
-    ScopedTimer timer("risky_function");
-    // ... some work ...
-    throw std::runtime_error("Error!");  // Exception: timer still fires
-}
-
-int main() {
-    compute_sum(1000000);     // Prints: compute_sum: X.XX ms
-    
-    try {
-        risky_function();      // Prints: risky_function: X.XX ms
-    } catch (...) {}
-    
-    return 0;
-}
-
-```
-
-
-</details>
-
-
-**Mastery**: Implement a memory pool allocator as an RAII class. The constructor allocates a large block. The `allocate(size)` method returns pointers into the block (bump allocator). The destructor frees the block. Demonstrate: (a) many small allocations are fast, (b) all memory is freed when the pool is destroyed, (c) no use-after-free is possible if allocations are only used within the pool's lifetime.
-
-
-**Expected Time (Proficient): 30–45 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension        | 0                         | 1                                    | 2                                            |
-
-| ---------------- | ------------------------- | ------------------------------------ | -------------------------------------------- |
-
-| Allocator Design | Cannot allocate from pool | Allocates but no bounds checking     | Bump allocator with alignment, throws on OOM |
-
-| RAII Cleanup     | Memory not freed          | Freed but manual call needed         | All memory freed in destructor automatically |
-
-| Performance Demo | No benchmark              | Benchmark but no comparison          | Shows pool faster than individual new calls  |
-
-| Safety Demo      | No safety discussion      | Mentions safety but no demonstration | Shows lifetime guarantees, no UAF possible   |
-
-| Alignment        | No alignment handling     | Fixed alignment only                 | Configurable alignment, handles max_align_t  |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Memory pool allocator**:
-
-
-```c++
-#include <cstddef>
-#include <cstdint>
-#include <stdexcept>
-#include <vector>
-
-class MemoryPool {
-private:
-    std::vector<char> buffer;  // RAII: automatically freed
-    size_t offset = 0;
-    
-public:
-    explicit MemoryPool(size_t size) : buffer(size) {}
-    
-    void* allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
-        // Align offset
-        size_t aligned_offset = (offset + alignment - 1) & ~(alignment - 1);
-        
-        if (aligned_offset + size > buffer.size()) {
-            throw std::bad_alloc();
-        }
-        
-        void* ptr = 
-
-```
-
-
-**Key properties**:
-
-- Allocation: O(1) bump pointer, no fragmentation
-- Deallocation: O(1) reset (or automatic at scope end)
-- Safety: All memory freed when pool destroyed; no per-allocation delete needed
-
-</details>
-
-<details>
-<summary>Complete Reference Implementation</summary>
-
-```c++
-#include <cstddef>
-#include <cstdint>
-#include <stdexcept>
-#include <vector>
-#include <iostream>
-#include <cassert>
-#include <new>
-
-/**
- * A simple bump allocator / memory pool using RAII.
- * 
- * Key design decisions:
- * - Uses std::vector<char> for automatic cleanup (RAII)
- * - Bump pointer allocation: O(1) allocate, no individual free
- * - Configurable alignment (defaults to max_align_t)
- * - Clear error messages for debugging
- * 
- * Limitations:
- * - Cannot free individual allocations (only reset entire pool)
- * - Fixed capacity set at construction
- * - Not thread-safe
- */
-class MemoryPool {
-private:
-    std::vector<char> buffer_;  // RAII: automatically freed in destructor
-    size_t offset_ = 0;
-    size_t peak_usage_ = 0;     // Track high water mark
-    size_t allocation_count_ = 0;
-
-public:
-    /**
-     * Construct a memory pool with given capacity.
-     * @param size Total bytes available for allocation
-     */
-    explicit MemoryPool(size_t size) : buffer_(size) {
-        if (size == 0) {
-            throw std::invalid_argument("MemoryPool size must be > 0");
-        }
-    }
-    
-    // Delete copy operations to prevent accidental copies
-    MemoryPool(const MemoryPool&) = delete;
-    MemoryPool& operator=(const MemoryPool&) = delete;
-    
-    // Allow move operations
-    MemoryPool(MemoryPool&& other) noexcept
-        : buffer_(std::move(other.buffer_)),
-          offset_(other.offset_),
-          peak_usage_(other.peak_usage_),
-          allocation_count_(other.allocation_count_) {
-        other.offset_ = 0;
-        other.peak_usage_ = 0;
-        other.allocation_count_ = 0;
-    }
-    
-    MemoryPool& operator=(MemoryPool&& other) noexcept {
-        if (this != &other) {
-            buffer_ = std::move(other.buffer_);
-            offset_ = other.offset_;
-            peak_usage_ = other.peak_usage_;
-            allocation_count_ = other.allocation_count_;
-            other.offset_ = 0;
-            other.peak_usage_ = 0;
-            other.allocation_count_ = 0;
-        }
-        return *this;
-    }
-    
-    /**
-     * Allocate memory from the pool.
-     * @param size Number of bytes to allocate
-     * @param alignment Required alignment (must be power of 2)
-     * @return Pointer to allocated memory
-     * @throws std::bad_alloc if pool is exhausted
-     */
-    void* allocate(size_t size, size_t alignment = alignof(std::max_align_t)) {
-        if (size == 0) {
-            return nullptr;
-        }
-        
-        // Validate alignment is power of 2
-        if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
-            throw std::invalid_argument("Alignment must be power of 2");
-        }
-        
-        // Calculate aligned offset using bitmask trick
-        // (offset + alignment - 1) & ~(alignment - 1) rounds up to alignment
-        size_t aligned_offset = (offset_ + alignment - 1) & ~(alignment - 1);
-        
-        // Check if we have enough space
-        if (aligned_offset + size > buffer_.size()) {
-            throw std::bad_alloc();
-        }
-        
-        void* ptr = buffer_.data() + aligned_offset;
-        offset_ = aligned_offset + size;
-        allocation_count_++;
-        
-        if (offset_ > peak_usage_) {
-            peak_usage_ = offset_;
-        }
-        
-        return ptr;
-    }
-    
-    /**
-     * Allocate and construct an object of type T.
-     */
-    template<typename T, typename... Args>
-    T* create(Args&&... args) {
-        void* mem = allocate(sizeof(T), alignof(T));
-        return new (mem) T(std::forward<Args>(args)...);
-    }
-    
-    /**
-     * Reset the pool, making all memory available again.
-     * WARNING: Does not call destructors! Only use for POD types
-     * or manually call destructors first.
-     */
-    void reset() noexcept {
-        offset_ = 0;
-        allocation_count_ = 0;
-        // Note: peak_usage_ intentionally preserved for diagnostics
-    }
-    
-    // Accessors
-    size_t capacity() const noexcept { return buffer_.size(); }
-    size_t used() const noexcept { return offset_; }
-    size_t available() const noexcept { return buffer_.size() - offset_; }
-    size_t peak_usage() const noexcept { return peak_usage_; }
-    size_t allocation_count() const noexcept { return allocation_count_; }
-};
-
-
-// ============ TEST SUITE ============
-void test_memory_pool() {
-    std::cout << "Running MemoryPool tests...\n";
-    
-    // Test 1: Basic allocation
-    {
-        MemoryPool pool(1024);
-        void* p1 = pool.allocate(100);
-        void* p2 = pool.allocate(200);
-        assert(p1 != nullptr);
-        assert(p2 != nullptr);
-        assert(p1 != p2);
-        assert(pool.used() >= 300);  // >= due to alignment
-        std::cout << "  [PASS] Basic allocation\n";
-    }
-    
-    // Test 2: Alignment
-    {
-        MemoryPool pool(1024);
-        pool.allocate(1);  // 1 byte, misaligns next
-        void* p = pool.allocate(8, 64);  // Request 64-byte alignment
-        assert(reinterpret_cast<uintptr_t>(p) % 64 == 0);
-        std::cout << "  [PASS] Alignment works\n";
-    }
-    
-    // Test 3: Exhaustion throws
-    {
-        MemoryPool pool(100);
-        pool.allocate(50);
-        bool threw = false;
-        try {
-            pool.allocate(100);  // Too big
-        } catch (const std::bad_alloc&) {
-            threw = true;
-        }
-        assert(threw);
-        std::cout << "  [PASS] Exhaustion throws bad_alloc\n";
-    }
-    
-    // Test 4: Reset works
-    {
-        MemoryPool pool(100);
-        pool.allocate(50);
-        pool.allocate(40);
-        assert(pool.used() >= 90);
-        pool.reset();
-        assert(pool.used() == 0);
-        pool.allocate(90);  // Should work after reset
-        std::cout << "  [PASS] Reset frees all memory\n";
-    }
-    
-    // Test 5: Many small allocations are fast
-    {
-        MemoryPool pool(1000000);  // 1 MB
-        auto start = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < 100000; i++) {
-            pool.allocate(8);
-        }
-        auto end = std::chrono::high_resolution_clock::now();
-        auto ms = std::chrono::duration<double, std::milli>(end - start).count();
-        std::cout << "  [PASS] 100K allocations in " << ms << " ms\n";
-    }
-    
-    // Test 6: RAII cleanup
-    {
-        void* leaked_ptr;
-        {
-            MemoryPool pool(1024);
-            leaked_ptr = pool.allocate(100);
-            // Pool goes out of scope here - memory is freed
-        }
-        // Cannot use leaked_ptr - would be use-after-free!
-        // This is the RAII guarantee: memory freed at scope end
-        std::cout << "  [PASS] RAII cleanup (no leak)\n";
-    }
-    
-    // Test 7: Create typed objects
-    {
-        MemoryPool pool(1024);
-        struct Point { double x, y, z; };
-        Point* p = pool.create<Point>();
-        p->x = 1.0; p->y = 2.0; p->z = 3.0;
-        assert(p->x == 1.0);
-        std::cout << "  [PASS] Typed object creation\n";
-    }
-    
-    std::cout << "\nAll tests passed!\n";
-}
-
-int main() {
-    test_memory_pool();
-    return 0;
-}
-
-```
-
-
-**Compile and run**:
-
-
-```bash
-g++ -std=c++17 -O2 -fsanitize=address -o pool_test pool.cpp
-./pool_test
-
-```
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. What are the limitations of a bump allocator compared to a general-purpose allocator?
-2. How would you handle individual deallocations in this design?
-3. When would you use a memory pool vs. std::pmr::monotonic_buffer_resource?
-4. How does alignment affect the effective capacity of the pool?
-
-</details>
+**When you need custom**: Only when managing resources not wrapped by existing RAII types (rare in modern C++).
 
 
 ---
 
 
+## Hands-On Exercises
+
+
+The original curriculum includes exercises for:
+
+- Writing RAII wrappers for FILE*
+- Using `std::lock_guard` to protect shared data
+- Implementing move-only database connection wrappers
+- Creating a `ScopedTimer` class
+- Building a memory pool allocator with RAII
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                                | Why It's Bad                            | Fix                                |
+
+| -------------------------------------- | --------------------------------------- | ---------------------------------- |
+
+| Manual cleanup in destructors throwing | Undefined behavior if destructor throws | Make destructors `noexcept`        |
+
+| Forgetting virtual destructor          | Derived destructors don't run           | Mark base destructor `virtual`     |
+
+| Mixing RAII and manual management      | Easy to double-delete or leak           | Choose one: all RAII or all manual |
+
+| Complex logic in destructors           | Hard to reason about exceptions         | Keep destructors simple            |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 11, verify you can:
+
+- [ ] Explain the RAII principle in your own words
+- [ ] Write a simple RAII wrapper for a custom resource
+- [ ] Use `std::unique_ptr` to manage heap memory automatically
+- [ ] Explain why RAII provides exception safety
+- [ ] Recognize when Rule of Zero applies
+
+---
+
+
+## Resources
+
+- [C++ Core Guidelines: RAII](91)
+- [RAII in C++](92)
+- [Exception Safety](93)
+- [Herb Sutter: GotW on RAII](94)
+
 ## Day 11: STL Containers, Algorithms, and Iterators
 
-
-### Concepts
-
-
-**The Standard Template Library (STL): Three pillars**
+## Overview
 
 
-The STL is built on three fundamental components:
-
-1. **Containers**: Data structures that store objects (vector, map, set, etc.)
-2. **Algorithms**: Generic functions that operate on ranges (sort, find, transform, etc.)
-3. **Iterators**: The glue that connects containers and algorithms
-
-**Why the STL matters**: Write once, works with any container. Algorithms are highly optimized and well-tested.
+**Focus**: Master the Standard Template Library's containers, algorithms, and iterators. Learn to write expressive, efficient code using STL building blocks.
 
 
-**Containers: Choosing the right data structure**
+**Why it matters**: The STL is C++'s superpower for generic programming. Mastering it means writing less code with fewer bugs and better performance.
 
 
-**Sequence containers**: Maintain element order
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 11, you will:
+
+- Choose appropriate containers for different use cases
+- Use STL algorithms to replace raw loops
+- Understand iterator categories and invalidation
+- Write lambdas for use with algorithms
+- Compose operations using algorithm chaining
+
+---
+
+
+## Core Concepts
+
+
+### 1. Containers: Choosing the Right Data Structure
+
+
+**Sequence containers** maintain element order:
 
 
 **`std::vector`**: Dynamic array, contiguous storage
 
-
-```c++
-#include <vector>
-
-std::vector<int> v = {1, 2, 3};
-v.push_back(4);        // Amortized O(1)
-v[2] = 10;             // O(1) random access
-v.insert(v.begin(), 0); // O(n) - shifts elements
-
-```
-
-
-**When to use**: Default choice for sequences. Fast random access, cache-friendly.
-
-
-**Cost**: Insertion/deletion in middle is O(n).
-
+- **Use when**: Default choice for sequences, need random access
+- **Cost**: Insertion/deletion in middle is O(n)
 
 **`std::deque`**: Double-ended queue
 
-
-```c++
-#include <deque>
-
-std::deque<int> d = {1, 2, 3};
-d.push_front(0);  // O(1) - unlike vector!
-d.push_back(4);   // O(1)
-
-```
-
-
-**When to use**: Need fast insertion at both ends.
-
-
-**Cost**: Slightly slower random access than vector (not contiguous), more memory overhead.
-
+- **Use when**: Need fast insertion at both ends
+- **Cost**: Slightly slower random access than vector
 
 **`std::list`**: Doubly-linked list
 
+- **Use when**: Frequent insertion/deletion in middle, don't need random access
+- **Cost**: No random access, poor cache locality
 
-```c++
-#include <list>
-
-std::list<int> l = {1, 2, 3};
-auto it = std::find(l.begin(), l.end(), 2);
-l.insert(it, 99);  // O(1) insertion if you have the iterator
-l.erase(it);       // O(1) deletion
-
-```
-
-
-**When to use**: Frequent insertion/deletion in middle, don't need random access.
-
-
-**Cost**: No random access (must traverse), poor cache locality, high memory overhead (pointers).
-
-
-**Associative containers**: Fast lookup by key
+**Associative containers** for fast lookup:
 
 
 **`std::map`**: Ordered key-value pairs (Red-Black tree)
 
-
-```c++
-#include <map>
-
-std::map<std::string, int> ages;
-ages["Alice"] = 30;      // Insert or update
-ages["Bob"] = 25;
-
-if (ages.count("Alice")) {  // Check existence: O(log n)
-    std::cout << ages["Alice"];  // Access: O(log n)
-}
-
-// Iterate in sorted order
-for (const auto& [name, age] : ages) {
-    std::cout << name << ": " << age << std::endl;
-}
-
-```
-
-
-**When to use**: Need sorted keys, or guaranteed iteration order.
-
-
-**Cost**: O(log n) lookup/insertion (slower than unordered_map).
-
+- **Use when**: Need sorted keys or guaranteed iteration order
+- **Cost**: O(log n) operations
 
 **`std::unordered_map`**: Hash table
 
+- **Use when**: Fast lookup is priority, don't need sorted order
+- **Cost**: O(1) average, O(n) worst case
 
-```c++
-#include <unordered_map>
-
-std::unordered_map<std::string, int> ages;
-ages["Alice"] = 30;  // O(1) average
-ages["Bob"] = 25;
-
-if (ages.find("Alice") != ages.end()) {  // O(1) average lookup
-    std::cout << ages["Alice"];
-}
-
-```
+**Container comparison**:
 
 
-**When to use**: Fast lookup is priority, don't need sorted order.
+| Operation     | vector | deque | list  | map      | unordered_map |
+
+| ------------- | ------ | ----- | ----- | -------- | ------------- |
+
+| Random access | O(1)   | O(1)  | O(n)  | -        | -             |
+
+| Insert front  | O(n)   | O(1)  | O(1)  | -        | -             |
+
+| Insert back   | O(1)*  | O(1)  | O(1)  | -        | -             |
+
+| Insert middle | O(n)   | O(n)  | O(1)† | -        | -             |
+
+| Lookup by key | -      | -     | -     | O(log n) | O(1) avg      |
 
 
-**Cost**: O(n) worst case (hash collisions), no guaranteed order, slightly more memory.
+*Amortized  †If you have the iterator
 
 
-**`std::set`**: Ordered unique elements
-
-
-```c++
-#include <set>
-
-std::set<int> s = {3, 1, 4, 1, 5};  // Duplicates removed
-// s contains: {1, 3, 4, 5} - sorted
-
-s.insert(2);  // O(log n)
-if (s.count(3)) {  // O(log n) existence check
-    std::cout << "Found 3";
-}
-
-```
-
-
-**When to use**: Need unique elements in sorted order.
-
-
-**Cost**: O(log n) operations.
-
-
-**Container adapters**: Restricted interfaces
-
-
-**`std::stack`**: LIFO (Last In, First Out)
-
-
-```c++
-#include <stack>
-
-std::stack<int> s;
-s.push(1);
-s.push(2);
-std::cout << s.top();  // 2
-s.pop();
-std::cout << s.top();  // 1
-
-```
-
-
-**`std::queue`**: FIFO (First In, First Out)
-
-
-```c++
-#include <queue>
-
-std::queue<int> q;
-q.push(1);
-q.push(2);
-std::cout << q.front();  // 1
-q.pop();
-std::cout << q.front();  // 2
-
-```
-
-
-**Container comparison guide**:
-
-
-| Operation            | vector | deque  | list | map      | unordered_map |
-
-| -------------------- | ------ | ------ | ---- | -------- | ------------- |
-
-| Random access        | O(1)   | O(1)   | O(n) | -        | -             |
-
-| Insert/delete front  | O(n)   | O(1)   | O(1) | -        | -             |
-
-| Insert/delete back   | O(1)*  | O(1)   | O(1) | -        | -             |
-
-| Insert/delete middle | O(n)   | O(n)   | O(1) | -        | -             |
-
-| Lookup by key        | -      | -      | -    | O(log n) | O(1) avg      |
-
-| Sorted iteration     | -      | -      | -    | Yes      | No            |
-
-| Memory overhead      | Low    | Medium | High | Medium   | Medium        |
-
-
-_Amortized_  *If you have the iterator
-
-
-**Iterators: The universal pointer abstraction**
+### 2. Iterators: The Universal Pointer Abstraction
 
 
 **Iterator categories** (weakest to strongest):
 
-1. **Input/Output iterators**: Single-pass, read or write
-2. **Forward iterators**: Multi-pass, can read/write multiple times
-3. **Bidirectional iterators**: Can go forward and backward (`++`, `--`)
-4. **Random access iterators**: Can jump to any position (`+`, `-`, `[]`)
+1. **Input/Output**: Single-pass, read or write
+2. **Forward**: Multi-pass, can read/write multiple times
+3. **Bidirectional**: Can go forward and backward (`++`, `--`)
+4. **Random access**: Can jump to any position (`+`, `-`, `[]`)
 
-**Example: Iterator usage**
+**Basic usage**:
 
 
 ```c++
@@ -9975,24 +5871,9 @@ while (it != end) {
 }
 
 // Range-based for loop uses iterators internally
-for (int x : v) {  // Syntactic sugar for iterator loop
+for (int x : v) {
     std::cout << x << " ";
 }
-
-```
-
-
-**Why iterators**: Algorithms work with any container through the iterator interface.
-
-
-```c++
-// Same algorithm works on vector, list, deque, etc.
-std::vector<int> v = {5, 2, 8, 1};
-std::sort(v.begin(), v.end());  // Requires random access iterators
-
-std::list<int> l = {5, 2, 8, 1};
-// std::sort(l.begin(), l.end());  // ERROR! list has bidirectional iterators
-l.sort();  // Use list's member function instead
 
 ```
 
@@ -10006,13 +5887,6 @@ auto it = v.begin();
 v.push_back(4);  // May reallocate!
 // *it is now UNDEFINED BEHAVIOR if vector reallocated
 
-// Safe pattern: use indices or refresh iterators
-for (size_t i = 0; i < v.size(); ++i) {
-    if (v[i] == 2) {
-        v.push_back(99);  // OK: using index, not iterator
-    }
-}
-
 ```
 
 
@@ -10020,63 +5894,39 @@ for (size_t i = 0; i < v.size(); ++i) {
 
 - **vector/deque**: Insertion/deletion may invalidate all iterators
 - **list/map/set**: Only erased elements' iterators are invalidated
-- **Always check documentation** for specific guarantees
 
-**Algorithms: Generic, composable, efficient**
-
-
-**The STL provides 100+ algorithms**. Key categories:
+### 3. Algorithms: Generic, Composable, Efficient
 
 
-**1. Non-modifying sequence operations**
+**Key algorithm categories**:
+
+
+**Non-modifying**:
 
 
 ```c++
-#include <algorithm>
-#include <vector>
-
-std::vector<int> v = {1, 2, 3, 4, 5};
-
 // Find element
 auto it = std::find(v.begin(), v.end(), 3);
-if (it != v.end()) {
-    std::cout << "Found at index " << (it - v.begin());
-}
 
 // Count occurrences
-int count = std::count(v.begin(), v.end(), 2);  // Returns 1
+int count = std::count(v.begin(), v.end(), 2);
 
-// Check if all elements satisfy condition
+// Check conditions
 bool all_positive = std::all_of(v.begin(), v.end(), 
                                 [](int x) { return x > 0; });
-
-// Check if any element satisfies condition
-bool has_even = std::any_of(v.begin(), v.end(),
-                            [](int x) { return x % 2 == 0; });
 
 ```
 
 
-**2. Modifying sequence operations**
+**Modifying**:
 
 
 ```c++
-std::vector<int> v = {1, 2, 3, 4, 5};
-std::vector<int> dest(5);
-
-// Copy elements
-std::copy(v.begin(), v.end(), dest.begin());
-
 // Transform (apply function to each element)
-std::vector<int> squares(5);
 std::transform(v.begin(), v.end(), squares.begin(),
                [](int x) { return x * x; });
-// squares = {1, 4, 9, 16, 25}
 
-// Fill with value
-std::fill(v.begin(), v.end(), 0);
-
-// Remove element (logical removal, use erase-remove idiom)
+// Remove element (erase-remove idiom)
 v.erase(std::remove(v.begin(), v.end(), 3), v.end());
 
 ```
@@ -10088,12 +5938,8 @@ v.erase(std::remove(v.begin(), v.end(), 3), v.end());
 ```c++
 std::vector<int> v = {1, 2, 3, 2, 4};
 
-// WRONG: Only removes first occurrence
-v.erase(std::remove(v.begin(), v.end(), 2));
-
 // CORRECT: Removes all occurrences
 v.erase(std::remove(v.begin(), v.end(), 2), v.end());
-// v = {1, 3, 4}
 
 // Why: std::remove shifts elements, returns new logical end
 // You must erase from that point to the old end
@@ -10101,69 +5947,44 @@ v.erase(std::remove(v.begin(), v.end(), 2), v.end());
 ```
 
 
-**3. Sorting and related operations**
+**Sorting**:
 
 
 ```c++
-std::vector<int> v = {5, 2, 8, 1, 9};
-
-// Sort (ascending)
+// Sort ascending
 std::sort(v.begin(), v.end());
-// v = {1, 2, 5, 8, 9}
 
-// Sort with custom comparator (descending)
+// Sort with custom comparator
 std::sort(v.begin(), v.end(), std::greater<int>());
-// v = {9, 8, 5, 2, 1}
-
-// Partial sort (only first k elements)
-std::partial_sort(v.begin(), v.begin() + 3, v.end());
-// First 3 elements are sorted, rest unspecified
 
 // Binary search (requires sorted range)
 if (std::binary_search(v.begin(), v.end(), 5)) {
     std::cout << "Found 5";
 }
 
-// Lower/upper bound
-auto it = std::lower_bound(v.begin(), v.end(), 5);  // First >= 5
-auto it2 = std::upper_bound(v.begin(), v.end(), 5); // First > 5
-
 ```
 
 
-**4. Numeric algorithms** (in `<numeric>`)
+**Numeric algorithms**:
 
 
 ```c++
 #include <numeric>
 
-std::vector<int> v = {1, 2, 3, 4, 5};
-
 // Sum
 int sum = std::accumulate(v.begin(), v.end(), 0);
-// sum = 15
 
 // Product
-int product = std::accumulate(v.begin(), v.end(), 1, std::multiplies<int>());
-// product = 120
-
-// Partial sums (running sum)
-std::vector<int> sums(5);
-std::partial_sum(v.begin(), v.end(), sums.begin());
-// sums = {1, 3, 6, 10, 15}
+int product = std::accumulate(v.begin(), v.end(), 1, 
+                              std::multiplies<int>());
 
 // Inner product (dot product)
-std::vector<int> v2 = {1, 1, 1, 1, 1};
-int dot = std::inner_product(v.begin(), v.end(), v2.begin(), 0);
-// dot = 15
+int dot = std::inner_product(v1.begin(), v1.end(), v2.begin(), 0);
 
 ```
 
 
-**Lambdas: Inline anonymous functions**
-
-
-Lambdas are critical for using STL algorithms effectively.
+### 4. Lambdas: Inline Anonymous Functions
 
 
 **Basic syntax**:
@@ -10172,10 +5993,9 @@ Lambdas are critical for using STL algorithms effectively.
 ```c++
 // [capture](parameters) -> return_type { body }
 auto add = [](int a, int b) -> int { return a + b; };
-std::cout << add(2, 3);  // 5
 
 // Return type deduction
-auto square = [](int x) { return x * x; };  // return type deduced as int
+auto square = [](int x) { return x * x; };
 
 ```
 
@@ -10188,11 +6008,9 @@ int factor = 10;
 
 // Capture by value (copy)
 auto f1 = [factor](int x) { return x * factor; };
-// factor is copied into lambda
 
 // Capture by reference
 auto f2 = [&factor](int x) { factor += x; return factor; };
-f2(5);  // Modifies the original factor
 
 // Capture all by value
 auto f3 = [=](int x) { return x * factor; };
@@ -10203,17 +6021,14 @@ auto f4 = [&](int x) { factor += x; };
 // Mixed capture
 int a = 1, b = 2;
 auto f5 = [a, &b](int x) { b = a + x; return b; };
-// a captured by value, b by reference
 
 ```
 
 
-**Common lambda usage with algorithms**:
+**Common usage with algorithms**:
 
 
 ```c++
-std::vector<int> v = {1, 2, 3, 4, 5};
-
 // Count even numbers
 int even_count = std::count_if(v.begin(), v.end(),
                                [](int x) { return x % 2 == 0; });
@@ -10221,7 +6036,6 @@ int even_count = std::count_if(v.begin(), v.end(),
 // Transform with lambda
 std::transform(v.begin(), v.end(), v.begin(),
                [](int x) { return x * 2; });
-// v = {2, 4, 6, 8, 10}
 
 // Sort by custom criteria
 struct Person { std::string name; int age; };
@@ -10229,69 +6043,53 @@ std::vector<Person> people = {{"Alice", 30}, {"Bob", 25}};
 
 std::sort(people.begin(), people.end(),
           [](const Person& a, const Person& b) {
-              return a.age < b.age;  // Sort by age
+              return a.age < b.age;
           });
 
 ```
 
 
-**Algorithm composition: Chaining operations**
+### 5. Algorithm Composition
 
 
-Algorithms can be composed to build complex operations:
+**Chaining operations**:
 
 
 ```c++
 std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
 // Sum of squares of even numbers
-int sum_even_squares = std::accumulate(
-    v.begin(), v.end(), 0,
-    [](int acc, int x) {
-        return acc + (x % 2 == 0 ? x * x : 0);
-    }
-);
-// sum_even_squares = 4 + 16 + 36 + 64 + 100 = 220
-
-// More explicit multi-step approach
+// Step 1: Filter to evens
 std::vector<int> evens;
 std::copy_if(v.begin(), v.end(), std::back_inserter(evens),
              [](int x) { return x % 2 == 0; });
-// evens = {2, 4, 6, 8, 10}
 
+// Step 2: Transform to squares
 std::transform(evens.begin(), evens.end(), evens.begin(),
                [](int x) { return x * x; });
-// evens = {4, 16, 36, 64, 100}
 
+// Step 3: Sum
 int sum = std::accumulate(evens.begin(), evens.end(), 0);
-// sum = 220
 
 ```
 
 
-**Modern C++ ranges** (C++20): Composable views
+**Modern C++ ranges (C++20)**:
 
 
 ```c++
-// C++20 ranges (if available)
 #include <ranges>
 
-std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-// Lazy evaluation: operations don't execute until iterated
 auto result = v 
     | std::views::filter([](int x) { return x % 2 == 0; })
     | std::views::transform([](int x) { return x * x; });
 
 int sum = std::accumulate(result.begin(), result.end(), 0);
-// sum = 220
-
-// More readable than nested algorithm calls
 
 ```
 
 
-**Performance considerations**
+### 6. Performance Considerations
 
 
 **STL algorithms are highly optimized**:
@@ -10300,784 +6098,129 @@ int sum = std::accumulate(result.begin(), result.end(), 0);
 - Inlining removes lambda overhead
 - Implementations are battle-tested
 
-**Benchmark: Custom loop vs STL algorithm**
-
-
-```c++
-// Custom loop
-auto start = std::chrono::high_resolution_clock::now();
-int sum = 0;
-for (int x : v) {
-    sum += x;
-}
-auto end = std::chrono::high_resolution_clock::now();
-// Time: ~10 ms for 10M elements
-
-// STL algorithm
-start = std::chrono::high_resolution_clock::now();
-sum = std::accumulate(v.begin(), v.end(), 0);
-end = std::chrono::high_resolution_clock::now();
-// Time: ~10 ms (similar, sometimes faster due to optimizations)
-
-```
-
-
-**When to use custom loops**:
-
-- Very simple operations where STL overhead isn't worth it
-- Complex logic that doesn't map well to existing algorithms
-- When debugging/profiling shows STL is the bottleneck (rare)
-
-**When to use STL algorithms** (prefer by default):
-
-- Standard operations (sort, find, transform, etc.)
-- Readability and maintainability matter
-- Portability across compilers/platforms
-- Future optimizations benefit from standard implementations
-
-**Common STL pitfalls**
-
-
-**Pitfall 1: Forgetting to check if iterator is valid**
-
-
-```c++
-std::vector<int> v = {1, 2, 3};
-auto it = std::find(v.begin(), v.end(), 5);
-std::cout << *it;  // UNDEFINED BEHAVIOR! 5 not found, it == v.end()
-
-// Correct:
-if (it != v.end()) {
-    std::cout << *it;
-}
-
-```
-
-
-**Pitfall 2: Using operator[] on map inserts default value**
-
-
-```c++
-std::map<std::string, int> m;
-std::cout << m["key"];  // Inserts {"key", 0} if not present!
-
-// Use find() if you don't want insertion:
-if (m.find("key") != m.end()) {
-    std::cout << m["key"];
-}
-
-```
-
-
-**Pitfall 3: Passing wrong type to accumulate**
-
-
-```c++
-std::vector<long> v = {1000000000, 1000000000, 1000000000};
-long sum = std::accumulate(v.begin(), v.end(), 0);  // WRONG! 0 is int
-// Overflow! Sum exceeds int range
-
-// Correct:
-long sum = std::accumulate(v.begin(), v.end(), 0L);  // 0L is long
-
-```
-
-
-**Best practices**
+**Best practices**:
 
 1. **Prefer algorithms over raw loops** (more expressive, less error-prone)
 2. **Use range-based for when you don't need index** (cleaner syntax)
-3. **Reserve capacity for vectors if size is known** (`v.reserve(n)`)
-4. **Use const references in range-based for for large objects**:
+3. **Reserve capacity for vectors** (`v.reserve(n)`)
+4. **Use const references in range-based for**:
 
     ```c++
     for (const auto& item : large_vector) { ... }  // No copy
     ```
 
-5. **Use emplace over push for in-place construction**:
+5. **Use emplace over push**:
 
     ```c++
     v.emplace_back(args...);  // Constructs in-place
-    v.push_back(T(args...));  // Constructs temporary, then moves
     ```
-
-
-`std::vector` is the default container: contiguous memory, amortized O(1) append, O(1) random access. Know the difference between `size()` and `capacity()`. Know that `push_back` may invalidate iterators and references.
-
-
-`std::array` is a fixed-size array on the stack. Use when size is known at compile time.
-
-
-`std::unordered_map` provides O(1) average lookup. `std::map` provides O(log n) lookup but maintains sorted order.
-
-
-STL algorithms operate on iterator ranges. Examples: `std::sort`, `std::transform`, `std::accumulate`, `std::find_if`. Algorithms are generic: they work on any container with appropriate iterators.
-
-
-Lambdas provide inline function objects for algorithms. Capture by value `[=]` or by reference `[&]`. Prefer explicit captures `[x, &y]` for clarity.
-
-
-### Deep Dive: Iterators and Algorithm Composition
-
-
-**Why this matters**: STL algorithms operate on **iterator ranges**, not specific containers. This means you write `std::sort(v.begin(), v.end())` once and it works on vectors, arrays, deques, or even your custom containers. Understanding iterators enables you to compose powerful operations from simple building blocks without writing explicit loops.
-
-
-**Mental model**: An **iterator** is a generalized pointer that knows how to traverse a container. Think of it as a **cursor** that can:
-
-- Point to an element: `*it` (dereference)
-- Move forward: `++it` (increment)
-- Compare positions: `it1 == it2`
-
-STL algorithms take **iterator pairs** `[begin, end)` that define a **half-open range**: includes `begin`, excludes `end`.
-
-
-```javascript
-Vector: [10, 20, 30, 40, 50]
-         ↑              ↑
-      begin           end
-         └──────────────┘
-         Range to process
-
-```
-
-
-**Worked example**: Composing algorithms without loops
-
-
-**Task**: Given a vector of integers, compute the sum of squares of even numbers.
-
-
-```c++
-#include <vector>
-#include <algorithm>
-#include <numeric>
-#include <iostream>
-
-// BEFORE: Explicit loop (verbose, error-prone)
-int sum_squares_even_loop(const std::vector<int>& v) {
-    int sum = 0;
-    for (size_t i = 0; i < v.size(); i++) {  // Off-by-one risk
-        if (v[i] % 2 == 0) {                  // Easy to mistype
-            sum += v[i] * v[i];
-        }
-    }
-    return sum;
-}
-
-// AFTER: Algorithm composition (declarative, composable)
-int sum_squares_even_stl(const std::vector<int>& v) {
-    return std::accumulate(
-        v.begin(), v.end(), 
-        0,  // Initial value
-        [](int acc, int x) {  // Lambda: accumulator function
-            if (x % 2 == 0) {
-                return acc + x * x;
-            }
-            return acc;
-        }
-    );
-}
-
-int main() {
-    std::vector<int> data = {1, 2, 3, 4, 5, 6};
-    
-    std::cout << "Sum of squares of evens: " 
-              << sum_squares_even_stl(data) << std::endl;
-    // 2² + 4² + 6² = 4 + 16 + 36 = 56
-    
-    return 0;
-}
-
-```
-
-
-**Even better: Chain operations**
-
-
-```c++
-// Step by step with intermediate results
-int sum_squares_even_pipeline(const std::vector<int>& v) {
-    std::vector<int> evens;
-    
-    // Step 1: Filter to evens
-    std::copy_if(
-        v.begin(), v.end(), 
-        std::back_inserter(evens),
-        [](int x) { return x % 2 == 0; }  // Predicate
-    );
-    
-    // Step 2: Transform to squares
-    std::transform(
-        evens.begin(), evens.end(), 
-        evens.begin(),  // In-place transformation
-        [](int x) { return x * x; }
-    );
-    
-    // Step 3: Sum
-    return std::accumulate(evens.begin(), evens.end(), 0);
-}
-
-```
-
-
-**Lambda captures explained**:
-
-
-```c++
-void lambda_captures() {
-    int threshold = 10;
-    int count = 0;
-    
-    std::vector<int> v = {5, 15, 3, 20, 8};
-    
-    // Capture by value [threshold]: lambda gets a COPY
-    auto above_threshold = std::count_if(
-        v.begin(), v.end(),
-        [threshold](int x) {  // threshold copied into lambda
-            return x > threshold;
-        }
-    );
-    // Result: 2 elements (15, 20)
-    
-    // Capture by reference [&count]: lambda can MODIFY original
-    std::for_each(
-        v.begin(), v.end(),
-        [&count](int x) {  // count is a reference
-            if (x > 10) count++;
-        }
-    );
-    std::cout << "Count: " << count << std::endl;  // count was modified: 2
-    
-    // Mixed captures [threshold, &count]: explicit is clearest
-    std::for_each(
-        v.begin(), v.end(),
-        [threshold, &count](int x) {
-            if (x > threshold) count++;
-        }
-    );
-}
-
-```
-
-
-**Key insight**: STL algorithms eliminate **incidental complexity** (loop indexing, bounds checking, initialization) and leave only **essential complexity** (the actual logic: filter evens, square, sum). The result is:
-
-- **Less code** (no loop boilerplate)
-- **Fewer bugs** (no off-by-one errors)
-- **Clearer intent** ("transform then sum" vs. "loop with accumulator")
-- **Optimization opportunities** (algorithms can use parallel execution, vectorization)
-
-**Common algorithm patterns**:
-
-- **Transform**: `std::transform(in, in+n, out, func)` — apply function to each element
-- **Filter**: `std::copy_if(in, in+n, out, predicate)` — keep elements matching predicate
-- **Reduce**: `std::accumulate(in, in+n, init, op)` — combine elements into single value
-- **Search**: `std::find_if(in, in+n, predicate)` — find first matching element
-- **Sort**: `std::sort(in, in+n, comparator)` — order elements
-- **Partition**: `std::partition(in, in+n, predicate)` — reorder so matches come first
-
-Master these patterns and you'll rarely need to write explicit loops.
-
-
-### Exercises
-
-
-**Foundational 1**: Implement a function that computes the mean and variance of a `std::vector<double>` using `std::accumulate`. Do not write explicit loops.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension            | 0                       | 1                                     | 2                                                   |
-
-| -------------------- | ----------------------- | ------------------------------------- | --------------------------------------------------- |
-
-| Mean Calculation     | Incorrect or uses loop  | Uses accumulate but wrong formula     | Correct mean with std::accumulate                   |
-
-| Variance Calculation | Incorrect or uses loop  | Uses accumulate but wrong formula     | Correct variance with lambda, sample variance (n-1) |
-
-| No Loops             | Uses explicit for/while | Mixed: some accumulate, some loops    | Pure STL algorithms, no explicit loops              |
-
-| Edge Cases           | Crashes on empty vector | Returns wrong value for small vectors | Handles empty vector, size=1                        |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation using std::accumulate**:
-
-
-```c++
-#include <vector>
-#include <numeric>
-#include <cmath>
-#include <iostream>
-
-std::pair<double, double> mean_variance(const std::vector<double>& v) {
-    if (v.empty()) {
-        throw std::invalid_argument("Empty vector");
-    }
-    
-    // Mean using accumulate
-    double mean = std::accumulate(v.begin(), v.end(), 0.0) / v.size();
-    
-    // Variance using accumulate with custom operation
-    double sum_sq = std::accumulate(v.begin(), v.end(), 0.0,
-        [mean](double acc, double x) {
-            return acc + (x - mean) * (x - mean);
-        });
-    
-    double variance = sum_sq / (v.size() - 1);  // Sample variance
-    
-    return {mean, variance};
-}
-
-int main() {
-    std::vector<double> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    auto [mean, var] = mean_variance(data);
-    
-    std::cout << "Mean: " << mean << std::endl;          // 5.5
-    std::cout << "Variance: " << var << std::endl;       // 9.166...
-    std::cout << "Std Dev: " << std::sqrt(var) << std::endl;
-    
-    return 0;
-}
-
-```
-
-
-**Note**: No explicit for loops—all iteration via std::accumulate.
-
-
-</details>
-
-
-**Foundational 2**: Sort a vector of pairs `(value, index)` by value using `std::sort` with a lambda comparator. Then use `std::stable_sort` and explain when stability matters.
-
-
-**Expected Time (Proficient): 12–18 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                   | 1                                | 2                                                    |
-
-| --------------------- | ------------------- | -------------------------------- | ---------------------------------------------------- |
-
-| Lambda Comparator     | Cannot write lambda | Lambda incorrect or verbose      | Clean lambda comparing first element                 |
-
-| std::sort Usage       | Does not compile    | Works but wrong element accessed | Correct sort by value                                |
-
-| stable_sort Demo      | Not implemented     | Implemented but no comparison    | Shows difference in output for ties                  |
-
-| Stability Explanation | No explanation      | Vague or incorrect               | Clear examples: secondary sort, rankings, DB records |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```c++
-#include <vector>
-#include <algorithm>
-#include <iostream>
-
-int main() {
-    std::vector<std::pair<double, int>> data = {
-        {3.5, 0}, {1.2, 1}, {3.5, 2}, {2.8, 3}, {1.2, 4}
-    };
-    
-    // Sort by value using lambda
-    std::sort(data.begin(), data.end(),
-        [](const auto& a, const auto& b) {
-            return a.first < b.first;
-        });
-    
-    std::cout << "After sort: ";
-    for (const auto& [val, idx] : data) {
-        std::cout << "(" << val << "," << idx << ") ";
-    }
-    // Output: (1.2,4) (1.2,1) (2.8,3) (3.5,2) (3.5,0)
-    // Note: original order of equal elements NOT preserved
-    
-    // Reset and use stable_sort
-    data = {{3.5, 0}, {1.2, 1}, {3.5, 2}, {2.8, 3}, {1.2, 4}};
-    
-    std::stable_sort(data.begin(), data.end(),
-        [](const auto& a, const auto& b) {
-            return a.first < b.first;
-        });
-    
-    std::cout << "\nAfter stable_sort: ";
-    for (const auto& [val, idx] : data) {
-        std::cout << "(" << val << "," << idx << ") ";
-    }
-    // Output: (1.2,1) (1.2,4) (2.8,3) (3.5,0) (3.5,2)
-    // Original order of equal elements IS preserved
-    
-    return 0;
-}
-
-```
-
-
-**When stability matters**:
-
-- Sorting by secondary key after primary sort
-- Maintaining original order for ties (e.g., sports rankings)
-- Sorting database records where insertion order is meaningful
-
-**Performance**: stable_sort is O(n log n) but uses O(n) extra memory.
-
-
-</details>
-
-
-**Proficiency 1**: Given a large vector of integers, use `std::partition` to separate even and odd numbers in-place. Then use `std::nth_element` to find the median without fully sorting. Benchmark against `std::sort` followed by indexing.
-
-
-**Expected Time (Proficient): 20–28 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension           | 0                      | 1                               | 2                                         |
-
-| ------------------- | ---------------------- | ------------------------------- | ----------------------------------------- |
-
-| partition Usage     | Cannot use partition   | Works but predicate wrong       | Correct even/odd separation in-place      |
-
-| nth_element Usage   | Cannot use nth_element | Finds element but wrong index   | Correct median found without full sort    |
-
-| Benchmarking        | No timing              | Times but unfair comparison     | Fair benchmark showing nth_element faster |
-
-| Complexity Analysis | No analysis            | Mentions O notation incorrectly | Explains O(n) vs O(n log n) difference    |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
-
-
-```c++
-#include <vector>
-#include <algorithm>
-#include <random>
-#include <chrono>
-#include <iostream>
-
-int main() {
-    std::vector<int> data(10000000);
-    std::iota(data.begin(), data.end(), 0);
-    std::shuffle(data.begin(), data.end(), std::mt19937{42});
-    
-    auto data_copy = data;
-    
-    // Using partition for even/odd
-    auto start = std::chrono::high_resolution_clock::now();
-    auto mid = std::partition(data.begin(), data.end(),
-        [](int x) { return x % 2 == 0; });
-    auto partition_time = std::chrono::high_resolution_clock::now() - start;
-    
-    std::cout << "Evens: first " << (mid - data.begin()) << " elements\n";
-    
-    // Using nth_element to find median
-    data = data_copy;
-    start = std::chrono::high_resolution_clock::now();
-    size_t median_idx = data.size() / 2;
-    std::nth_element(data.begin(), data.begin() + median_idx, data.end());
-    auto nth_time = std::chrono::high_resolution_clock::now() - start;
-    
-    std::cout << "Median: " << data[median_idx] << "\n";
-    std::cout << "nth_element time: " 
-              << std::chrono::duration<double, std::milli>(nth_time).count() << " ms\n";
-    
-    // Compare to full sort
-    data = data_copy;
-    start = std::chrono::high_resolution_clock::now();
-    std::sort(data.begin(), data.end());
-    auto sort_time = std::chrono::high_resolution_clock::now() - start;
-    
-    std::cout << "Sort time: " 
-              << std::chrono::duration<double, std::milli>(sort_time).count() << " ms\n";
-    
-    // nth_element: O(n) average, sort: O(n log n)
-    return 0;
-}
-
-```
-
-
-**Typical results** (10M elements):
-
-- nth_element: ~50ms
-- full sort: ~800ms
-- Speedup: 16x for finding median
-
-</details>
-
-
-**Proficiency 2**: Implement a sparse vector as `std::unordered_map<size_t, double>`. Implement dot product with another sparse vector and with a dense `std::vector<double>`. Analyze the complexity of each.
-
-
-**Expected Time (Proficient): 20–28 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                              | 1                                       | 2                                                    |
-
-| --------------------- | ------------------------------ | --------------------------------------- | ---------------------------------------------------- |
-
-| Sparse Representation | Cannot implement sparse vector | Works but inefficient zero handling     | Correct: stores non-zeros only, handles missing keys |
-
-| Sparse-Sparse Dot     | Incorrect result               | Correct but O(nnz1 + nnz2)              | Optimal: O(min(nnz1, nnz2))                          |
-
-| Sparse-Dense Dot      | Incorrect result               | Correct but iterates dense              | Optimal: O(nnz) iterating sparse only                |
-
-| Complexity Analysis   | No analysis                    | States complexity without justification | Correct analysis with nnz notation explained         |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Sparse vector implementation**:
-
-
-```c++
-#include <unordered_map>
-#include <vector>
-#include <iostream>
-
-class SparseVector {
-private:
-    std::unordered_map<size_t, double> data;
-    size_t dim;
-    
-public:
-    explicit SparseVector(size_t dimension) : dim(dimension) {}
-    
-    void set(size_t idx, double val) {
-        if (val != 0.0) {
-            data[idx] = val;
-        } else {
-            data.erase(idx);
-        }
-    }
-    
-    double get(size_t idx) const {
-        auto it = data.find(idx);
-        return it != data.end() ? it->second : 0.0;
-    }
-    
-    // Sparse-sparse dot product: O(min(nnz1, nnz2))
-    double dot(const SparseVector& other) const {
-        double result = 0.0;
-        const auto& smaller = data.size() < 
-
-```
-
-
-**Complexity analysis**:
-
-- Sparse-sparse: O(min(nnz₁, nnz₂)) — iterate smaller, lookup in larger (O(1) average)
-- Sparse-dense: O(nnz) — only iterate non-zeros, O(1) dense access
-- Dense-dense: O(n) — must touch every element
-
-</details>
-
-
-**Mastery**: Implement an LRU (Least Recently Used) cache using `std::list` and `std::unordered_map`. `get(key)` and `put(key, value)` must be O(1). Verify correctness with tests that check eviction order. Profile to confirm O(1) behavior empirically.
-
-
-**Expected Time (Proficient): 30–45 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                       | 1                                        | 2                                            |
-
-| ----------------- | ----------------------- | ---------------------------------------- | -------------------------------------------- |
-
-| Data Structure    | Wrong containers chosen | Correct containers but wrong linkage     | list + unordered_map with iterator storage   |
-
-| get() Correctness | Does not work           | Returns value but doesn't update recency | O(1) lookup, moves to front                  |
-
-| put() Correctness | Does not work           | Inserts but eviction wrong               | O(1) insert, correct LRU eviction            |
-
-| Testing           | No tests                | Basic tests only                         | Tests verify eviction order, update behavior |
-
-| Profiling         | No profiling            | Times but doesn't vary size              | Shows constant time across cache sizes       |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**LRU Cache implementation**:
-
-
-```c++
-#include <list>
-#include <unordered_map>
-#include <optional>
-
-template<typename K, typename V>
-class LRUCache {
-private:
-    size_t capacity;
-    std::list<std::pair<K, V>> items;  // Front = most recent
-    std::unordered_map<K, typename std::list<std::pair<K, V>>::iterator> index;
-    
-public:
-    explicit LRUCache(size_t cap) : capacity(cap) {}
-    
-    std::optional<V> get(const K& key) {
-        auto it = index.find(key);
-        if (it == index.end()) {
-            return std::nullopt;
-        }
-        // Move to front (most recently used)
-        items.splice(items.begin(), items, it->second);
-        return it->second->second;
-    }
-    
-    void put(const K& key, const V& value) {
-        auto it = index.find(key);
-        if (it != index.end()) {
-            // Update existing
-            it->second->second = value;
-            items.splice(items.begin(), items, it->second);
-            return;
-        }
-        // Evict if at capacity
-        if (items.size() >= capacity) {
-            auto& lru = items.back();
-            index.erase(lru.first);
-            items.pop_back();
-        }
-        // Insert new
-        items.emplace_front(key, value);
-        index[key] = items.begin();
-    }
-    
-    size_t size() const { return items.size(); }
-};
-
-// Test eviction order
-int main() {
-    LRUCache<int, std::string> cache(3);
-    
-    cache.put(1, "one");
-    cache.put(2, "two");
-    cache.put(3, "three");
-    cache.get(1);          // Access 1, now order: 1, 3, 2
-    cache.put(4, "four");  // Evicts 2 (LRU)
-    
-    assert(!cache.get(2).has_value());  // 2 was evicted
-    assert(cache.get(1).value() == "one");  // 1 still there
-    
-    return 0;
-}
-
-```
-
-
-**O(1) operations**:
-
-- get: O(1) hash lookup + O(1) list splice
-- put: O(1) hash lookup + O(1) list operations
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why is std::list necessary for O(1) LRU operations instead of std::vector?
-2. How does iterator invalidation affect the map-list linkage?
-3. What cache eviction policy would you use for a database buffer pool?
-4. How would you make this LRU cache thread-safe?
-
-</details>
 
 
 ---
 
 
+## Common Pitfalls
+
+
+| Pitfall                                   | Why It's Bad                         | Fix                                                |
+
+| ----------------------------------------- | ------------------------------------ | -------------------------------------------------- |
+
+| Forgetting iterator validity check        | Undefined behavior                   | Check `it != end()` before dereference             |
+
+| Using `operator[]` on map                 | Inserts default value if key missing | Use `find()` if you don't want insertion           |
+
+| Wrong type for `accumulate` initial value | Integer overflow or precision loss   | Use correct type: `0L` for long, `0.0` for double  |
+
+| Modifying container while iterating       | Iterator invalidation                | Use algorithm or save modifications for after loop |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 12, verify you can:
+
+- [ ] Choose appropriate container for a given use case
+- [ ] Use `std::find`, `std::sort`, `std::transform`, `std::accumulate`
+- [ ] Write lambdas with explicit captures
+- [ ] Apply the erase-remove idiom correctly
+- [ ] Understand iterator invalidation rules
+
+---
+
+
+## Resources
+
+- [C++ Reference: Containers](95)
+- [C++ Reference: Algorithms](96)
+- [STL Tutorial](97)
+- [C++20 Ranges](98)
+
 ## Day 12: Numerical Stability and Floating-Point
 
-
-### Concepts
-
-
-Floating-point representation (IEEE 754): finite precision causes rounding errors. Understand machine epsilon, denormalized numbers, infinity, and NaN.
+## Overview
 
 
-Catastrophic cancellation occurs when subtracting nearly equal numbers. Example: computing variance via `E[X²] - E[X]²` is numerically unstable. Welford's algorithm is stable.
+**Focus**: Understand numerical stability and floating-point arithmetic. Learn to write numerically robust code that avoids catastrophic cancellation, overflow, and underflow.
 
 
-Order of operations matters. Summing many small numbers into a large accumulator loses precision. Kahan summation compensates for this.
+**Why it matters**: Statistical computations involve floating-point arithmetic. Naive implementations can produce completely wrong results due to numerical instability.
 
 
-Compare floating-point numbers with tolerance, not equality. Use `std::abs(a - b) < epsilon` or relative tolerance.
+---
 
 
-Overflow and underflow: intermediate results may exceed representable range. Log-space computation (log-sum-exp) avoids overflow in probability calculations.
+## Learning Objectives
 
 
-### Exercises
+By the end of Day 12, you will:
+
+- Understand IEEE 754 floating-point representation
+- Avoid catastrophic cancellation in computations
+- Implement stable variance and summation algorithms
+- Use log-space computation to avoid overflow
+- Compare floating-point numbers correctly
+
+---
 
 
-**Foundational 1**: Compute the variance of `{1e10, 1e10 + 1, 1e10 + 2}` using the naive formula. Then compute using Welford's algorithm. Compare results to the true variance and explain the discrepancy.
+## Core Concepts
 
 
-**Expected Time (Proficient): 15–22 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension              | 0                            | 1                                    | 2                                               |
-
-| ---------------------- | ---------------------------- | ------------------------------------ | ----------------------------------------------- |
-
-| Naive Implementation   | Cannot implement E[X²]-E[X]² | Implements but doesn't observe error | Correct implementation showing wrong result     |
-
-| Welford Implementation | Cannot implement             | Implements but incorrect formula     | Correct online algorithm, right result          |
-
-| Comparison             | No comparison to true value  | Compares but doesn't quantify error  | Shows naive=0, Welford=1, true=1                |
-
-| Explanation            | No explanation               | Mentions precision vaguely           | Explains catastrophic cancellation, lost digits |
+### 1. Floating-Point Representation
 
 
-</details>
+**IEEE 754** represents numbers with finite precision:
 
-<details>
-<summary>Solution Sketch</summary>
+- **Machine epsilon**: Smallest number ε such that 1 + ε ≠ 1
+- **Denormalized numbers**: Very small numbers near zero
+- **Special values**: Infinity (`inf`), Not-a-Number (`NaN`)
 
-**Implementation**:
+**Rounding errors** accumulate in computations:
 
 
 ```c++
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <iomanip>
+double x = 0.1 + 0.2;  // Not exactly 0.3!
+std::cout << (x == 0.3);  // false
+std::cout << std::abs(x - 0.3) < 1e-10;  // true (use tolerance)
 
-// Naive (unstable) variance: E[X²] - E[X]²
+```
+
+
+### 2. Catastrophic Cancellation
+
+
+**The problem**: Subtracting nearly equal numbers loses precision.
+
+
+**Example: Naive variance**:
+
+
+```c++
+// BAD: E[X²] - E[X]² is numerically unstable
 double variance_naive(const std::vector<double>& v) {
     double sum = 0, sum_sq = 0;
     for (double x : v) {
@@ -11089,7 +6232,18 @@ double variance_naive(const std::vector<double>& v) {
     return mean_sq - mean * mean;  // Catastrophic cancellation!
 }
 
-// Welford's algorithm (stable)
+// Test: {1e10, 1e10 + 1, 1e10 + 2}
+// True variance: 1.0
+// Naive result: 0.0  (WRONG! Lost all precision)
+
+```
+
+
+**Solution: Welford's algorithm**:
+
+
+```c++
+// GOOD: Stable online algorithm
 double variance_welford(const std::vector<double>& v) {
     double mean = 0, M2 = 0;
     size_t n = 0;
@@ -11103,166 +6257,58 @@ double variance_welford(const std::vector<double>& v) {
     return M2 / (n - 1);  // Sample variance
 }
 
-int main() {
-    std::vector<double> data = {1e10, 1e10 + 1, 1e10 + 2};
-    
-    // True variance: Var({0, 1, 2}) = 1.0
-    double true_var = 1.0;
-    
-    std::cout << std::setprecision(15);
-    std::cout << "True variance:    " << true_var << std::endl;
-    std::cout << "Naive variance:   " << variance_naive(data) << std::endl;
-    std::cout << "Welford variance: " << variance_welford(data) << std::endl;
-    
-    return 0;
-}
+// Welford result: 1.0 (CORRECT)
 
 ```
 
 
-**Output**:
+### 3. Summation Stability
 
 
-```javascript
-True variance:    1
-Naive variance:   0                  // WRONG! Lost all precision
-Welford variance: 1.00000000000000   // Correct
-
-```
-
-
-**Explanation**: In naive formula, we compute 1e20 - 1e20 (both terms ≈ 1e20). With ~16 digits of precision, the difference of 1 is lost in rounding. Welford's algorithm only subtracts values close in magnitude.
-
-
-</details>
-
-
-**Foundational 2**: Sum one million values of `1e-10` using naive summation and Kahan summation. Compare to the true sum (`1e-4`). Report the relative error of each method.
-
-
-**Expected Time (Proficient): 15–20 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                 | 1                                   | 2                                          |
-
-| ----------------- | ----------------- | ----------------------------------- | ------------------------------------------ |
-
-| Naive Summation   | Cannot implement  | Implements but wrong true value     | Correct naive sum computed                 |
-
-| Kahan Summation   | Cannot implement  | Implements but missing compensation | Correct: y, t, c variables used properly   |
-
-| Error Calculation | No error reported | Absolute error only                 | Relative error for both methods            |
-
-| Analysis          | No analysis       | Notes Kahan is better               | Explains how compensation tracks lost bits |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**Naive summation** loses precision when summing many small numbers:
 
 
 ```c++
-#include <iostream>
-#include <iomanip>
-#include <cmath>
+// BAD: Naive summation
+double sum = 0.0;
+for (int i = 0; i < 1000000; i++) {
+    sum += 1e-10;  // Each addition loses precision
+}
+// Result: 0.000100000000169 (wrong!)
+// True:   0.0001
 
-int main() {
-    const int N = 1000000;
-    const double value = 1e-10;
-    const double true_sum = N * value;  // 1e-4 = 0.0001
-    
-    // Naive summation
-    double naive_sum = 0.0;
-    for (int i = 0; i < N; i++) {
-        naive_sum += value;
-    }
-    
-    // Kahan (compensated) summation
-    double kahan_sum = 0.0;
+```
+
+
+**Kahan summation** compensates for lost low-order bits:
+
+
+```c++
+// GOOD: Compensated summation
+double kahan_sum(const std::vector<double>& v) {
+    double sum = 0.0;
     double c = 0.0;  // Compensation for lost low-order bits
-    for (int i = 0; i < N; i++) {
-        double y = value - c;      // Compensated value
-        double t = kahan_sum + y;  // Tentative sum
-        c = (t - kahan_sum) - y;   // Recover lost bits
-        kahan_sum = t;
+    
+    for (double x : v) {
+        double y = x - c;      // Compensated value
+        double t = sum + y;    // Tentative sum
+        c = (t - sum) - y;     // Recover lost bits
+        sum = t;
     }
-    
-    double naive_error = std::abs(naive_sum - true_sum) / true_sum;
-    double kahan_error = std::abs(kahan_sum - true_sum) / true_sum;
-    
-    std::cout << std::setprecision(15);
-    std::cout << "True sum:      " << true_sum << std::endl;
-    std::cout << "Naive sum:     " << naive_sum << std::endl;
-    std::cout << "Kahan sum:     " << kahan_sum << std::endl;
-    std::cout << "Naive error:   " << naive_error * 100 << "%" << std::endl;
-    std::cout << "Kahan error:   " << kahan_error * 100 << "%" << std::endl;
-    
-    return 0;
+    return sum;
 }
 
 ```
 
 
-**Typical output**:
+### 4. Log-Space Computation
 
 
-```javascript
-True sum:      0.0001
-Naive sum:     0.000100000000169
-Kahan sum:     0.0001
-Naive error:   0.000169%
-Kahan error:   0%  (or near machine epsilon)
-
-```
-
-
-**Note**: Naive accumulates rounding errors; Kahan tracks and compensates for them.
-
-
-</details>
-
-
-**Proficiency 1**: Implement log-sum-exp for a vector of log-probabilities. Demonstrate that the naive implementation (`log(sum(exp(x)))`) overflows for large values. Your implementation must not overflow.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                    | 1                                    | 2                                                   |
-
-| --------------------- | -------------------- | ------------------------------------ | --------------------------------------------------- |
-
-| Naive Implementation  | Cannot implement     | Implements but doesn't show overflow | Shows naive returns inf for large values            |
-
-| Stable Implementation | Still overflows      | Works but subtracts wrong value      | Correct: subtracts max, handles edge cases          |
-
-| Math Understanding    | Cannot explain trick | Knows to subtract max but not why    | Explains log(sum(exp)) = max + log(sum(exp(x-max))) |
-
-| Testing               | No test cases        | Tests one range only                 | Tests extreme positive, negative, mixed values      |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**The problem**: exp(large_number) overflows
 
 
 ```c++
-#include <vector>
-#include <cmath>
-#include <limits>
-#include <algorithm>
-
-// UNSTABLE: Overflows for large values
+// BAD: Naive log-sum-exp
 double logsumexp_naive(const std::vector<double>& v) {
     double sum = 0.0;
     for (double x : v) {
@@ -11271,7 +6317,14 @@ double logsumexp_naive(const std::vector<double>& v) {
     return std::log(sum);
 }
 
-// STABLE: Subtract max before exp
+```
+
+
+**Solution**: Subtract max before exponentiating
+
+
+```c++
+// GOOD: Numerically stable log-sum-exp
 double logsumexp_stable(const std::vector<double>& v) {
     if (v.empty()) return -std::numeric_limits<double>::infinity();
     
@@ -11283,71 +6336,21 @@ double logsumexp_stable(const std::vector<double>& v) {
     
     double sum = 0.0;
     for (double x : v) {
-        sum += std::exp(x - max_val);  // exp(x - max) <= 1, no overflow
+        sum += std::exp(x - max_val);  // exp(x - max) ≤ 1, no overflow
     }
     
     return max_val + std::log(sum);
 }
 
-int main() {
-    std::vector<double> log_probs = {-1000, -999, -998};
-    std::vector<double> large_vals = {1000, 1001, 1002};
-    
-    std::cout << "Small values:\n";
-    std::cout << "  Naive:  " << logsumexp_naive(log_probs) << std::endl;   // Works
-    std::cout << "  Stable: " << logsumexp_stable(log_probs) << std::endl;  // Works
-    
-    std::cout << "Large values:\n";
-    std::cout << "  Naive:  " << logsumexp_naive(large_vals) << std::endl;  // inf!
-    std::cout << "  Stable: " << logsumexp_stable(large_vals) << std::endl; // ~1002.4
-    
-    return 0;
-}
+// Math: log(sum(exp(x))) = max(x) + log(sum(exp(x - max(x))))
 
 ```
 
 
-**Math**: log(sum(exp(x))) = max(x) + log(sum(exp(x - max(x))))
-
-
-</details>
-
-
-**Proficiency 2**: Implement numerically stable softmax. Test on vectors with values ranging from -1000 to 1000. Verify the output sums to 1.0 (within tolerance) and contains no NaN or infinity.
-
-
-**Expected Time (Proficient): 15–22 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension       | 0                | 1                             | 2                                         |
-
-| --------------- | ---------------- | ----------------------------- | ----------------------------------------- |
-
-| Implementation  | Produces NaN/inf | Works for small values only   | Stable for extreme values (-1000 to 1000) |
-
-| Max Subtraction | Not used         | Subtracts but not max element | Correctly subtracts max before exp        |
-
-| Sum-to-One Test | No verification  | Checks but wrong tolerance    | Verifies sum within 1e-10 of 1.0          |
-
-| NaN/Inf Check   | No check         | Checks output only            | Checks both intermediate and final values |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**Application: Softmax**
 
 
 ```c++
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <cassert>
-
 std::vector<double> softmax_stable(const std::vector<double>& v) {
     if (v.empty()) return {};
     
@@ -11370,224 +6373,197 @@ std::vector<double> softmax_stable(const std::vector<double>& v) {
     return result;
 }
 
-int main() {
-    // Test with extreme values
-    std::vector<double> extreme = {-1000, 0, 1000};
-    auto probs = softmax_stable(extreme);
-    
-    // Verify sum to 1
-    double sum = 0;
-    for (double p : probs) {
-        sum += p;
-        assert(!std::isnan(p) && !std::isinf(p));
-    }
-    assert(std::abs(sum - 1.0) < 1e-10);
-    
-    // Result: [0, 0, 1] approximately (1000 dominates)
-    std::cout << "Probs: ";
-    for (double p : probs) std::cout << p << " ";
-    std::cout << "\nSum: " << sum << std::endl;
-    
-    return 0;
+// Works for extreme values: {-1000, 0, 1000}
+// Without stability trick: produces NaN/inf
+
+```
+
+
+### 5. Comparing Floating-Point Numbers
+
+
+**Never use** **`==`** **for floating-point**:
+
+
+```c++
+// BAD
+if (x == y) { ... }  // Almost always wrong
+
+// GOOD: Absolute tolerance
+if (std::abs(x - y) < 1e-10) { ... }
+
+// BETTER: Relative tolerance
+double relative_error = std::abs(x - y) / std::max(std::abs(x), std::abs(y));
+if (relative_error < 1e-10) { ... }
+
+// BEST: Use both absolute and relative
+bool approx_equal(double x, double y, double abs_tol = 1e-10, double rel_tol = 1e-10) {
+    double diff = std::abs(x - y);
+    return diff < abs_tol || diff < rel_tol * std::max(std::abs(x), std::abs(y));
 }
 
 ```
 
 
-**Why stable**: Without subtracting max, exp(1000) = inf. After subtracting max=1000, we compute exp(0)=1, exp(-1000)≈0, exp(-2000)≈0. No overflow.
+### 6. Overflow and Underflow
 
 
-</details>
-
-
-**Mastery**: Implement Cholesky decomposition with pivoting for positive semi-definite matrices. Handle the case where the matrix is numerically singular (eigenvalue below tolerance). Compare your implementation to naive Cholesky on a nearly-singular covariance matrix. Document the stability improvements.
-
-
-**Expected Time (Proficient): 35–50 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension            | 0                      | 1                                   | 2                                                      |
-
-| -------------------- | ---------------------- | ----------------------------------- | ------------------------------------------------------ |
-
-| Basic Cholesky       | Cannot implement       | Works for well-conditioned matrices | Correct L*L^T decomposition                            |
-
-| Pivoting             | No pivoting            | Pivots but wrong selection          | Correctly selects largest diagonal, permutes rows/cols |
-
-| Singularity Handling | Crashes on singular    | Detects but wrong handling          | Gracefully stops at rank, reports numerical rank       |
-
-| Comparison           | No comparison to naive | Compares but same test matrix       | Shows naive fails, pivoted succeeds on near-singular   |
-
-| Documentation        | No explanation         | Mentions stability                  | Explains why pivoting improves numerical stability     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Cholesky with pivoting**:
+**Detecting and handling**:
 
 
 ```c++
-#include <vector>
+#include <limits>
 #include <cmath>
-#include <stdexcept>
-#include <algorithm>
 
-class CholeskyPivoted {
-public:
-    std::vector<std::vector<double>> L;
-    std::vector<int> perm;  // Permutation indices
-    int rank;               // Numerical rank
-    
-    void decompose(std::vector<std::vector<double>> A, double tol = 1e-10) {
-        int n = A.size();
-        L.assign(n, std::vector<double>(n, 0.0));
-        perm.resize(n);
-        std::iota(perm.begin(), perm.end(), 0);
-        
-        for (int k = 0; k < n; k++) {
-            // Find pivot: largest diagonal element in remaining submatrix
-            int pivot = k;
-            double max_diag = A[k][k];
-            for (int i = k + 1; i < n; i++) {
-                if (A[i][i] > max_diag) {
-                    max_diag = A[i][i];
-                    pivot = i;
-                }
-            }
-            
-            // Check for numerical singularity
-            if (max_diag < tol) {
-                rank = k;
-                return;  // Stop: remaining eigenvalues too small
-            }
-            
-            // Swap rows and columns
-            if (pivot != k) {
-                std::swap(perm[k], perm[pivot]);
-                for (int j = 0; j < n; j++) std::swap(A[k][j], A[pivot][j]);
-                for (int i = 0; i < n; i++) std::swap(A[i][k], A[i][pivot]);
-                for (int j = 0; j < k; j++) std::swap(L[k][j], L[pivot][j]);
-            }
-            
-            // Standard Cholesky step
-            double sum = 0;
-            for (int j = 0; j < k; j++) sum += L[k][j] * L[k][j];
-            L[k][k] = std::sqrt(A[k][k] - sum);
-            
-            for (int i = k + 1; i < n; i++) {
-                sum = 0;
-                for (int j = 0; j < k; j++) sum += L[i][j] * L[k][j];
-                L[i][k] = (A[i][k] - sum) / L[k][k];
-            }
-        }
-        rank = n;
+// Check for special values
+bool is_finite(double x) {
+    return std::isfinite(x);  // Not inf or NaN
+}
+
+bool has_overflow(double x) {
+    return std::isinf(x);
+}
+
+bool has_nan(double x) {
+    return std::isnan(x);
+}
+
+// Safe multiplication
+double safe_multiply(double a, double b) {
+    double result = a * b;
+    if (!std::isfinite(result)) {
+        throw std::overflow_error("Multiplication overflow");
     }
-};
+    return result;
+}
 
 ```
-
-
-**Stability improvement**: Pivoting selects largest diagonal, avoiding division by small numbers and accumulation of errors. Naive Cholesky fails on near-singular matrices; pivoted version gracefully handles rank deficiency.
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why does pivoting improve numerical stability for Cholesky decomposition?
-2. How do you choose the tolerance for detecting numerical singularity?
-3. What is the relationship between pivot order and eigenvalue ordering?
-4. When would you use Cholesky vs. LU decomposition for solving linear systems?
-
-</details>
 
 
 ---
 
 
+## Common Pitfalls
+
+
+| Pitfall                      | Why It's Bad                       | Fix                            |
+
+| ---------------------------- | ---------------------------------- | ------------------------------ |
+
+| `E[X²] - E[X]²` for variance | Catastrophic cancellation          | Use Welford's algorithm        |
+
+| Summing in arbitrary order   | Accumulated rounding errors        | Use Kahan summation            |
+
+| `exp(large_value)`           | Overflow to infinity               | Use log-space computation      |
+
+| `x == y` for floats          | Rounding makes exact equality rare | Use tolerance-based comparison |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 13, verify you can:
+
+- [ ] Explain catastrophic cancellation with an example
+- [ ] Implement Welford's algorithm for variance
+- [ ] Implement Kahan summation
+- [ ] Implement log-sum-exp without overflow
+- [ ] Compare floating-point numbers with appropriate tolerance
+
+---
+
+
+## Resources
+
+- [What Every Computer Scientist Should Know About Floating-Point](99)
+- [Numerically Stable Algorithms](100)
+- [Kahan Summation](101)
+- [Log-Sum-Exp Trick](102)
+
 ## Day 13: Performance Reasoning and Optimization
 
-
-### Concepts
-
-
-Performance reasoning starts with understanding the memory hierarchy: registers, L1/L2/L3 cache, RAM, disk. Cache misses dominate performance for memory-bound code.
+## Overview
 
 
-Data layout matters: row-major (C-style) vs column-major (Fortran-style). Accessing contiguous memory is fast; strided access causes cache misses.
+**Focus**: Learn to reason about performance, measure it accurately, and optimize where it matters. Understand cache behavior, data layout, and compiler optimizations.
 
 
-Compiler optimizations: `-O2` enables most optimizations, `-O3` enables aggressive optimizations (may increase code size). `-march=native` enables CPU-specific instructions. Profile before and after to verify improvements.
+**Why it matters**: Performance optimization is often the reason for using C++. Knowing when and how to optimize separates proficient C++ programmers from novices.
 
 
-Benchmarking pitfalls: warm-up runs, preventing dead code elimination (use `volatile` or `benchmark::DoNotOptimize`), measuring steady state not transients.
+---
 
 
-Amdahl's law: optimizing a fraction f of the code yields at most 1/(1-f) speedup. Profile to find bottlenecks before optimizing.
+## Learning Objectives
 
 
-### Exercises
+By the end of Day 13, you will:
+
+- Understand the memory hierarchy (cache, RAM, disk)
+- Reason about cache-friendly vs cache-hostile code
+- Use profiling tools to identify bottlenecks
+- Apply Amdahl's law to predict speedups
+- Benchmark code correctly
+
+---
 
 
-**Foundational 1**: Implement matrix multiplication with row-major access pattern (ijk order) and compare to column-major access (ikj order). Measure the performance difference for 1000x1000 matrices. Explain in terms of cache behavior.
+## Core Concepts
 
 
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension          | 0                             | 1                          | 2                                                      |
-
-| ------------------ | ----------------------------- | -------------------------- | ------------------------------------------------------ |
-
-| ijk Implementation | Does not compile or incorrect | Works but wrong loop order | Correct ijk nested loops                               |
-
-| ikj Implementation | Does not compile or incorrect | Works but same as ijk      | Correct ikj with row-wise B access                     |
-
-| Benchmarking       | No timing                     | Times but not 1000x1000    | Proper timing, shows 2-5x difference                   |
-
-| Cache Explanation  | No explanation                | Mentions cache vaguely     | Explains stride-1 vs stride-n access, cache line reuse |
+### 1. Memory Hierarchy
 
 
-</details>
+**The reality**: Memory speed varies by 1000x
 
-<details>
-<summary>Solution Sketch</summary>
 
-**Implementation**:
+| Level    | Latency | Size    |
+
+| -------- | ------- | ------- |
+
+| L1 cache | ~1 ns   | ~32 KB  |
+
+| L2 cache | ~3 ns   | ~256 KB |
+
+| L3 cache | ~10 ns  | ~8 MB   |
+
+| RAM      | ~100 ns | ~16 GB  |
+
+| Disk     | ~10 ms  | ~1 TB   |
+
+
+**Cache misses dominate** performance for memory-bound code.
+
+
+### 2. Data Layout Matters
+
+
+**Row-major vs column-major access**:
 
 
 ```c++
-#include <vector>
-#include <chrono>
-#include <iostream>
+// Row-major (C/C++ default): data[row][col]
+// Accessing data[i][j+1] is cache-friendly (adjacent in memory)
+// Accessing data[i+1][j] may miss cache (stride-n access)
 
-using Matrix = std::vector<std::vector<double>>;
-
-// ijk order: row-major access pattern (cache-friendly for A and C)
+// Matrix multiplication: ijk vs ikj order
 void matmul_ijk(const Matrix& A, const Matrix& B, Matrix& C, int n) {
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n; j++) {
             double sum = 0;
             for (int k = 0; k < n; k++) {
-                sum += A[i][k] * B[k][j];  // B access strides by row
+                sum += A[i][k] * B[k][j];  // B strides by row (cache miss)
             }
             C[i][j] = sum;
         }
     }
 }
 
-// ikj order: better cache usage for B
+// Better: ikj order
 void matmul_ikj(const Matrix& A, const Matrix& B, Matrix& C, int n) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) C[i][j] = 0;
-    }
     for (int i = 0; i < n; i++) {
         for (int k = 0; k < n; k++) {
             double a_ik = A[i][k];
@@ -11598,165 +6574,51 @@ void matmul_ikj(const Matrix& A, const Matrix& B, Matrix& C, int n) {
     }
 }
 
-int main() {
-    const int n = 1000;
-    Matrix A(n, std::vector<double>(n, 1.0));
-    Matrix B(n, std::vector<double>(n, 1.0));
-    Matrix C(n, std::vector<double>(n, 0.0));
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    matmul_ijk(A, B, C, n);
-    auto ijk_time = std::chrono::high_resolution_clock::now() - start;
-    
-    start = std::chrono::high_resolution_clock::now();
-    matmul_ikj(A, B, C, n);
-    auto ikj_time = std::chrono::high_resolution_clock::now() - start;
-    
-    std::cout << "ijk: " << std::chrono::duration<double>(ijk_time).count() << "s\n";
-    std::cout << "ikj: " << std::chrono::duration<double>(ikj_time).count() << "s\n";
-    
-    return 0;
-}
+// Typical speedup: 2-5x faster due to better cache usage
 
 ```
 
 
-**Typical results**: ikj is 2-5x faster than ijk.
-
-
-**Cache explanation**: In ijk, `B\[k\]\[j\]` strides down column (cache miss per access). In ikj, `B\[k\]\[j\]` accesses row sequentially (cache line reuse).
-
-
-</details>
-
-
-**Foundational 2**: Compare the performance of `std::vector<int>` vs `std::list<int>` for: (a) sequential traversal, (b) random access by index, (c) insertion in the middle. Explain the results in terms of memory layout.
-
-
-**Expected Time (Proficient): 18–25 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension          | 0               | 1                                | 2                                                 |
-
-| ------------------ | --------------- | -------------------------------- | ------------------------------------------------- |
-
-| Traversal Test     | Not implemented | Tests but unfair comparison      | Fair test, shows vector 10-15x faster             |
-
-| Random Access Test | Not implemented | Tests but uses iterator for both | Shows O(1) vs O(n) difference clearly             |
-
-| Insertion Test     | Not implemented | Tests but wrong position         | Mid-insertion: shows list O(1), vector O(n)       |
-
-| Memory Explanation | No explanation  | Mentions contiguous/scattered    | Explains cache lines, prefetcher, pointer chasing |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**Contiguous vs scattered memory**:
 
 
 ```c++
-#include <vector>
-#include <list>
-#include <chrono>
-#include <numeric>
-#include <iostream>
+// vector: contiguous memory → prefetcher works, cache lines reused
+std::vector<int> vec(1000000);
+for (int x : vec) sum += x;  // Fast: ~1ms
 
-int main() {
-    const int N = 1000000;
-    
-    std::vector<int> vec(N);
-    std::list<int> lst;
-    std::iota(vec.begin(), vec.end(), 0);
-    for (int i = 0; i < N; i++) lst.push_back(i);
-    
-    // (a) Sequential traversal
-    auto start = std::chrono::high_resolution_clock::now();
-    long sum = 0;
-    for (int x : vec) sum += x;
-    auto vec_trav = std::chrono::high_resolution_clock::now() - start;
-    
-    start = std::chrono::high_resolution_clock::now();
-    sum = 0;
-    for (int x : lst) sum += x;
-    auto lst_trav = std::chrono::high_resolution_clock::now() - start;
-    
-    // (b) Random access by index
-    start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10000; i++) sum += vec[rand() % N];
-    auto vec_rand = std::chrono::high_resolution_clock::now() - start;
-    
-    start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < 10000; i++) {
-        auto it = lst.begin();
-        std::advance(it, rand() % N);
-        sum += *it;
-    }
-    auto lst_rand = std::chrono::high_resolution_clock::now() - start;
-    
-    std::cout << "Traversal - vector: " << vec_trav.count() / 1e6 << "ms, "
-              << "list: " << lst_trav.count() / 1e6 << "ms\n";
-    std::cout << "Random - vector: " << vec_rand.count() / 1e6 << "ms, "
-              << "list: " << lst_rand.count() / 1e6 << "ms\n";
-    
-    return 0;
-}
+// list: nodes scattered → every access is cache miss
+std::list<int> lst;
+for (int i = 0; i < 1000000; i++) lst.push_back(i);
+for (int x : lst) sum += x;  // Slow: ~15ms (15x slower)
 
 ```
 
 
-**Typical results**:
-
-- Traversal: vector ~1ms, list ~15ms (15x slower)
-- Random access: vector ~0.01ms, list ~5000ms (500,000x slower!)
-
-**Explanation**:
-
-- Vector: contiguous memory → prefetcher works, cache lines reused
-- List: nodes scattered → every access is cache miss, no prefetch benefit
-- Random access: vector O(1), list O(n) to reach element
-
-</details>
+### 3. Compiler Optimizations
 
 
-**Proficiency 1**: Implement a naive sum-of-squares function and an unrolled version (process 4 elements per loop iteration). Measure speedup. Then enable `-O3` and measure again. Explain why the difference changes.
+**Common flags**:
 
+- `-O0`: No optimization (default, for debugging)
+- `-O1`: Basic optimizations
+- `-O2`: Recommended for production (enables most optimizations)
+- `-O3`: Aggressive (loop unrolling, vectorization, may increase code size)
+- `-march=native`: Enable CPU-specific instructions (AVX, etc.)
 
-**Expected Time (Proficient): 18–25 minutes**
+**What the compiler does**:
 
-<details>
-<summary>Rubric</summary>
+- **Inlining**: Eliminates function call overhead
+- **Loop unrolling**: Reduces loop overhead, increases instruction-level parallelism
+- **Vectorization**: Uses SIMD instructions (AVX, SSE)
+- **Constant propagation**: Computes constants at compile time
+- **Dead code elimination**: Removes unused code
 
-| Dimension               | 0                      | 1                                     | 2                                                               |
-
-| ----------------------- | ---------------------- | ------------------------------------- | --------------------------------------------------------------- |
-
-| Naive Implementation    | Incorrect result       | Correct but optimized away            | Correct with volatile/DoNotOptimize                             |
-
-| Unrolled Implementation | Incorrect or not 4-way | Unrolls but wrong accumulator pattern | 4 accumulators, handles remainder                               |
-
-| -O0 Benchmark           | No benchmark           | Benchmarks but no speedup shown       | Shows ~2x speedup from unrolling                                |
-
-| -O3 Comparison          | Not tested             | Tests but doesn't explain             | Shows similar performance, explains compiler auto-vectorization |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Implementation**:
+**Example: Manual vs compiler optimization**:
 
 
 ```c++
-#include <vector>
-#include <chrono>
-#include <iostream>
-
+// Naive sum-of-squares
 double sum_squares_naive(const std::vector<double>& v) {
     double sum = 0;
     for (size_t i = 0; i < v.size(); i++) {
@@ -11765,414 +6627,378 @@ double sum_squares_naive(const std::vector<double>& v) {
     return sum;
 }
 
+// Manual unrolling (4-way)
 double sum_squares_unrolled(const std::vector<double>& v) {
     double sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
-    size_t n = v.size();
     size_t i = 0;
-    
-    // Process 4 elements per iteration
-    for (; i + 3 < n; i += 4) {
+    for (; i + 3 < v.size(); i += 4) {
         sum0 += v[i] * v[i];
         sum1 += v[i+1] * v[i+1];
         sum2 += v[i+2] * v[i+2];
         sum3 += v[i+3] * v[i+3];
     }
-    // Handle remainder
-    for (; i < n; i++) {
-        sum0 += v[i] * v[i];
-    }
+    for (; i < v.size(); i++) sum0 += v[i] * v[i];
     return sum0 + sum1 + sum2 + sum3;
 }
 
-int main() {
-    std::vector<double> data(10000000, 1.0);
-    
-    auto time_func = [&](auto func, const char* name) {
-        auto start = std::chrono::high_resolution_clock::now();
-        volatile double result = func(data);
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cout << name << ": " 
-                  << std::chrono::duration<double, std::milli>(end - start).count() 
-                  << " ms\n";
-    };
-    
-    time_func(sum_squares_naive, "Naive -O0");
-    time_func(sum_squares_unrolled, "Unrolled -O0");
-    
-    return 0;
-}
+// With -O0: unrolled ~2x faster
+// With -O3: both nearly identical (compiler auto-unrolls and vectorizes)
 
 ```
 
 
-**Results with -O0**: Unrolled ~2x faster (less loop overhead, more ILP).
+### 4. Profiling
 
 
-**Results with -O3**: Both nearly identical—compiler auto-unrolls and vectorizes.
+**Measure before optimizing**: Profile to find bottlenecks.
 
 
-**Lesson**: Manual optimization often redundant with modern compilers at -O3.
-
-
-</details>
-
-
-**Proficiency 2**: Profile a matrix multiplication implementation using `perf stat` (or equivalent). Report cache miss rates. Implement loop tiling (blocking) and measure the improvement in cache behavior and execution time.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension            | 0                | 1                                | 2                                                |
-
-| -------------------- | ---------------- | -------------------------------- | ------------------------------------------------ |
-
-| perf Usage           | Cannot run perf  | Runs but wrong counters          | Reports cache-misses, cache-references correctly |
-
-| Tiled Implementation | Does not compile | Tiling but wrong block iteration | Correct 6-loop nest with blocking                |
-
-| Cache Improvement    | No cache metrics | Reports but no improvement       | Shows reduced miss rate (e.g., 25%→3%)           |
-
-| Time Improvement     | No timing        | Times but no improvement         | Shows 3-5x speedup from tiling                   |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Tiled matrix multiplication**:
-
-
-```c++
-#include <vector>
-#include <algorithm>
-
-void matmul_tiled(const std::vector<std::vector<double>>& A,
-                  const std::vector<std::vector<double>>& B,
-                  std::vector<std::vector<double>>& C,
-                  int n, int block_size = 64) {
-    // Initialize C to zero
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < n; j++)
-            C[i][j] = 0;
-    
-    // Tiled loop nest
-    for (int ii = 0; ii < n; ii += block_size) {
-        for (int jj = 0; jj < n; jj += block_size) {
-            for (int kk = 0; kk < n; kk += block_size) {
-                // Mini matrix multiply within tile
-                int i_end = std::min(ii + block_size, n);
-                int j_end = std::min(jj + block_size, n);
-                int k_end = std::min(kk + block_size, n);
-                
-                for (int i = ii; i < i_end; i++) {
-                    for (int k = kk; k < k_end; k++) {
-                        double a_ik = A[i][k];
-                        for (int j = jj; j < j_end; j++) {
-                            C[i][j] += a_ik * B[k][j];
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-```
-
-
-**Profiling with perf**:
+**Using perf (Linux)**:
 
 
 ```bash
-g++ -O2 -o matmul matmul.cpp
-perf stat -e cache-misses,cache-references ./matmul
+
+# Compile with debug symbols
+g++ -O2 -g -o program program.cpp
+
+# Profile with perf
+perf stat -e cache-misses,cache-references ./program
+
+# Profile with sampling
+perf record ./program
+perf report
 
 ```
 
 
-**Results** (n=1024):
+**Using gprof**:
 
 
-| Version          | Time | Cache miss rate |
+```bash
 
-| ---------------- | ---- | --------------- |
+# Compile with profiling
+g++ -O2 -pg -o program program.cpp
 
-| Naive ijk        | 8.5s | 25%             |
+# Run program (generates gmon.out)
+./program
 
-| Tiled (block=64) | 2.1s | 3%              |
+# View report
+gprof program gmon.out
 
-
-**Explanation**: Tiling ensures block fits in L1/L2 cache. Each element reused block_size times before eviction.
-
-
-</details>
-
-
-**Mastery**: Implement dense matrix-vector multiplication. Compare: (a) naive implementation, (b) loop-unrolled, (c) using SIMD intrinsics (e.g., AVX if available). Benchmark on 10000x10000 matrix. Document speedups and when each optimization is worthwhile.
+```
 
 
-**Expected Time (Proficient): 35–50 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension               | 0                        | 1                             | 2                                             |
-
-| ----------------------- | ------------------------ | ----------------------------- | --------------------------------------------- |
-
-| Naive Implementation    | Incorrect                | Correct but slow              | Correct, proper memory layout                 |
-
-| Unrolled Implementation | Same as naive            | Unrolls but no speedup        | 4-way unroll with separate accumulators       |
-
-| SIMD Implementation     | Not attempted or crashes | Uses intrinsics but incorrect | Correct AVX with FMA, horizontal sum          |
-
-| Benchmarking            | No benchmark             | Benchmarks but wrong size     | 10000x10000, all three versions compared      |
-
-| Documentation           | No analysis              | Reports speedups only         | Explains when each optimization is worthwhile |
+**Cache miss analysis**:
 
 
-</details>
+```bash
+perf stat -e L1-dcache-load-misses,L1-dcache-loads ./program
 
-<details>
-<summary>Solution Sketch</summary>
+# Example output:
 
-**Naive implementation**:
+# 25,000,000 L1-dcache-loads
+
+#  5,000,000 L1-dcache-load-misses  (20% miss rate - high!)
+
+```
+
+
+### 5. Benchmarking
+
+
+**Pitfalls to avoid**:
+
+1. **Cold vs warm caches**: Run warm-up iterations first
+2. **Dead code elimination**: Use `volatile` or `benchmark::DoNotOptimize`
+3. **Measuring transients**: Measure steady state, not startup
+4. **Insufficient repetitions**: Run many iterations for statistical significance
+
+**Proper benchmarking**:
 
 
 ```c++
-void matvec_naive(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        double sum = 0;
-        for (int j = 0; j < n; j++) {
-            sum += A[i * n + j] * x[j];
-        }
-        y[i] = sum;
+#include <chrono>
+#include <iostream>
+
+template<typename Func>
+double benchmark(Func f, int iterations = 1000) {
+    // Warm-up
+    for (int i = 0; i < 10; i++) f();
+    
+    // Measure
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < iterations; i++) {
+        f();
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    
+    auto duration = std::chrono::duration<double, std::milli>(end - start);
+    return duration.count() / iterations;  // Average per iteration
 }
+
+// Prevent dead code elimination
+volatile double sink;
+
+void use_result(double x) {
+    sink = x;
+}
+
+// Usage
+double avg_time = benchmark([&]() {
+    double result = compute_something();
+    use_result(result);  // Prevent optimization
+});
+
+std::cout << "Average time: " << avg_time << " ms" << std::endl;
 
 ```
 
 
-**Unrolled version**:
+### 6. Amdahl's Law
 
 
-```c++
-void matvec_unrolled(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        double sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
-        int j = 0;
-        for (; j + 3 < n; j += 4) {
-            sum0 += A[i * n + j] * x[j];
-            sum1 += A[i * n + j + 1] * x[j + 1];
-            sum2 += A[i * n + j + 2] * x[j + 2];
-            sum3 += A[i * n + j + 3] * x[j + 3];
-        }
-        for (; j < n; j++) sum0 += A[i * n + j] * x[j];
-        y[i] = sum0 + sum1 + sum2 + sum3;
-    }
-}
+**Predicting speedup**: Optimizing fraction `f` by factor `s` yields overall speedup:
+
+
+```javascript
+Speedup = 1 / ((1 - f) + f/s)
 
 ```
 
 
-**AVX SIMD version**:
+**Example**: If 90% of time is in one function, and you make it 10x faster:
 
 
-```c++
-#include <immintrin.h>
-
-void matvec_avx(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        __m256d sum = _mm256_setzero_pd();
-        int j = 0;
-        for (; j + 3 < n; j += 4) {
-            __m256d a = _mm256_loadu_pd(&A[i * n + j]);
-            __m256d xv = _mm256_loadu_pd(&x[j]);
-            sum = _mm256_fmadd_pd(a, xv, sum);  // FMA: sum += a * x
-        }
-        // Horizontal sum of 4 doubles
-        double temp[4];
-        _mm256_storeu_pd(temp, sum);
-        double result = temp[0] + temp[1] + temp[2] + temp[3];
-        // Handle remainder
-        for (; j < n; j++) result += A[i * n + j] * x[j];
-        y[i] = result;
-    }
-}
+```javascript
+Speedup = 1 / ((1 - 0.9) + 0.9/10) = 1 / 0.19 ≈ 5.3x
 
 ```
 
 
-**Benchmark results** (10000x10000, compiled with -O3 -march=native):
-
-- Naive: ~180ms
-- Unrolled: ~120ms (1.5x speedup)
-- AVX: ~50ms (3.6x speedup)
-
-**When each is worthwhile**:
-
-- Naive: Readable, use when not performance-critical or with -O3 (compiler vectorizes)
-- Unrolled: Marginal benefit with -O3; useful without optimization or on older compilers
-- SIMD: Maximum performance; use in production numerical kernels where every cycle matters
-
-**Compile flags**: `g++ -O3 -march=native -mavx2 -mfma -o matvec matvec.cpp`
+**Implication**: Optimize hottest functions first. Profile before optimizing!
 
 
-</details>
+### 7. Optimization Strategies
+
+
+**When to optimize**:
+
+1. **Profile first**: Find the actual bottleneck
+2. **Optimize the right thing**: 80% of time in 20% of code
+3. **Measure impact**: Verify optimization actually helps
+
+**Common optimizations**:
+
+1. **Vectorize loops**: Replace Python-style loops with operations on containers
+2. **Use appropriate data structures**: vector vs list vs map
+3. **Reserve capacity**: `v.reserve(n)` before pushing n elements
+4. **Move instead of copy**: Use `std::move` for large objects
+5. **Inline small functions**: Compiler usually does this at -O2
+6. **Loop tiling/blocking**: Keep working set in cache
+7. **SIMD intrinsics**: Manual vectorization for critical loops
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                                | Why It's Bad                           | Fix                                      |
+
+| -------------------------------------- | -------------------------------------- | ---------------------------------------- |
+
+| Premature optimization                 | Wastes time optimizing non-bottlenecks | Profile first                            |
+
+| Optimizing without measuring           | Don't know if it helped                | Benchmark before and after               |
+
+| Cache-hostile data structures          | 10-100x slower than cache-friendly     | Use contiguous memory when possible      |
+
+| Forgetting compiler optimization flags | Leaving 5-10x performance on table     | Always use `-O2` or `-O3` for production |
 
 
 ---
 
-<details>
-<summary>Solution Sketch</summary>
 
-**Implementations**:
+## Self-Assessment Checklist
 
 
-```c++
-#include <vector>
-#include <immintrin.h>  // AVX intrinsics
+Before moving to Day 14, verify you can:
 
-// (a) Naive
-void matvec_naive(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        double sum = 0;
-        for (int j = 0; j < n; j++) {
-            sum += A[i * n + j] * x[j];
-        }
-        y[i] = sum;
-    }
-}
-
-// (b) Loop unrolled
-void matvec_unrolled(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        double sum0 = 0, sum1 = 0, sum2 = 0, sum3 = 0;
-        int j = 0;
-        for (; j + 3 < n; j += 4) {
-            sum0 += A[i * n + j] * x[j];
-            sum1 += A[i * n + j + 1] * x[j + 1];
-            sum2 += A[i * n + j + 2] * x[j + 2];
-            sum3 += A[i * n + j + 3] * x[j + 3];
-        }
-        for (; j < n; j++) sum0 += A[i * n + j] * x[j];
-        y[i] = sum0 + sum1 + sum2 + sum3;
-    }
-}
-
-// (c) AVX SIMD (if available)
-void matvec_avx(const double* A, const double* x, double* y, int n) {
-    for (int i = 0; i < n; i++) {
-        __m256d sum = _mm256_setzero_pd();
-        int j = 0;
-        for (; j + 3 < n; j += 4) {
-            __m256d a = _mm256_loadu_pd(&A[i * n + j]);
-            __m256d xv = _mm256_loadu_pd(&x[j]);
-            sum = _mm256_fmadd_pd(a, xv, sum);
-        }
-        // Horizontal sum
-        double temp[4];
-        _mm256_storeu_pd(temp, sum);
-        double result = temp[0] + temp[1] + temp[2] + temp[3];
-        // Handle remainder
-        for (; j < n; j++) result += A[i * n + j] * x[j];
-        y[i] = result;
-    }
-}
-
-```
-
-
-**Benchmark** (n=10000):
-
-
-| Version  | Time  | Speedup |
-
-| -------- | ----- | ------- |
-
-| Naive    | 850ms | 1x      |
-
-| Unrolled | 420ms | 2x      |
-
-| AVX      | 110ms | 8x      |
-
-
-**When worthwhile**: AVX worth it only if n≥100 and function is hot. Unrolling often redundant with -O3.
-
-
-</details>
-
-<details>
-<summary>Oral Defense Questions</summary>
-1. Why does the compiler not auto-vectorize the naive implementation with -O3?
-2. What happens to SIMD performance with non-aligned memory access?
-3. How do you balance portability vs. performance with intrinsics?
-4. When would you prefer library BLAS over hand-written SIMD?
-
-</details>
-
+- [ ] Explain the memory hierarchy and why cache matters
+- [ ] Identify cache-friendly vs cache-hostile code patterns
+- [ ] Use a profiler to find the slowest function
+- [ ] Benchmark code correctly (warm-up, prevent dead code elimination)
+- [ ] Apply Amdahl's law to predict optimization impact
 
 ---
 
+
+## Resources
+
+- [What Every Programmer Should Know About Memory](103)
+- [Compiler Explorer](104)
+- [perf Tutorial](105)
+- [Optimization Manual](106)
 
 ## Day 14: C++ Capstone and Cross-Language Integration
 
-
-### Concepts
-
-
-Python's overhead: interpreter dispatch, dynamic typing, GIL (Global Interpreter Lock) for threading. NumPy reduces overhead by delegating to compiled code, but Python-level loops are still slow.
+## Overview
 
 
-C++ eliminates interpreter overhead. Proper use of stack allocation, cache-friendly data structures, and compiler optimizations yields performance near hardware limits.
+**Focus**: Complete the C++ capstone project and learn to integrate C++ with Python using pybind11. Understand when to use C++ vs Python.
 
 
-Interoperability: `pybind11` exposes C++ functions to Python. This enables writing performance-critical code in C++ and calling it from Python. The NumPy C API enables zero-copy array passing.
+**Why it matters**: The capstone integrates all Week 2 concepts. Cross-language integration enables using C++ for performance-critical code while keeping Python for productivity.
 
 
-When to use C++: tight loops over data, performance-critical inner kernels, real-time constraints. When to stay in Python: prototyping, I/O-bound code, code that is already fast enough.
+---
 
 
-### Exercises
+## Learning Objectives
 
 
-**Foundational 1**: Implement the same function (e.g., pairwise distances) in Python (with loops), NumPy (vectorized), and C++. Benchmark all three on 10,000 points in 100 dimensions. Report speedups.
+By the end of Day 14, you will:
+
+- Complete a comprehensive C++ capstone project
+- Use pybind11 to expose C++ functions to Python
+- Pass NumPy arrays between Python and C++
+- Understand when to use C++ vs Python
+- Demonstrate proficiency in all Week 2 skills
+
+---
 
 
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension           | 0                | 1                         | 2                                                |
-
-| ------------------- | ---------------- | ------------------------- | ------------------------------------------------ |
-
-| Python Loop Version | Incorrect result | Correct but n≤10000       | Correct pairwise distances, runs on 10000 points |
-
-| NumPy Version       | Still uses loops | Vectorized but slow       | Fully vectorized using broadcasting              |
-
-| C++ Version         | Does not compile | Compiles but wrong result | Correct, compiled with -O3                       |
-
-| Benchmark           | No timing        | Times but not all three   | All three timed, speedups reported               |
+## Core Concepts
 
 
-</details>
+### 1. Python vs C++: When to Use Each
 
-<details>
-<summary>Solution Sketch</summary>
 
-**Python with loops** (pairwise_[loop.py](http://loop.py/)):
+**Python strengths**:
+
+- Fast development (prototyping, exploration)
+- Rich ecosystem (libraries, notebooks)
+- I/O-bound tasks
+- Already fast enough (NumPy is compiled!)
+
+**C++ strengths**:
+
+- Compute-bound inner loops
+- Real-time constraints
+- Custom data structures
+- Memory-constrained environments
+
+**Typical speedups**: 10-100x for compute-bound code, but <2x if NumPy already vectorized.
+
+
+### 2. Cross-Language Integration with pybind11
+
+
+**Installing pybind11**:
+
+
+```bash
+pip install pybind11
+
+```
+
+
+**Basic example**:
+
+
+```c++
+// example.cpp
+#include <pybind11/pybind11.h>
+
+int add(int a, int b) {
+    return a + b;
+}
+
+PYBIND11_MODULE(example, m) {
+    m.doc() = "Example module";
+    m.def("add", &add, "Add two numbers");
+}
+
+```
+
+
+**Build**:
+
+
+```bash
+c++ -O3 -shared -std=c++17 -fPIC \
+    $(python3 -m pybind11 --includes) \
+    example.cpp -o example$(python3-config --extension-suffix)
+
+```
+
+
+**Use from Python**:
+
+
+```python
+import example
+print(example.add(1, 2))  # 3
+
+```
+
+
+### 3. Passing NumPy Arrays
+
+
+**C++ side**:
+
+
+```c++
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
+
+double sum_array(py::array_t<double> arr) {
+    auto buf = arr.request();
+    double* ptr = static_cast<double*>(buf.ptr);
+    size_t n = buf.size;
+    
+    double sum = 0;
+    for (size_t i = 0; i < n; i++) {
+        sum += ptr[i];
+    }
+    return sum;
+}
+
+PYBIND11_MODULE(nparray, m) {
+    m.def("sum_array", &sum_array);
+}
+
+```
+
+
+**Python side**:
 
 
 ```python
 import numpy as np
-import time
+import nparray
 
+arr = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+result = nparray.sum_array(arr)  # 15.0
+
+```
+
+
+**Zero-copy**: NumPy arrays are passed without copying data (shared memory).
+
+
+### 4. Performance Comparison
+
+
+**Example: Pairwise distances**
+
+
+```python
+
+# Python with loops (slow)
 def pairwise_loop(X):
     n = X.shape[0]
     D = np.zeros((n, n))
@@ -12181,37 +7007,14 @@ def pairwise_loop(X):
             D[i, j] = np.sqrt(np.sum((X[i] - X[j])**2))
     return D
 
-```
-
-
-**NumPy vectorized**:
-
-
-```python
+# NumPy vectorized (fast)
 def pairwise_numpy(X):
     X_sq = (X**2).sum(axis=1, keepdims=True)
     D_sq = X_sq + X_sq.T - 2 * X @ X.T
     return np.sqrt(np.maximum(D_sq, 0))
 
-```
-
-
-**C++ implementation**:
-
-
-```c++
-void pairwise_distances(const double* X, double* D, int n, int d) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            double sum = 0;
-            for (int k = 0; k < d; k++) {
-                double diff = X[i * d + k] - X[j * d + k];
-                sum += diff * diff;
-            }
-            D[i * n + j] = std::sqrt(sum);
-        }
-    }
-}
+# C++ implementation (fastest)
+// C++ code (omitted for brevity - see curriculum)
 
 ```
 
@@ -12233,599 +7036,330 @@ void pairwise_distances(const double* X, double* D, int n, int d) {
 **Lesson**: NumPy gets you 90% of the way. C++ gives another 1.5x for compute-bound code.
 
 
-</details>
+### 5. When C++ is Worth It
 
 
-**Foundational 2**: Identify the bottleneck in a Python data processing script using `cProfile`. Rewrite only the bottleneck in C++. Measure the speedup of the overall script.
+**Use C++ when**:
 
+- Tight loops that can't vectorize
+- Complex per-sample logic
+- Memory-constrained (can't allocate n_samples array)
+- Stateful simulations (Markov chains, particle systems)
 
-**Expected Time (Proficient): 25–35 minutes**
+**Stay in Python when**:
 
-<details>
-<summary>Rubric</summary>
-
-| Dimension           | 0                       | 1                               | 2                                                    |
-
-| ------------------- | ----------------------- | ------------------------------- | ---------------------------------------------------- |
-
-| Profiling           | Cannot run cProfile     | Profiles but wrong bottleneck   | Correctly identifies hottest function with %         |
-
-| C++ Rewrite         | Does not compile        | Compiles but incorrect          | Correct C++ implementation of bottleneck             |
-
-| Integration         | Cannot call from Python | Calls but data conversion wrong | Clean ctypes or pybind11 integration                 |
-
-| Speedup Measurement | No measurement          | Measures C++ only, not overall  | Reports overall script speedup with Amdahl reasoning |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Workflow**:
-
-1. Profile Python script:
-
-```python
-import cProfile
-
-```
-
-1. Identify bottleneck (e.g., `compute_kernel` at 85% of time)
-2. Rewrite only that function in C++:
-
-```c++
-// kernel.cpp
-extern "C" double compute_kernel(double* data, int n) {
-    double result = 0;
-    for (int i = 0; i < n; i++) {
-        result += std::exp(-data[i] * data[i]);
-    }
-    return result;
-}
-
-```
-
-1. Compile as shared library:
-
-```bash
-g++ -O3 -shared -fPIC -o 
-
-```
-
-1. Call from Python via ctypes:
-
-```python
-import ctypes
-import numpy as np
-
-lib = ctypes.CDLL('./
-
-```
-
-
-**Result**: If bottleneck was 85% of 10s runtime, and C++ is 10x faster: 8.5s → 0.85s. Total: 10s → 2.35s (4x overall speedup).
-
-
-</details>
-
-
-**Proficiency 1**: Use `pybind11` to expose a C++ function computing the log-determinant of a positive definite matrix. Call it from Python and verify it matches `np.linalg.slogdet`. Benchmark against the NumPy version.
-
-
-**Expected Time (Proficient): 28–40 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension         | 0                          | 1                                 | 2                                        |
-
-| ----------------- | -------------------------- | --------------------------------- | ---------------------------------------- |
-
-| pybind11 Setup    | Cannot build extension     | Builds but wrong module name      | Clean build, imports correctly in Python |
-
-| Log-det Algorithm | Wrong algorithm or crashes | Works but not via Cholesky        | Correct Cholesky-based log-det           |
-
-| Verification      | No comparison to NumPy     | Compares but not within tolerance | Matches np.linalg.slogdet within 1e-10   |
-
-| Benchmark         | No benchmark               | Benchmarks but not fair           | Fair comparison on same matrix sizes     |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**C++ implementation** (logdet.cpp):
-
-
-```c++
-#include <pybind11/pybind11.h>
-#include <pybind11/numpy.h>
-#include <cmath>
-#include <stdexcept>
-
-namespace py = pybind11;
-
-double log_determinant(py::array_t<double> matrix) {
-    auto buf = matrix.request();
-    if (buf.ndim != 2 || buf.shape[0] != buf.shape[1])
-        throw std::runtime_error("Input must be square matrix");
-    
-    int n = buf.shape[0];
-    double* data = static_cast<double*>(buf.ptr);
-    
-    // Make a copy for Cholesky decomposition
-    std::vector<double> L(n * n);
-    std::copy(data, data + n * n, L.begin());
-    
-    // Cholesky decomposition (in-place on L)
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j <= i; j++) {
-            double sum = L[i * n + j];
-            for (int k = 0; k < j; k++)
-                sum -= L[i * n + k] * L[j * n + k];
-            
-            if (i == j) {
-                if (sum <= 0) throw std::runtime_error("Not positive definite");
-                L[i * n + j] = std::sqrt(sum);
-            } else {
-                L[i * n + j] = sum / L[j * n + j];
-            }
-        }
-    }
-    
-    // log det = 2 * sum(log(diag(L)))
-    double logdet = 0;
-    for (int i = 0; i < n; i++)
-        logdet += std::log(L[i * n + i]);
-    return 2 * logdet;
-}
-
-PYBIND11_MODULE(logdet_cpp, m) {
-    m.def("log_determinant", &log_determinant);
-}
-
-```
-
-
-**Build**:
-
-
-```bash
-c++ -O3 -shared -std=c++17 -fPIC \
-    $(python3 -m pybind11 --includes) \
-    logdet.cpp -o logdet_cpp$(python3-config --extension-suffix)
-
-```
-
-
-**Python usage and verification**:
-
-
-```python
-import numpy as np
-import logdet_cpp
-
-A = np.random.randn(1000, 1000)
-A = A @ A.T + np.eye(1000)  # Make positive definite
-
-# NumPy reference
-sign, logdet_np = np.linalg.slogdet(A)
-
-# C++ version
-logdet_cpp_val = logdet_cpp.log_determinant(A)
-
-assert np.isclose(logdet_np, logdet_cpp_val)
-
-```
-
-
-</details>
-
-
-**Proficiency 2**: Implement a Monte Carlo simulation in both Python (NumPy) and C++. The simulation should involve generating random numbers and aggregating statistics. Compare performance and code complexity. Identify the crossover point (problem size) where C++ becomes worthwhile.
-
-
-**Expected Time (Proficient): 25–35 minutes**
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension             | 0                       | 1                            | 2                                                      |
-
-| --------------------- | ----------------------- | ---------------------------- | ------------------------------------------------------ |
-
-| NumPy Implementation  | Incorrect or uses loops | Correct but slow             | Fully vectorized, uses Generator                       |
-
-| C++ Implementation    | Does not compile        | Compiles but wrong RNG       | Correct with std::mt19937, reproducible                |
-
-| Crossover Analysis    | No analysis             | Times but no crossover found | Tests multiple sizes, identifies crossover point       |
-
-| Complexity Discussion | No discussion           | Mentions lines of code       | Discusses LOC, development time, when each appropriate |
-
-
-</details>
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Monte Carlo: Estimating Pi**
-
-
-**Python/NumPy version**:
-
-
-```python
-import numpy as np
-
-def monte_carlo_pi_numpy(n_samples):
-    rng = np.random.default_rng(42)
-    x = rng.random(n_samples)
-    y = rng.random(n_samples)
-    inside = np.sum(x**2 + y**2 <= 1)
-    return 4 * inside / n_samples
-
-```
-
-
-**C++ version**:
-
-
-```c++
-#include <random>
-#include <cmath>
-
-double monte_carlo_pi_cpp(size_t n_samples, uint64_t seed = 42) {
-    std::mt19937_64 rng(seed);
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-    
-    size_t inside = 0;
-    for (size_t i = 0; i < n_samples; i++) {
-        double x = dist(rng);
-        double y = dist(rng);
-        if (x * x + y * y <= 1.0) inside++;
-    }
-    return 4.0 * inside / n_samples;
-}
-
-```
-
-
-**Benchmark results**:
-
-
-| N samples   | NumPy | C++ (-O3) | Winner |
-
-| ----------- | ----- | --------- | ------ |
-
-| 10,000      | 0.2ms | 0.3ms     | NumPy  |
-
-| 100,000     | 1.5ms | 2.8ms     | NumPy  |
-
-| 1,000,000   | 15ms  | 28ms      | NumPy  |
-
-| 100,000,000 | 1.5s  | 2.8s      | NumPy  |
-
-
-**Crossover analysis**: For this simple simulation, NumPy wins at all sizes because:
-
-1. NumPy's vectorized RNG is highly optimized
-2. NumPy's aggregation (sum) uses SIMD internally
-3. C++ loop has no SIMD (unless manually added)
-
-**When C++ wins**:
-
-1. Complex per-sample logic that can't vectorize
-2. Stateful simulations (Markov chains, particle systems)
-3. Memory-constrained scenarios (can't allocate n_samples array)
-
-**Modified C++ with SIMD** (competitive):
-
-
-```c++
-// With AVX2 vectorization, C++ becomes ~2x faster than NumPy
-// Requires manual SIMD or OpenMP SIMD pragmas
-#pragma omp simd reduction(+:inside)
-for (size_t i = 0; i < n_samples; i++) { ... }
-
-```
-
-
-**Code complexity comparison**:
-
-- NumPy: 5 lines, instant to write
-- C++: 15 lines basic, 40+ lines with SIMD
-- Recommendation: Use NumPy unless you need custom logic or are already in a C++ codebase
-
-</details>
-
-
----
-
-<details>
-<summary>Solution Sketch</summary>
-
-**Monte Carlo simulation**: Estimate π via random sampling.
-
-
-**Python/NumPy version**:
-
-
-```python
-import numpy as np
-import time
-
-def estimate_pi_numpy(n_samples, rng):
-    x = rng.random(n_samples)
-    y = rng.random(n_samples)
-    inside = np.sum(x**2 + y**2 <= 1)
-    return 4 * inside / n_samples
-
-```
-
-
-**C++ version**:
-
-
-```c++
-#include <random>
-#include <cmath>
-
-double estimate_pi_cpp(int n_samples, unsigned seed) {
-    std::mt19937_64 rng(seed);
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-    
-    int inside = 0;
-    for (int i = 0; i < n_samples; i++) {
-        double x = dist(rng);
-        double y = dist(rng);
-        if (x*x + y*y <= 1.0) inside++;
-    }
-    return 4.0 * inside / n_samples;
-}
-
-```
-
-
-**Benchmark**:
-
-
-```python
-import time
-import numpy as np
-
-sizes = [1000, 10000, 100000, 1000000, 10000000]
-
-for n in sizes:
-    rng = np.random.default_rng(42)
-    
-    start = time.time()
-    pi_numpy = estimate_pi_numpy(n, rng)
-    numpy_time = time.time() - start
-    
-    start = time.time()
-    pi_cpp = estimate_pi_cpp(n, 42)  # Via pybind11
-    cpp_time = time.time() - start
-    
-    print(f"n={n:>10}: NumPy={numpy_time:.4f}s, C++={cpp_time:.4f}s, "
-          f"speedup={numpy_time/cpp_time:.1f}x")
-
-```
-
-
-**Results**:
-
-
-| n          | NumPy   | C++      | Speedup |
-
-| ---------- | ------- | -------- | ------- |
-
-| 1,000      | 0.0001s | 0.00005s | 2x      |
-
-| 10,000     | 0.0003s | 0.0002s  | 1.5x    |
-
-| 100,000    | 0.002s  | 0.002s   | 1x      |
-
-| 1,000,000  | 0.02s   | 0.015s   | 1.3x    |
-
-| 10,000,000 | 0.18s   | 0.14s    | 1.3x    |
-
-
-**Crossover**: NumPy is competitive at all sizes for this RNG-bound task. C++ wins more when computation dominates (e.g., complex per-sample calculations).
-
-
-**Code complexity**: Python 4 lines vs C++ 15 lines. For <2x speedup, Python often preferred.
-
-
-</details>
-
+- Code is already fast enough
+- NumPy can vectorize the operation
+- Development time matters more than runtime
+- I/O is the bottleneck
 
 ---
 
 
-### C++ Capstone
+## Week 2 C++ Capstone
 
 
-**Task**: Implement a Gaussian Mixture Model (GMM) fitting library in C++.
+### Project: Gaussian Mixture Model (GMM) Fitting Library
 
 
-**Expected Time (Proficient): 120–180 minutes**
+**Task**: Implement a Gaussian Mixture Model fitting library in C++ that demonstrates all skills from Days 8-14.
 
 
-**Cumulative Skills Checklist**
+**Expected Time (Proficient): 4–6 hours**
 
 
-This capstone must demonstrate ALL skills from Days 8-14. Your implementation will be evaluated on:
+**Note on Timeline**: This capstone integrates 7 days of material across 7 rubric dimensions. The extended timeline reflects realistic implementation complexity. Consider breaking into two sessions:
 
-
-**From Days 8-9 (Basics, References, Pointers):**
-
-- [ ] Correct use of references for read-only parameters (`const T&`)
-- [ ] Pointers used only where necessary (array access, optional values)
-- [ ] No raw pointer ownership (use smart pointers or RAII classes)
-- [ ] Understanding of stack vs heap allocation (document your choices)
-
-**From Day 10 (RAII Fundamentals):**
-
-- [ ] All resource-owning classes use smart pointers (unique_ptr, shared_ptr) for automatic cleanup
-- [ ] Destructors properly release resources (or use smart pointers that handle this automatically)
-- [ ] **[Optional - Week 3]** Custom Matrix/Vector class implements Rule of Five (destructor, copy constructor, copy assignment, move constructor, move assignment)
-- [ ] **[Optional - Week 3]** Explicit use of move semantics to avoid unnecessary copies
-- [ ] No memory leaks (verify with AddressSanitizer: `g++ -fsanitize=address`)
-
-**From Day 11 (STL Containers & Algorithms):**
-
-- [ ] `std::vector` used for dynamic arrays (not raw arrays)
-- [ ] STL algorithms used where appropriate (e.g., `std::transform`, `std::accumulate`)
-- [ ] Iterators used correctly (understand begin/end, avoid invalidation)
-- [ ] Performance characteristics understood (document why vector vs list vs map)
-
-**From Day 12 (Numerical Stability):**
-
-- [ ] Log-sum-exp trick implemented for GMM likelihood computation
-- [ ] Covariance matrices enforced to be positive semi-definite (add regularization if needed)
-- [ ] No numerical overflow/underflow in exponentiation
-- [ ] Convergence criteria based on relative change (not absolute)
-
-**From Day 13 (Performance Reasoning):**
-
-- [ ] Cache-friendly memory access (document matrix layout choice: row-major vs column-major)
-- [ ] Profiled with `gdb` or timing: E-step and M-step performance measured separately
-- [ ] Benchmark shows <1s for 10K points, 20 dimensions, 5 components
-- [ ] Performance comparison with sklearn documented (speedup or explanation if slower)
-
-**From Day 13/14 (Python Binding via pybind11):**
-
-- [ ] pybind11 binding exposes `fit()`, `predict()`, `score()` methods
-- [ ] Accepts NumPy arrays as input (automatic conversion)
-- [ ] Returns NumPy arrays as output (automatic conversion)
-- [ ] Proper ownership semantics (no memory leaks across Python/C++ boundary)
-- [ ] Error handling: C++ exceptions converted to Python exceptions
-- [ ] Python usage example demonstrating array passing and results
-
-**From Day 14 (Cross-Language Validation):**
-
-- [ ] C++ implementation validated against sklearn.mixture.GaussianMixture
-- [ ] Results match within 1e-4 tolerance (same data, same initialization)
-- [ ] Documented comparison: where C++ is faster, where Python is more convenient
-- [ ] Design document explains trade-offs (500+ words)
-
-**Passing Threshold:** Complete ≥85% of **non-optional** checklist items AND score ≥1.5/2.0 on rubric below. Items marked **[Optional - Week 3]** are not required for 2-week proficiency and do not count toward the 85% threshold.
-
-<details>
-<summary>Rubric</summary>
-
-| Dimension       | 0                            | 1                                        | 2                                              |
-
-| --------------- | ---------------------------- | ---------------------------------------- | ---------------------------------------------- |
-
-| Data Structures | Raw pointers, memory leaks   | RAII but missing move semantics          | Clean Matrix/Vector with copy/move, RAII       |
-
-| EM Algorithm    | E-step or M-step incorrect   | Both steps work but numerically unstable | Correct E/M steps with log-sum-exp stability   |
-
-| Initialization  | Random only                  | k-means but not k-means++                | Correct k-means++ initialization               |
-
-| Testing         | No tests                     | Some tests but not comprehensive         | Unit tests for each component, all passing     |
-
-| Performance     | >10s for 10K points          | <10s but memory errors                   | <1s, no ASan errors                            |
-
-| Python Binding  | Not implemented              | Binds but crashes or wrong types         | Clean pybind11, accepts/returns NumPy arrays   |
-
-| Sklearn Match   | Results differ significantly | Close but not within tolerance           | Matches sklearn within 1e-4 on same init       |
-
-| Documentation   | No document                  | <500 words or superficial                | 500+ words comparing C++ vs Python design/perf |
-
-
-</details>
-
+- **Session 1 (2-3 hrs)**: Data structures (Matrix/Vector), core EM algorithm, unit tests
+- **Session 2 (2-3 hrs)**: Numerical stability, performance optimization, pybind11 binding, sklearn validation
 
 **Requirements**:
 
-1. **Data structures**: Implement `Matrix` and `Vector` classes with appropriate constructors, destructors, and copy/move semantics. Use RAII for memory management.
-2. **Core algorithms**: Implement E-step (compute responsibilities), M-step (update parameters), and log-likelihood computation. Handle numerical stability (log-sum-exp, positive-definite covariance enforcement).
-3. **Initialization**: Implement k-means++ initialization for cluster centers.
-4. **Convergence**: Iterate until log-likelihood change is below a threshold or maximum iterations reached.
-5. **API**: Provide a clean public interface: `fit(data, n_components, max_iter, tol)`, `predict(data)`, `score(data)`.
-6. **Testing**: Unit tests for each component using a testing framework (e.g., Catch2, Google Test).
-7. **Python binding**: Expose the GMM class to Python via `pybind11`. Demonstrate usage from Python.
+1. **Data structures** (Day 8-9): Implement `Matrix` and `Vector` classes with appropriate constructors, destructors, and copy/move semantics. Use RAII for memory management.
+2. **Core algorithms** (Day 10-11): Implement E-step (compute responsibilities), M-step (update parameters), and log-likelihood computation using STL containers and algorithms.
+3. **Numerical stability** (Day 12): Handle log-sum-exp for likelihoods, ensure positive-definite covariances.
+4. **Performance** (Day 13): Cache-friendly memory layout, profile E-step and M-step separately.
+5. **Python binding** (Day 14): Expose via pybind11, accept/return NumPy arrays.
+6. **Testing**: Unit tests for each component, verify against sklearn.
 
 **Success Criteria**:
 
 - All tests pass
 - No memory errors detected by AddressSanitizer
-- Fits 10,000 points in 20 dimensions with 5 components in under 1 second (on reasonable hardware)
-- Results match `sklearn.mixture.GaussianMixture` within tolerance on the same data and initialization
+- Fits 10,000 points in 20 dimensions with 5 components in <1 second
+- **Results match** **`sklearn.mixture.GaussianMixture`** **within tolerance of ±1e-4 (absolute error) for means and covariances, ±1e-3 for log-likelihood**
 - Python binding works and accepts/returns NumPy arrays
-- A written document (500+ words) compares the C++ implementation to an equivalent Python/NumPy implementation: design differences, performance differences, and where each would be appropriate in a production system
-<details>
-<summary>Oral Defense Questions</summary>
-1. Walk me through your Matrix class. Why did you choose this memory layout? How does it affect performance?
-2. Explain your log-sum-exp implementation. What happens mathematically without the stability trick?
-3. Show me how k-means++ initialization works. Why is it better than random initialization?
-4. Your E-step computes responsibilities. What are the edge cases and how do you handle them?
-5. How did you verify your C++ implementation matches sklearn? What tolerance is acceptable and why?
-6. If I wanted to parallelize this GMM implementation, where would you start? What synchronization would be needed?
-7. Compare the memory access patterns in your C++ implementation vs. a NumPy implementation. Where does C++ have an advantage?
+- A written document (500+ words) compares C++ vs Python implementation
 
-</details>
+**Validation Test Example**:
+
+
+```python
+import numpy as np
+from sklearn.mixture import GaussianMixture
+import your_gmm_module
+
+# Generate test data with known structure
+rng = np.random.default_rng(42)
+X = rng.normal(0, 1, (1000, 10))
+
+# Fit sklearn reference implementation
+sklearn_gmm = GaussianMixture(n_components=3, random_state=42, max_iter=100)
+sklearn_gmm.fit(X)
+
+# Fit your C++ implementation
+your_gmm = your_gmm_module.GMM(n_components=3, seed=42, max_iter=100)
+your_gmm.fit(X)
+
+# Validate means match
+for i in range(3):
+    np.testing.assert_allclose(
+        your_gmm.means[i], sklearn_gmm.means_[i],
+        atol=1e-4, err_msg=f"Mean {i} mismatch"
+    )
+
+# Validate log-likelihood matches
+sklearn_ll = sklearn_gmm.score(X) * len(X)  # score returns per-sample avg
+your_ll = your_gmm.log_likelihood(X)
+np.testing.assert_allclose(
+    your_ll, sklearn_ll, atol=1e-3,
+    err_msg="Log-likelihood mismatch"
+)
+
+print("✓ All validations passed!")
+
+```
+
+
+**Cumulative Skills Checklist**:
+
+
+This capstone must demonstrate ALL skills from Days 8-14:
+
+
+**From Days 8-9**:
+
+- [ ] Correct use of references for read-only parameters
+- [ ] Pointers used only where necessary
+- [ ] No raw pointer ownership (use smart pointers)
+- [ ] Understanding of stack vs heap allocation
+
+**From Day 10**:
+
+- [ ] All resource-owning classes use smart pointers
+- [ ] No memory leaks (verify with AddressSanitizer)
+
+**From Day 11**:
+
+- [ ] `std::vector` used for dynamic arrays
+- [ ] STL algorithms used where appropriate
+- [ ] Iterators used correctly
+
+**From Day 12**:
+
+- [ ] Log-sum-exp trick implemented
+- [ ] Covariances enforced positive semi-definite
+- [ ] No numerical overflow/underflow
+
+**From Day 13**:
+
+- [ ] Cache-friendly memory access
+- [ ] Profiled with timing measurements
+- [ ] Benchmark shows <1s for target dataset
+
+**From Day 14**:
+
+- [ ] pybind11 binding exposes `fit()`, `predict()`, `score()`
+- [ ] Accepts NumPy arrays as input
+- [ ] Returns NumPy arrays as output
+- [ ] Validated against sklearn
+
+**Passing Threshold**: Complete ≥85% of checklist items AND score ≥1.5/2.0 on each rubric dimension.
+
+
+**Proficiency Rubric**:
+
+
+| Dimension           | 0                            | 1                                        | 2                                            |
+
+| ------------------- | ---------------------------- | ---------------------------------------- | -------------------------------------------- |
+
+| **Data Structures** | Raw pointers, memory leaks   | RAII but missing move semantics          | Clean Matrix/Vector with copy/move, RAII     |
+
+| **EM Algorithm**    | E-step or M-step incorrect   | Both steps work but numerically unstable | Correct E/M steps with log-sum-exp stability |
+
+| **Testing**         | No tests                     | Some tests but not comprehensive         | Unit tests for each component, all passing   |
+
+| **Performance**     | >10s for 10K points          | <10s but memory errors                   | <1s, no ASan errors                          |
+
+| **Python Binding**  | Not implemented              | Binds but crashes or wrong types         | Clean pybind11, accepts/returns NumPy arrays |
+
+| **sklearn Match**   | Results differ significantly | Close but not within tolerance           | Matches sklearn within 1e-4                  |
+
+| **Documentation**   | No document                  | <500 words or superficial                | 500+ words comparing C++ vs Python           |
+
+
+**Scoring**: You must score ≥1.5/2.0 on EACH dimension.
 
 
 ---
 
 
-# If You Completed This, You Are Proficient
+## Common Pitfalls
 
 
-This is not a summary. This is a concrete checklist of abilities. If you cannot do these things, you are not proficient.
+| Pitfall                    | Why It's Bad                          | Fix                                               |
+
+| -------------------------- | ------------------------------------- | ------------------------------------------------- |
+
+| Using C++ when NumPy works | Wasted development time               | Profile first, optimize only if needed            |
+
+| Not verifying results      | C++ bug may go unnoticed              | Always validate against known-good implementation |
+
+| Memory leaks in binding    | Python can't detect C++ leaks         | Run AddressSanitizer on C++ tests                 |
+
+| Ignoring exceptions        | C++ exceptions must convert to Python | Use pybind11's automatic exception translation    |
 
 
-## Python Proficiency Checklist
+---
 
-- [ ] Write a Python module with multiple files, proper imports, and no circular dependencies
-- [ ] Implement a decorator that modifies function behavior (e.g., memoization, timing)
-- [ ] Explain why a given NumPy operation returns a view or a copy
-- [ ] Use stride manipulation to create a sliding window view without copying data
-- [ ] Compute pairwise distances for 10,000 points without Python loops
-- [ ] Identify and fix a `SettingWithCopyWarning` in pandas code
-- [ ] Write a function that is 10x faster than an equivalent `df.apply()` call
-- [ ] Write pytest tests with fixtures and parametrization
-- [ ] Use Hypothesis to generate property-based tests for a numerical function
-- [ ] Pass an explicit `numpy.random.Generator` to all stochastic functions
-- [ ] Reproduce an analysis exactly given the same seed and environment
-- [ ] Use `cProfile` to identify the slowest function in a pipeline
-- [ ] Use `pdb` to inspect variable state at a breakpoint
-- [ ] Explain why a function has a memory leak and fix it
 
-## C++ Proficiency Checklist
+## Self-Assessment Checklist
 
-- [ ] Explain when to use stack vs heap allocation for a given problem
-- [ ] Write a class with correct destructor, copy constructor, and copy assignment (Rule of Three)
-- [ ] Write a move constructor and move assignment operator
-- [ ] Use `std::unique_ptr` to manage heap memory without manual `delete`
-- [ ] Write an RAII class that acquires and releases a resource correctly
-- [ ] Use `std::vector` and `std::unordered_map` appropriately
-- [ ] Write a lambda with explicit captures for use with STL algorithms
-- [ ] Implement numerically stable variance computation (Welford's algorithm)
-- [ ] Implement log-sum-exp without overflow
-- [ ] Compile with `-fsanitize=address` and interpret the output
-- [ ] Use `gdb` or `lldb` to set breakpoints and inspect variables
-- [ ] Explain why one loop order is faster than another for matrix operations
-- [ ] Measure and explain cache miss rates for different data access patterns
-- [ ] Expose a C++ function to Python via `pybind11`
 
-## Cross-Language Checklist
+After completing Day 14, verify you can:
 
-- [ ] Given a Python function, predict whether rewriting in C++ will yield significant speedup
-- [ ] Identify when NumPy is fast enough and C++ is unnecessary
-- [ ] Design a system where Python handles I/O and orchestration while C++ handles computation
-- [ ] Write equivalent code in both languages and verify they produce identical results
-- [ ] Reason about numerical precision differences between implementations
+- [ ] Use pybind11 to expose C++ functions to Python
+- [ ] Pass NumPy arrays to C++ without copying
+- [ ] Explain when C++ is worth the effort vs staying in Python
+- [ ] Profile and benchmark C++ vs Python implementations
+- [ ] **Complete the Week 2 C++ capstone with proficiency score ≥1.5/2.0 on each dimension**
+
+---
+
+
+## Resources
+
+- [pybind11 Documentation](107)
+- [NumPy C API](108)
+- [C++ Performance Tips](109)
+- [sklearn GMM Documentation](110)
+
+---
+
+
+## Learning Path
+
+
+**Sequential progression**: Each day builds on concepts from previous days. Complete them in order.
+
+
+**Time commitment**: Plan 4-5 hours per day (includes reading, exercises, and practice).
+
+
+**Proficiency gate**: Day 14 includes a capstone project. You must score ≥1.5/2.0 on each rubric dimension to claim Week 2 proficiency.
+
+
+---
+
+
+## Key Themes
+
+
+### Memory Management
+
+- **References vs Pointers**: Understand when to use each
+- **Smart Pointers**: Use `unique_ptr` and `shared_ptr` for automatic cleanup
+- **RAII**: Tie resource lifetime to object lifetime
+- **No raw** **`new`****/****`delete`**: Modern C++ uses smart pointers and containers
+
+### Standard Template Library
+
+- **Containers**: Choose vector, map, unordered_map appropriately
+- **Algorithms**: Replace loops with `std::sort`, `std::transform`, `std::accumulate`
+- **Iterators**: Understand categories and invalidation
+- **Lambdas**: Write inline functions for algorithms
+
+### Numerical Computing
+
+- **Stability**: Avoid catastrophic cancellation (Welford's algorithm)
+- **Overflow**: Use log-space computation (log-sum-exp)
+- **Performance**: Understand cache behavior and data layout
+- **Profiling**: Measure before optimizing
+
+### Python Integration
+
+- **pybind11**: Expose C++ functions to Python
+- **NumPy arrays**: Pass without copying
+- **When to use C++**: 10-100x speedup for compute-bound code
+- **When to stay in Python**: NumPy already fast enough
+
+---
+
+
+## Prerequisites
+
+
+Before starting Week 2, ensure you have:
+
+- [ ] Completed Week 1 (Python proficiency)
+- [ ] C++ compiler installed (g++ 9+ or clang 10+)
+- [ ] CMake 3.16+ (optional but recommended)
+- [ ] Basic understanding of C++ syntax (variables, loops, functions)
+
+---
+
+
+## Success Criteria
+
+
+By the end of Week 2, you should be able to:
+
+- Explain the difference between references and pointers
+- Use smart pointers to manage heap memory automatically
+- Implement RAII wrappers for custom resources
+- Use STL containers and algorithms correctly
+- Write numerically stable code (Welford, Kahan, log-sum-exp)
+- Profile and optimize C++ code
+- Integrate C++ with Python via pybind11
+- **Complete the capstone project with proficiency scores ≥1.5/2.0**
+
+---
+
+
+## Daily Self-Assessment
+
+
+Each day includes a self-assessment checklist. Before moving to the next day, verify you can complete all items. If not, review the exercises and resources.
+
+
+---
+
+
+## Getting Help
+
+
+If you encounter difficulties:
+
+1. **Re-read the relevant section**: Concepts build on each other
+2. **Work through exercises**: Hands-on practice is essential
+3. **Check resources**: Each day links to official documentation
+4. **Use compiler warnings**: Compile with `-Wall -Wextra` to catch common mistakes
+5. **Use sanitizers**: Run with `-fsanitize=address,undefined` to catch memory bugs
+
+---
+
+
+## Next Steps
+
+
+Ready to begin? Start with <page url="[https://www.notion.so/48da4fa9d9b4495698ebe27a66a92de5">Day](https://www.notion.so/48da4fa9d9b4495698ebe27a66a92de5%22%3EDay) 8: References, Pointers, and Ownership</page>.
+
 
 # Optional Extensions
 
 
-## 📄 Week 3: Optional Extensions (Days 15-20)
+## Week 3: Optional Extensions (Days 15-20)
 
 **Framing**: Week 3 is optional. The 2-week curriculum achieves credible proficiency. Week 3 is for those who want to deepen judgment, consolidate under time pressure, and polish a portfolio artifact.
 
@@ -13780,19 +8314,2712 @@ with style_for_journal('nature'):
 </details>
 
 
+## Day 15: Advanced Python Engineering for Data Science
+
+## Overview
+
+
+**Focus**: Structure medium-scale Python projects for data science with type hints, static analysis, logging, and configuration management.
+
+
+**Why it matters**: Production-quality data science code requires more than working notebooks. Learn to build maintainable, testable, and deployable Python packages.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 15, you will:
+
+- Structure Python projects with proper directory layout
+- Use type hints and `mypy` for static analysis
+- Implement structured logging for reproducibility
+- Design configuration management for experiments
+- Create clean APIs for statistical functions
+
+---
+
+
+## Core Concepts
+
+
+### 1. Python Project Structure
+
+
+**Directory layout**:
+
+
+```javascript
+project/
+├── src/
+│   └── mypackage/
+│       ├── __init__.py
+│       ├── core.py
+│       └── utils.py
+├── tests/
+│   ├── __init__.py
+│   └── test_core.py
+├── scripts/
+│   └── run_analysis.py
+├── notebooks/
+│   └── exploration.ipynb
+├── pyproject.toml
+├── README.md
+└── .gitignore
+
+```
+
+
+**Why this structure**:
+
+- `src/`: Prevents import confusion, ensures tests use installed package
+- `tests/`: Separate from source code
+- `scripts/`: Entry points and command-line tools
+- `notebooks/`: Exploration only, not production code
+
+**pyproject.toml** (modern Python packaging):
+
+
+```toml
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mypackage"
+version = "0.1.0"
+description = "Statistical analysis package"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.20",
+    "pandas>=1.3",
+    "scipy>=1.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "mypy>=0.950",
+    "black>=22.0",
+]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+```
+
+
+### 2. Type Hints and Static Analysis
+
+
+**Beyond basic types**:
+
+
+```python
+from typing import Union, Optional, Literal, TypeVar, Protocol
+import numpy as np
+import numpy.typing as npt
+
+# Generic functions
+T = TypeVar('T')
+def first(items: list[T]) -> Optional[T]:
+    return items[0] if items else None
+
+# NumPy arrays with shape hints
+def normalize(arr: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
+    return (arr - arr.mean()) / arr.std()
+
+# Literal types for fixed options
+def compute_statistic(
+    data: npt.NDArray[np.float64],
+    method: Literal["mean", "median", "trimmed_mean"]
+) -> float:
+    if method == "mean":
+        return float(np.mean(data))
+    elif method == "median":
+        return float(np.median(data))
+    else:
+        return float(np.mean(np.sort(data)[10:-10]))
+
+# Protocol for duck typing
+class Estimator(Protocol):
+    def fit(self, X: npt.NDArray, y: npt.NDArray) -> None: ...
+    def predict(self, X: npt.NDArray) -> npt.NDArray: ...
+
+```
+
+
+**Running mypy**:
+
+
+```bash
+
+# Install
+pip install mypy
+
+# Run strict checks
+mypy --strict src/
+
+# Common options
+mypy --ignore-missing-imports src/  # Skip import errors
+mypy --show-error-codes src/        # Show error codes for ignoring
+
+```
+
+
+**When to use** **`# type: ignore`**:
+
+- Third-party libraries without type stubs
+- Complex NumPy operations mypy can't infer
+- **Code smell**: If you need many type ignores, redesign the code
+
+### 3. Logging for Experiments
+
+
+**Structured logging** (not print statements):
+
+
+```python
+import logging
+from pathlib import Path
+from datetime import datetime
+
+def setup_logger(name: str, log_dir: Path = Path("logs")) -> logging.Logger:
+    """Configure structured logger for experiments."""
+    log_dir.mkdir(exist_ok=True)
+    
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    
+    # File handler with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    fh = logging.FileHandler(log_dir / f"{name}_{timestamp}.log")
+    fh.setLevel(logging.DEBUG)
+    
+    # Console handler (less verbose)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    
+    # Format: timestamp - level - message
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    fh.setFormatter(formatter)
+    ch.setFormatter(formatter)
+    
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    
+    return logger
+
+# Usage
+logger = setup_logger("experiment")
+logger.info("Starting analysis")
+logger.debug(f"RNG seed: {seed}")
+logger.warning("Missing values detected")
+logger.error("Convergence failed")
+
+```
+
+
+**What to log**:
+
+- Configuration parameters and their source
+- Random seeds for reproducibility
+- Data provenance (file paths, URLs)
+- Performance metrics (time, memory)
+- Warnings and errors with context
+
+### 4. Configuration Management
+
+
+**Separating code from configuration**:
+
+
+```python
+from dataclasses import dataclass
+from pathlib import Path
+import yaml
+
+@dataclass
+class ExperimentConfig:
+    """Configuration for Monte Carlo experiment."""
+    n_samples: int
+    n_iterations: int
+    seed: int
+    output_dir: Path
+    
+    @classmethod
+    def from_yaml(cls, path: Path) -> "ExperimentConfig":
+        with open(path) as f:
+            config_dict = yaml.safe_load(f)
+        return cls(
+            n_samples=config_dict["n_samples"],
+            n_iterations=config_dict["n_iterations"],
+            seed=config_dict["seed"],
+            output_dir=Path(config_dict["output_dir"]),
+        )
+    
+    def validate(self) -> None:
+        """Validate configuration values."""
+        if self.n_samples <= 0:
+            raise ValueError("n_samples must be positive")
+        if self.n_iterations <= 0:
+            raise ValueError("n_iterations must be positive")
+        if not self.output_dir.exists():
+            self.output_dir.mkdir(parents=True)
+
+# config.yaml
+"""
+n_samples: 10000
+n_iterations: 1000
+seed: 42
+output_dir: "results/"
+"""
+
+# Usage
+config = ExperimentConfig.from_yaml(Path("config.yaml"))
+config.validate()
+logger.info(f"Config: {config}")
+
+```
+
+
+**Environment-specific configs**:
+
+
+```python
+import os
+
+def load_config(env: str = "dev") -> ExperimentConfig:
+    """Load environment-specific configuration."""
+    config_path = Path(f"configs/{env}.yaml")
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config not found: {config_path}")
+    return ExperimentConfig.from_yaml(config_path)
+
+# Usage
+env = os.getenv("ENV", "dev")  # dev, test, or prod
+config = load_config(env)
+
+```
+
+
+### 5. Command-Line Interfaces
+
+
+**Using argparse**:
+
+
+```python
+import argparse
+from pathlib import Path
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Run statistical analysis"
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        required=True,
+        help="Path to configuration file"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("results"),
+        help="Output directory"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging"
+    )
+    
+    args = parser.parse_args()
+    
+    # Load config and run
+    config = ExperimentConfig.from_yaml(args.config)
+    config.output_dir = args.output
+    
+    logger = setup_logger("analysis")
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+    
+    run_analysis(config, logger)
+
+if __name__ == "__main__":
+    main()
+
+```
+
+
+---
+
+
+## Hands-On Exercises
+
+
+The original curriculum includes exercises for:
+
+- **Foundational 1**: Refactoring a script into a package with proper structure, type hints, and mypy compliance
+- **Proficiency 1**: Implementing configurable Monte Carlo simulation with YAML configuration and structured logging
+- **Mastery**: Designing a statistical function registry with type-checked protocols
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                              | Why It's Bad                  | Fix                                |
+
+| ------------------------------------ | ----------------------------- | ---------------------------------- |
+
+| Mixing notebooks and production code | Hard to test, version control | Use notebooks for exploration only |
+
+| Print statements for logging         | Lost after execution          | Use logging module with levels     |
+
+| Hard-coded parameters                | Not reproducible              | Use configuration files            |
+
+| No type hints                        | Runtime errors                | Add type hints, run mypy           |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 16, verify you can:
+
+- [ ] Structure a Python project with `src/`, `tests/`, `pyproject.toml`
+- [ ] Add type hints to functions and run `mypy --strict`
+- [ ] Set up structured logging with appropriate levels
+- [ ] Use YAML or dataclasses for configuration management
+- [ ] Create a CLI with argparse
+
+---
+
+
+## Deliverable
+
+
+A refactored Python package that:
+
+- Passes `mypy --strict`
+- Has ≥80% test coverage
+- Includes a working CLI
+- Has a README with usage examples
+
+---
+
+
+## Resources
+
+- [Python Packaging Guide](111)
+- [mypy Documentation](112)
+- [Python Logging HOWTO](113)
+- [Hydra (Advanced Config)](114)
+
+## Day 16: Profiling, Benchmarking, and Performance Tuning
+
+## Overview
+
+
+**Focus**: Conduct systematic performance profiling, interpret profiling output, apply targeted optimizations, and validate speedups with robust benchmarking.
+
+
+**Why it matters**: "Premature optimization is the root of all evil." Learn to measure first, optimize bottlenecks, and validate improvements.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 16, you will:
+
+- Profile CPU and memory usage systematically
+- Identify true bottlenecks (not guesses)
+- Apply targeted optimizations based on profiling
+- Write robust microbenchmarks
+- Understand when optimization is necessary vs premature
+
+---
+
+
+## Core Concepts
+
+
+### 1. Profiling Tools
+
+
+**cProfile + pstats** (function-level profiling):
+
+
+```python
+import cProfile
+import pstats
+from pstats import SortKey
+
+def analyze_with_profiler() -> None:
+    # Profile code
+    profiler = cProfile.Profile()
+    profiler.enable()
+    
+    # Code to profile
+    result = expensive_computation()
+    
+    profiler.disable()
+    
+    # Analyze results
+    stats = pstats.Stats(profiler)
+    stats.strip_dirs()
+    stats.sort_stats(SortKey.CUMULATIVE)
+    stats.print_stats(10)  # Top 10 functions
+
+```
+
+
+**line_profiler** (line-by-line profiling):
+
+
+```bash
+
+# Install
+pip install line_profiler
+
+# Decorate function
+@profile
+def slow_function():
+    # ... code ...
+    pass
+
+# Run
+kernprof -l -v script.py
+
+```
+
+
+**memory_profiler** (memory usage over time):
+
+
+```bash
+pip install memory_profiler
+
+# Decorate function
+@profile
+def memory_hog():
+    data = []
+    for i in range(1000000):
+        data.append([i] * 100)
+    return data
+
+# Run
+python -m memory_profiler script.py
+
+```
+
+
+**py-spy** (sampling profiler, low overhead):
+
+
+```bash
+pip install py-spy
+
+# Profile running process
+py-spy record -o profile.svg -- python script.py
+
+# Attach to running process
+py-spy top --pid 12345
+
+```
+
+
+### 2. Interpreting Profiler Output
+
+
+**cProfile output**:
+
+
+```javascript
+ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     1    0.000    0.000   10.500   10.500 script.py:10(main)
+100000    8.500    0.000    8.500    0.000 script.py:20(slow_func)
+100000    1.500    0.000    2.000    0.000 numpy:1234(array_op)
+
+```
+
+
+**Key metrics**:
+
+- **ncalls**: Number of times function called
+- **tottime**: Total time in function (excluding subcalls)
+- **cumtime**: Total time including subcalls
+- **percall**: Average time per call
+
+**What to optimize**: Functions with high `cumtime` and high `ncalls`.
+
+
+### 3. Amdahl's Law
+
+
+**Predicting speedup**:
+
+
+```python
+def amdahl_speedup(fraction_optimized: float, speedup_factor: float) -> float:
+    """
+    Calculate overall speedup from Amdahl's Law.
+    
+    Args:
+        fraction_optimized: Fraction of runtime being optimized (0-1)
+        speedup_factor: How much faster the optimized part is
+    
+    Returns:
+        Overall speedup
+    """
+    return 1.0 / ((1 - fraction_optimized) + fraction_optimized / speedup_factor)
+
+# Example: If 80% of time is in one function, making it 5x faster gives:
+overall_speedup = amdahl_speedup(0.8, 5)  # 2.78x
+print(f"Overall speedup: {overall_speedup:.2f}x")
+
+# Implication: Optimize the hottest functions first!
+
+```
+
+
+### 4. Microbenchmarking
+
+
+**Using timeit correctly**:
+
+
+```python
+import timeit
+import numpy as np
+
+# Setup code (run once)
+setup = """
+import numpy as np
+data = np.random.randn(10000)
+"""
+
+# Code to benchmark
+stmt = "data.sum()"
+
+# Run benchmark
+time = timeit.timeit(stmt, setup=setup, number=10000)
+print(f"Time per iteration: {time/10000 * 1e6:.2f} µs")
+
+```
+
+
+**Using pyperf** (handles system noise):
+
+
+```bash
+pip install pyperf
+
+# Run benchmark
+python -m pyperf timeit -s "import numpy as np; data = np.random.randn(10000)" "data.sum()"
+
+```
+
+
+**Preventing optimizer interference**:
+
+
+```python
+
+# BAD: Compiler may optimize away
+result = expensive_function()
+
+# GOOD: Force use of result
+import sys
+result = expensive_function()
+sys.stdout.write(str(result))  # Or use volatile in C++
+
+```
+
+
+### 5. Optimization Patterns
+
+
+**Loop fusion** (combining multiple passes):
+
+
+```python
+
+# BEFORE: Two passes
+squared = [x**2 for x in data]
+result = [x + 1 for x in squared]
+
+# AFTER: One pass (loop fusion)
+result = [x**2 + 1 for x in data]
+
+# Even better: NumPy vectorization
+result = np.array(data)**2 + 1
+
+```
+
+
+**Vectorization** (replacing Python loops):
+
+
+```python
+
+# SLOW: Python loop
+def sum_of_squares_loop(data):
+    result = 0
+    for x in data:
+        result += x**2
+    return result
+
+# FAST: NumPy vectorization
+def sum_of_squares_vectorized(data):
+    return np.sum(data**2)
+
+# Benchmark shows ~100x speedup
+
+```
+
+
+**Caching/memoization**:
+
+
+```python
+from functools import lru_cache
+
+# SLOW: Recomputes every time
+def fibonacci(n):
+    if n < 2:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+# FAST: Cached results
+@lru_cache(maxsize=None)
+def fibonacci_cached(n):
+    if n < 2:
+        return n
+    return fibonacci_cached(n-1) + fibonacci_cached(n-2)
+
+# fibonacci(35): ~5 seconds
+
+# fibonacci_cached(35): ~0.0001 seconds
+
+```
+
+
+### 6. Memory Optimization
+
+
+**Generators vs lists** (streaming data):
+
+
+```python
+
+# MEMORY HOG: Builds entire list in memory
+def process_large_file(path):
+    return [process_line(line) for line in open(path)]
+
+# MEMORY EFFICIENT: Generates values on-demand
+def process_large_file_streaming(path):
+    return (process_line(line) for line in open(path))
+
+# Usage
+for item in process_large_file_streaming("huge.csv"):
+    # Process one item at a time
+    pass
+
+```
+
+
+**slots for memory-efficient classes**:
+
+
+```python
+
+# MEMORY HOG: Each instance has a __dict__
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+# MEMORY EFFICIENT: Fixed attributes
+class PointSlots:
+    __slots__ = ['x', 'y']
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+# 1 million Points: ~400 MB
+
+# 1 million PointSlots: ~200 MB
+
+```
+
+
+**Memory mapping for large datasets**:
+
+
+```python
+import numpy as np
+
+# MEMORY HOG: Loads entire array
+data = np.load("large_array.npy")
+
+# MEMORY EFFICIENT: Memory-mapped array
+data = np.load("large_array.npy", mmap_mode='r')
+
+# Data loaded on-demand as accessed
+
+```
+
+
+---
+
+
+## Optimization Workflow
+
+1. **Profile first**: Measure where time is actually spent
+2. **Identify bottleneck**: Focus on functions with highest cumtime
+3. **Apply Amdahl's Law**: Is optimization worth it?
+4. **Optimize**: Apply appropriate pattern
+5. **Benchmark**: Measure speedup
+6. **Validate**: Ensure correctness unchanged
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                      | Why It's Bad                   | Fix                             |
+
+| ---------------------------- | ------------------------------ | ------------------------------- |
+
+| Optimizing without profiling | Waste time on non-bottlenecks  | Always profile first            |
+
+| Not measuring impact         | Don't know if it helped        | Benchmark before and after      |
+
+| Micro-optimizing hot code    | Algorithmic improvement better | O(n²) → O(n log n) > micro-opts |
+
+| Breaking correctness         | Bugs cost more than slowness   | Test after every optimization   |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 17, verify you can:
+
+- [ ] Profile code with cProfile and interpret output
+- [ ] Use line_profiler to find slow lines
+- [ ] Apply Amdahl's Law to predict speedups
+- [ ] Write robust microbenchmarks with timeit or pyperf
+- [ ] Vectorize Python loops with NumPy
+
+---
+
+
+## Deliverable
+
+
+A profiling report (Markdown or PDF) with:
+
+- Annotated profiler output
+- Optimization decisions justified by Amdahl's Law
+- Before/after benchmarks showing measured speedups
+
+---
+
+
+## Resources
+
+- [Python Profilers](115)
+- [pyperf Documentation](116)
+- [Performance Tips](117)
+- [Memory Profiling](118)
+
+## Day 17: Python ↔ C++ Boundaries and API Design
+
+## Overview
+
+
+**Focus**: Wrap C++ functions for Python using pybind11, pass NumPy arrays efficiently, and design hybrid codebases where Python orchestrates and C++ computes.
+
+
+**Why it matters**: Combine Python's productivity with C++'s performance. Learn when crossing the language boundary is worth the complexity.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 17, you will:
+
+- Wrap C++ functions for Python via pybind11
+- Pass NumPy arrays to C++ without copying
+- Design APIs that minimize boundary-crossing overhead
+- Understand when Python ↔ C++ overhead dominates
+- Build hybrid codebases effectively
+
+---
+
+
+## Core Concepts
+
+
+### 1. pybind11 Basics
+
+
+**Simple function wrapping**:
+
+
+```c++
+// example.cpp
+#include <pybind11/pybind11.h>
+
+double add(double a, double b) {
+    return a + b;
+}
+
+namespace py = pybind11;
+
+PYBIND11_MODULE(example, m) {
+    m.doc() = "Example module";
+    m.def("add", &add, "Add two numbers",
+          py::arg("a"), py::arg("b"));
+}
+
+```
+
+
+**Build with CMake**:
+
+
+```javascript
+cmake_minimum_required(VERSION 3.16)
+project(example)
+
+find_package(pybind11 REQUIRED)
+
+pybind11_add_module(example example.cpp)
+
+```
+
+
+**Or build with setuptools**:
+
+
+```bash
+c++ -O3 -shared -std=c++17 -fPIC \
+    $(python3 -m pybind11 --includes) \
+    example.cpp -o example$(python3-config --extension-suffix)
+
+```
+
+
+**Use from Python**:
+
+
+```python
+import example
+result = example.add(1.0, 2.0)
+print(result)  # 3.0
+
+```
+
+
+### 2. NumPy ↔ C++ Integration
+
+
+**Accepting NumPy arrays**:
+
+
+```c++
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
+
+double sum_array(py::array_t<double> arr) {
+    // Request buffer info
+    py::buffer_info buf = arr.request();
+    
+    // Check dimensions
+    if (buf.ndim != 1) {
+        throw std::runtime_error("Array must be 1-dimensional");
+    }
+    
+    // Get pointer and size
+    double* ptr = static_cast<double*>(buf.ptr);
+    size_t n = buf.shape[0];
+    
+    // Compute sum
+    double sum = 0.0;
+    for (size_t i = 0; i < n; i++) {
+        sum += ptr[i];
+    }
+    
+    return sum;
+}
+
+PYBIND11_MODULE(nparray, m) {
+    m.def("sum_array", &sum_array);
+}
+
+```
+
+
+**Python usage**:
+
+
+```python
+import numpy as np
+import nparray
+
+arr = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+result = nparray.sum_array(arr)
+print(result)  # 15.0
+
+# Zero-copy: NumPy array passed by reference
+
+```
+
+
+**Returning NumPy arrays**:
+
+
+```c++
+py::array_t<double> create_array(size_t n) {
+    // Allocate buffer
+    auto result = py::array_t<double>(n);
+    py::buffer_info buf = result.request();
+    double* ptr = static_cast<double*>(buf.ptr);
+    
+    // Fill buffer
+    for (size_t i = 0; i < n; i++) {
+        ptr[i] = static_cast<double>(i);
+    }
+    
+    return result;
+}
+
+PYBIND11_MODULE(nparray, m) {
+    m.def("create_array", &create_array);
+}
+
+```
+
+
+### 3. Error Handling
+
+
+**C++ exceptions → Python exceptions**:
+
+
+```c++
+double safe_divide(double a, double b) {
+    if (b == 0.0) {
+        throw std::invalid_argument("Division by zero");
+    }
+    return a / b;
+}
+
+// pybind11 automatically converts to Python exceptions
+
+```
+
+
+**Python side**:
+
+
+```python
+try:
+    result = example.safe_divide(10.0, 0.0)
+except ValueError as e:  # std::invalid_argument → ValueError
+    print(f"Error: {e}")
+
+```
+
+
+### 4. API Design for Hybrid Code
+
+
+**Principle: Minimize boundary crossings**
+
+
+**BAD: Chatty interface** (many small calls):
+
+
+```python
+
+# Python calls C++ for each element
+result = []
+for i in range(1000000):
+    result.append(cpp_module.process_element(data[i]))  # SLOW!
+
+```
+
+
+**GOOD: Batched interface** (few large calls):
+
+
+```python
+
+# Python calls C++ once with entire array
+result = cpp_module.process_batch(data)  # FAST!
+
+```
+
+
+**Design pattern**:
+
+- **Python layer**: Configuration, I/O, orchestration
+- **C++ layer**: Tight numerical loops
+- **Interface**: Batch operations on arrays
+
+**Example: Bootstrap implementation**
+
+
+```c++
+// C++ side: Process many bootstrap samples at once
+py::array_t<double> bootstrap_batch(
+    py::array_t<double> data,
+    py::array_t<int> indices,  // Flattened: [n_bootstrap * n_samples]
+    size_t n_bootstrap
+) {
+    auto data_buf = data.request();
+    auto indices_buf = indices.request();
+    
+    double* data_ptr = static_cast<double*>(data_buf.ptr);
+    int* indices_ptr = static_cast<int*>(indices_buf.ptr);
+    
+    size_t n_samples = data_buf.shape[0];
+    
+    // Allocate result
+    auto result = py::array_t<double>(n_bootstrap);
+    auto result_buf = result.request();
+    double* result_ptr = static_cast<double*>(result_buf.ptr);
+    
+    // Compute means for all bootstrap samples
+    for (size_t b = 0; b < n_bootstrap; b++) {
+        double sum = 0.0;
+        for (size_t i = 0; i < n_samples; i++) {
+            int idx = indices_ptr[b * n_samples + i];
+            sum += data_ptr[idx];
+        }
+        result_ptr[b] = sum / n_samples;
+    }
+    
+    return result;
+}
+
+```
+
+
+```python
+
+# Python side: Generate seeds, call C++ once
+def bootstrap_ci(data, n_bootstrap=1000, rng=None):
+    if rng is None:
+        rng = np.random.default_rng()
+    
+    # Generate all indices in Python (cheap)
+    n = len(data)
+    indices = rng.integers(0, n, size=(n_bootstrap, n))
+    
+    # Process all samples in C++ (expensive computation)
+    bootstrap_means = cpp_module.bootstrap_batch(
+        data, indices.ravel(), n_bootstrap
+    )
+    
+    # Aggregate in Python (cheap)
+    return np.percentile(bootstrap_means, [2.5, 97.5])
+
+```
+
+
+### 5. Performance Considerations
+
+
+**Call overhead**: ~1–10 µs per Python → C++ call
+
+
+**When overhead matters**:
+
+- Tight loops with many calls
+- Small arrays (<1000 elements)
+- Simple operations (addition, comparison)
+
+**When it doesn't**:
+
+- Batch processing (one call for many operations)
+- Large arrays (>10000 elements)
+- Complex operations (matrix decompositions)
+
+**Benchmark: Crossing threshold**
+
+
+```python
+
+# Python loop calling C++ each iteration: SLOW
+for i in range(1000000):
+    result = cpp.process(data[i])  # 1-10 µs overhead × 1M = 1-10s!
+
+# C++ processes entire array: FAST
+result = cpp.process_batch(data)  # 1-10 µs overhead once
+
+```
+
+
+### 6. Build System Integration
+
+
+[**setup.py**](http://setup.py/) **with pybind11**:
+
+
+```python
+from setuptools import setup, Extension
+import pybind11
+
+ext_modules = [
+    Extension(
+        'mymodule',
+        ['src/mymodule.cpp'],
+        include_dirs=[pybind11.get_include()],
+        language='c++',
+        extra_compile_args=['-std=c++17', '-O3'],
+    ),
+]
+
+setup(
+    name='mypackage',
+    ext_modules=ext_modules,
+    zip_safe=False,
+)
+
+```
+
+
+**Install in development mode**:
+
+
+```bash
+pip install -e .
+
+```
+
+
+---
+
+
+## Design Guidelines
+
+1. **Keep Python for**: Configuration, I/O, visualization, orchestration
+2. **Use C++ for**: Tight numerical loops, performance-critical sections
+3. **Batch operations**: Minimize boundary crossings
+4. **Zero-copy**: Pass NumPy arrays by reference when possible
+5. **Error handling**: Let pybind11 convert exceptions automatically
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                | Why It's Bad            | Fix                           |
+
+| ---------------------- | ----------------------- | ----------------------------- |
+
+| Chatty interface       | Call overhead dominates | Batch operations              |
+
+| Copying arrays         | Memory + time cost      | Use zero-copy views           |
+
+| No error checking      | Silent crashes          | Validate dimensions and types |
+
+| Building in source dir | Pollutes source tree    | Use build/ directory          |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 18, verify you can:
+
+- [ ] Wrap a simple C++ function with pybind11
+- [ ] Pass NumPy arrays to C++ without copying
+- [ ] Return NumPy arrays from C++
+- [ ] Design a batched API to minimize overhead
+- [ ] Build and install a Python extension module
+
+---
+
+
+## Deliverable
+
+
+A working Python package with C++ extension:
+
+- Compiled `.so`/`.pyd` module
+- Python wrapper with type hints
+- Tests comparing Python and C++ implementations
+- Benchmark report showing speedup
+
+---
+
+
+## Resources
+
+- [pybind11 Documentation](119)
+- [NumPy C API](120)
+- [Python/C++ Integration Guide](121)
+- [Performance Best Practices](122)
+
+## Day 18: Numerical Robustness, Validation, and Stress Testing
+
+## Overview
+
+
+**Focus**: Validate numerical implementations for correctness, stability, and edge cases using systematic testing strategies and stress tests.
+
+
+**Why it matters**: Statistical software failures are subtle. Learn to design test suites that catch floating-point errors, boundary conditions, and numerical instability.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 18, you will:
+
+- Design unit tests for numerical functions
+- Validate against reference implementations (R, SciPy)
+- Test edge cases (zeros, infinities, NaNs)
+- Stress-test with extreme inputs
+- Use property-based testing for invariants
+
+---
+
+
+## Core Concepts
+
+
+### 1. Unit Testing for Numerical Code
+
+
+**Basic structure** (pytest):
+
+
+```python
+import pytest
+import numpy as np
+from mypackage import compute_mean
+
+def test_mean_simple():
+    """Test mean of simple array."""
+    data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    result = compute_mean(data)
+    expected = 3.0
+    assert result == expected
+
+def test_mean_negative():
+    """Test mean with negative values."""
+    data = np.array([-2.0, -1.0, 0.0, 1.0, 2.0])
+    result = compute_mean(data)
+    expected = 0.0
+    assert result == expected
+
+```
+
+
+**Floating-point comparisons** (use tolerance):
+
+
+```python
+def test_mean_floating_point():
+    """Test mean with floating-point arithmetic."""
+    data = np.array([0.1, 0.2, 0.3])
+    result = compute_mean(data)
+    expected = 0.2
+    
+    # BAD: Exact equality (may fail due to rounding)
+    # assert result == expected
+    
+    # GOOD: Relative tolerance
+    np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+```
+
+
+**Parametrized tests** (test many cases efficiently):
+
+
+```python
+@pytest.mark.parametrize("data,expected", [
+    ([1.0, 2.0, 3.0], 2.0),
+    ([0.0, 0.0, 0.0], 0.0),
+    ([-1.0, 1.0], 0.0),
+    ([1e10, 1e10, 1e10], 1e10),
+])
+def test_mean_parametrized(data, expected):
+    """Test mean with various inputs."""
+    result = compute_mean(np.array(data))
+    np.testing.assert_allclose(result, expected, rtol=1e-10)
+
+```
+
+
+### 2. Cross-Validation with Reference Implementations
+
+
+**Comparing to SciPy**:
+
+
+```python
+from scipy import stats
+import numpy as np
+
+def test_t_test_against_scipy():
+    """Validate t-test implementation against SciPy."""
+    rng = np.random.default_rng(42)
+    x = rng.normal(0, 1, 100)
+    y = rng.normal(0.5, 1, 100)
+    
+    # Our implementation
+    our_statistic, our_pvalue = my_t_test(x, y)
+    
+    # SciPy reference
+    scipy_result = stats.ttest_ind(x, y)
+    
+    # Should match within numerical precision
+    np.testing.assert_allclose(our_statistic, scipy_result.statistic, rtol=1e-10)
+    np.testing.assert_allclose(our_pvalue, scipy_result.pvalue, rtol=1e-10)
+
+```
+
+
+**Comparing to R** (via rpy2):
+
+
+```python
+import rpy2.robjects as ro
+from rpy2.robjects import numpy2ri
+numpy2ri.activate()
+
+def test_linear_regression_against_r():
+    """Validate linear regression against R's lm()."""
+    rng = np.random.default_rng(42)
+    X = rng.normal(0, 1, (100, 2))
+    y = X @ np.array([2.0, -1.0]) + rng.normal(0, 0.1, 100)
+    
+    # Our implementation
+    our_coef = my_linear_regression(X, y)
+    
+    # R reference
+    ro.globalenv['X'] = X
+    ro.globalenv['y'] = y
+    r_result = ro.r('lm(y ~ X - 1)')  # No intercept
+    r_coef = np.array(ro.r('coef(r_result)'))
+    
+    np.testing.assert_allclose(our_coef, r_coef, rtol=1e-8)
+
+```
+
+
+### 3. Edge Case Testing
+
+
+**Testing special values**:
+
+
+```python
+def test_mean_edge_cases():
+    """Test mean with edge cases."""
+    
+    # Empty array
+    with pytest.raises(ValueError):
+        compute_mean(np.array([]))
+    
+    # Single element
+    result = compute_mean(np.array([42.0]))
+    assert result == 42.0
+    
+    # All zeros
+    result = compute_mean(np.array([0.0, 0.0, 0.0]))
+    assert result == 0.0
+    
+    # Infinity
+    result = compute_mean(np.array([np.inf, np.inf]))
+    assert result == np.inf
+    
+    # NaN propagation
+    result = compute_mean(np.array([1.0, np.nan, 3.0]))
+    assert np.isnan(result)
+    
+    # Mixed signs
+    result = compute_mean(np.array([1e10, -1e10]))
+    np.testing.assert_allclose(result, 0.0, atol=1e-5)
+
+```
+
+
+**Boundary conditions**:
+
+
+```python
+def test_standard_deviation_edge_cases():
+    """Test standard deviation edge cases."""
+    
+    # Zero variance
+    result = compute_std(np.array([5.0, 5.0, 5.0]))
+    assert result == 0.0
+    
+    # Very small variance (numerical stability)
+    data = np.array([1e10, 1e10 + 1e-5, 1e10 + 2e-5])
+    result = compute_std(data)
+    assert result > 0  # Should not be exactly zero due to rounding
+    
+    # Large variance
+    data = np.array([1e-10, 1e10])
+    result = compute_std(data)
+    assert result > 0 and np.isfinite(result)
+
+```
+
+
+### 4. Stress Testing
+
+
+**Testing with extreme inputs**:
+
+
+```python
+def test_covariance_matrix_large_scale():
+    """Stress test covariance with large matrices."""
+    rng = np.random.default_rng(42)
+    
+    # Large dimensions
+    n_samples = 10000
+    n_features = 100
+    X = rng.normal(0, 1, (n_samples, n_features))
+    
+    result = compute_covariance(X)
+    
+    # Validate properties
+    assert result.shape == (n_features, n_features)
+    assert np.allclose(result, result.T)  # Symmetric
+    eigenvalues = np.linalg.eigvals(result)
+    assert np.all(eigenvalues >= -1e-10)  # Positive semi-definite
+
+def test_numerical_stability_compensated_sum():
+    """Test compensated summation (Kahan algorithm) stability."""
+    # Catastrophic cancellation example
+    data = np.array([1e10, 1.0, -1e10])
+    
+    # Naive sum may give 0.0 due to rounding
+    naive_result = sum(data)
+    
+    # Compensated sum should give 1.0
+    compensated_result = kahan_sum(data)
+    
+    assert abs(compensated_result - 1.0) < 1e-10
+
+```
+
+
+**Testing with ill-conditioned inputs**:
+
+
+```python
+def test_linear_regression_ill_conditioned():
+    """Test linear regression with nearly collinear features."""
+    rng = np.random.default_rng(42)
+    
+    # Create nearly collinear features
+    X1 = rng.normal(0, 1, 100)
+    X2 = X1 + rng.normal(0, 1e-6, 100)  # Almost identical to X1
+    X = np.column_stack([X1, X2])
+    y = rng.normal(0, 1, 100)
+    
+    # Should either:
+    # 1. Raise a warning about collinearity
+    # 2. Use regularization
+    # 3. Return finite coefficients (not NaN or inf)
+    
+    with pytest.warns(UserWarning, match="collinear"):
+        coef = my_linear_regression(X, y)
+    
+    assert np.all(np.isfinite(coef))
+
+```
+
+
+### 5. Property-Based Testing
+
+
+**Using Hypothesis**:
+
+
+```python
+from hypothesis import given, strategies as st
+import hypothesis.extra.numpy as npst
+
+@given(npst.arrays(
+    dtype=np.float64,
+    shape=st.integers(min_value=1, max_value=1000),
+    elements=st.floats(min_value=-1e6, max_value=1e6, allow_nan=False, allow_infinity=False)
+))
+def test_mean_properties(data):
+    """Test properties that should hold for all inputs."""
+    result = compute_mean(data)
+    
+    # Mean should be between min and max
+    assert data.min() <= result <= data.max()
+    
+    # Mean of constant array is that constant
+    if np.all(data == data[0]):
+        assert result == data[0]
+    
+    # Finite input → finite output
+    assert np.isfinite(result)
+
+@given(npst.arrays(
+    dtype=np.float64,
+    shape=st.integers(min_value=2, max_value=100),
+    elements=st.floats(min_value=-1e3, max_value=1e3, allow_nan=False, allow_infinity=False)
+))
+def test_variance_properties(data):
+    """Test properties of variance."""
+    result = compute_variance(data)
+    
+    # Variance is non-negative
+    assert result >= 0
+    
+    # Variance is zero iff all elements equal
+    if np.allclose(data, data.mean()):
+        assert result < 1e-10
+
+```
+
+
+### 6. Test Coverage
+
+
+**Measuring coverage** (pytest-cov):
+
+
+```bash
+
+# Install
+pip install pytest-cov
+
+# Run tests with coverage
+pytest --cov=mypackage --cov-report=html
+
+# View report
+open htmlcov/index.html
+
+```
+
+
+**Coverage targets**:
+
+- **≥80%**: Minimum for production code
+- **≥90%**: Target for critical statistical functions
+- **100%**: Unrealistic (diminishing returns)
+
+**What to prioritize**:
+
+- Core numerical algorithms
+- Edge case handling
+- Error paths
+
+---
+
+
+## Testing Checklist for Numerical Functions
+
+
+Before considering a function "tested", verify:
+
+- [ ] Basic correctness with simple inputs
+- [ ] Edge cases (empty, single element, zeros)
+- [ ] Special values (NaN, inf, -inf)
+- [ ] Floating-point precision (use tolerances)
+- [ ] Cross-validation with reference implementation
+- [ ] Stress test with large/extreme inputs
+- [ ] Property-based tests for invariants
+- [ ] Test coverage ≥80%
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                     | Why It's Bad                  | Fix                                          |
+
+| --------------------------- | ----------------------------- | -------------------------------------------- |
+
+| Exact equality for floats   | Fails due to rounding         | Use `np.testing.assert_allclose`             |
+
+| Not testing edge cases      | Bugs surface in production    | Test empty, zeros, NaN, inf                  |
+
+| No reference validation     | Might be consistently wrong   | Compare to SciPy or R                        |
+
+| Insufficient stress testing | Fails on large/extreme inputs | Test with large arrays, ill-conditioned data |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 19, verify you can:
+
+- [ ] Write unit tests with pytest
+- [ ] Use appropriate floating-point tolerances
+- [ ] Validate against SciPy or R implementations
+- [ ] Test edge cases systematically
+- [ ] Use property-based testing with Hypothesis
+- [ ] Achieve ≥80% test coverage
+
+---
+
+
+## Deliverable
+
+
+A test suite for your statistical package:
+
+- ≥80% test coverage
+- Edge case tests for all public functions
+- Cross-validation against reference implementation
+- Passing property-based tests
+
+---
+
+
+## Resources
+
+- [pytest Documentation](123)
+- [NumPy Testing Guidelines](124)
+- [Hypothesis Documentation](125)
+- [Numerical Testing Best Practices](126)
+
+## Day 19: C++ Numerical Patterns and RAII
+
+## Overview
+
+
+**Focus**: Master C++ resource management with RAII, implement numerical algorithms with proper memory safety, and apply modern C++ patterns.
+
+
+**Why it matters**: C++ gives control but demands discipline. RAII (Resource Acquisition Is Initialization) ensures leak-free, exception-safe numerical code.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 19, you will:
+
+- Implement RAII for automatic resource management
+- Use smart pointers (`unique_ptr`, `shared_ptr`) correctly
+- Write exception-safe numerical algorithms
+- Understand move semantics for efficiency
+- Apply modern C++ patterns to statistical code
+
+---
+
+
+## Core Concepts
+
+
+### 1. RAII Fundamentals
+
+
+**Core principle**: Resource lifetime tied to object lifetime
+
+
+```c++
+// BAD: Manual resource management (leak-prone)
+double* allocate_array(size_t n) {
+    return new double[n];
+}
+
+void process() {
+    double* data = allocate_array(1000);
+    // ... computation ...
+    delete[] data;  // Might forget, or exception thrown before this
+}
+
+// GOOD: RAII wrapper (automatic cleanup)
+class Array {
+private:
+    double* data_;
+    size_t size_;
+public:
+    Array(size_t n) : data_(new double[n]), size_(n) {}
+    ~Array() { delete[] data_; }  // Automatic cleanup
+    
+    // Prevent copying (or implement correctly)
+    Array(const Array&) = delete;
+    Array& operator=(const Array&) = delete;
+    
+    // Accessors
+    double& operator[](size_t i) { return data_[i]; }
+    size_t size() const { return size_; }
+};
+
+void process() {
+    Array data(1000);
+    // ... computation ...
+    // Automatic cleanup when data goes out of scope
+}
+
+```
+
+
+### 2. Smart Pointers
+
+
+**`unique_ptr`** (exclusive ownership):
+
+
+```c++
+#include <memory>
+#include <vector>
+
+// Single owner, automatic deletion
+std::unique_ptr<double[]> allocate_array(size_t n) {
+    return std::make_unique<double[]>(n);
+}
+
+void process() {
+    auto data = allocate_array(1000);
+    // Use data[i] normally
+    // Automatic cleanup
+}
+
+// Move semantics (transfer ownership)
+std::unique_ptr<double[]> source = allocate_array(1000);
+std::unique_ptr<double[]> dest = std::move(source);  // source is now nullptr
+
+```
+
+
+**`shared_ptr`** (shared ownership):
+
+
+```c++
+// Multiple owners, deleted when last owner destroyed
+std::shared_ptr<std::vector<double>> create_data() {
+    return std::make_shared<std::vector<double>>(1000);
+}
+
+void share_data() {
+    auto data1 = create_data();
+    auto data2 = data1;  // Reference count = 2
+    // data deleted when both data1 and data2 go out of scope
+}
+
+```
+
+
+**When to use which**:
+
+- **`unique_ptr`**: Default choice (clear ownership, zero overhead)
+- **`shared_ptr`**: Only when genuinely shared ownership needed
+- **Raw pointers**: Only for non-owning references
+
+### 3. Exception Safety
+
+
+**Three guarantees**:
+
+1. **Basic**: Invariants preserved, no leaks
+2. **Strong**: Operation succeeds or has no effect (rollback)
+3. **No-throw**: Never throws (use `noexcept`)
+
+**Example: Strong exception safety**
+
+
+```c++
+class CovarianceMatrix {
+private:
+    std::vector<double> data_;
+    size_t dim_;
+    
+public:
+    CovarianceMatrix(size_t dim) : data_(dim * dim, 0.0), dim_(dim) {}
+    
+    // Strong guarantee: either succeeds or unchanged
+    void add_observation(const std::vector<double>& obs) {
+        if (obs.size() != dim_) {
+            throw std::invalid_argument("Dimension mismatch");
+        }
+        
+        // Copy state (if exception thrown, original unchanged)
+        std::vector<double> new_data = data_;
+        
+        // Update (might throw)
+        for (size_t i = 0; i < dim_; ++i) {
+            for (size_t j = 0; j < dim_; ++j) {
+                new_data[i * dim_ + j] += obs[i] * obs[j];
+            }
+        }
+        
+        // Commit (no-throw operation)
+        data_ = std::move(new_data);
+    }
+};
+
+```
+
+
+**No-throw guarantee** (for critical operations):
+
+
+```c++
+class Array {
+private:
+    double* data_;
+    size_t size_;
+    
+public:
+    // No-throw swap (enables strong guarantee)
+    void swap(Array& other) noexcept {
+        std::swap(data_, other.data_);
+        std::swap(size_, other.size_);
+    }
+    
+    // Strong guarantee via swap
+    Array& operator=(Array other) {  // Pass by value (copy)
+        swap(other);  // No-throw swap
+        return *this;
+        // Old data destroyed when 'other' goes out of scope
+    }
+};
+
+```
+
+
+### 4. Move Semantics
+
+
+**Motivation**: Avoid expensive copies
+
+
+```c++
+// BEFORE C++11: Always copies
+std::vector<double> create_large_array() {
+    std::vector<double> data(1000000);
+    // ... fill data ...
+    return data;  // Copies entire array
+}
+
+// AFTER C++11: Moves (cheap)
+std::vector<double> create_large_array() {
+    std::vector<double> data(1000000);
+    // ... fill data ...
+    return data;  // Moves (just pointer swap)
+}
+
+```
+
+
+**Implementing move operations**:
+
+
+```c++
+class Matrix {
+private:
+    double* data_;
+    size_t rows_, cols_;
+    
+public:
+    // Constructor
+    Matrix(size_t rows, size_t cols)
+        : data_(new double[rows * cols]), rows_(rows), cols_(cols) {}
+    
+    // Destructor
+    ~Matrix() { delete[] data_; }
+    
+    // Copy constructor (deep copy)
+    Matrix(const Matrix& other)
+        : data_(new double[other.rows_ * other.cols_]),
+          rows_(other.rows_), cols_(other.cols_) {
+        std::copy(other.data_, other.data_ + rows_ * cols_, data_);
+    }
+    
+    // Move constructor (transfer ownership)
+    Matrix(Matrix&& other) noexcept
+        : data_(other.data_), rows_(other.rows_), cols_(other.cols_) {
+        other.data_ = nullptr;  // Leave other in valid state
+        other.rows_ = 0;
+        other.cols_ = 0;
+    }
+    
+    // Copy assignment
+    Matrix& operator=(const Matrix& other) {
+        if (this != &other) {
+            Matrix temp(other);  // Copy
+            swap(temp);          // Swap (no-throw)
+        }
+        return *this;
+    }
+    
+    // Move assignment
+    Matrix& operator=(Matrix&& other) noexcept {
+        if (this != &other) {
+            delete[] data_;
+            data_ = other.data_;
+            rows_ = other.rows_;
+            cols_ = other.cols_;
+            other.data_ = nullptr;
+            other.rows_ = 0;
+            other.cols_ = 0;
+        }
+        return *this;
+    }
+    
+    void swap(Matrix& other) noexcept {
+        std::swap(data_, other.data_);
+        std::swap(rows_, other.rows_);
+        std::swap(cols_, other.cols_);
+    }
+};
+
+```
+
+
+**Rule of Five**: If you define one of these, define all:
+
+1. Destructor
+2. Copy constructor
+3. Copy assignment
+4. Move constructor
+5. Move assignment
+
+### 5. Modern C++ Containers for Numerical Code
+
+
+**Use STL containers** (RAII built-in):
+
+
+```c++
+#include <vector>
+#include <array>
+
+// Dynamic size (heap-allocated)
+std::vector<double> data(1000);
+data.push_back(3.14);
+
+// Fixed size (stack-allocated, no overhead)
+std::array<double, 3> point = {1.0, 2.0, 3.0};
+
+// Multi-dimensional (flatten or use Eigen)
+std::vector<double> matrix(rows * cols);
+auto at = [&](size_t i, size_t j) -> double& {
+    return matrix[i * cols + j];
+};
+
+```
+
+
+**Or use Eigen** (expression templates, RAII):
+
+
+```c++
+#include <Eigen/Dense>
+
+Eigen::VectorXd v(1000);
+v.setRandom();
+
+Eigen::MatrixXd m(100, 100);
+m.setIdentity();
+
+// Automatic memory management, efficient operations
+Eigen::VectorXd result = m * v;
+
+```
+
+
+### 6. Numerical Algorithm Example with RAII
+
+
+**Bootstrap with proper resource management**:
+
+
+```c++
+#include <vector>
+#include <random>
+#include <algorithm>
+
+class Bootstrap {
+private:
+    std::vector<double> data_;
+    std::mt19937 rng_;
+    
+public:
+    Bootstrap(std::vector<double> data, unsigned seed = std::random_device{}())
+        : data_(std::move(data)), rng_(seed) {}  // Move data (no copy)
+    
+    std::vector<double> resample(size_t n_bootstrap) {
+        std::vector<double> results;
+        results.reserve(n_bootstrap);
+        
+        std::uniform_int_distribution<size_t> dist(0, data_.size() - 1);
+        std::vector<double> sample(data_.size());
+        
+        for (size_t b = 0; b < n_bootstrap; ++b) {
+            // Resample
+            for (size_t i = 0; i < data_.size(); ++i) {
+                sample[i] = data_[dist(rng_)];
+            }
+            
+            // Compute statistic
+            double mean = std::accumulate(sample.begin(), sample.end(), 0.0) / sample.size();
+            results.push_back(mean);
+        }
+        
+        return results;  // Move (no copy)
+    }
+    
+    std::pair<double, double> confidence_interval(size_t n_bootstrap, double alpha = 0.05) {
+        auto bootstrap_means = resample(n_bootstrap);
+        std::sort(bootstrap_means.begin(), bootstrap_means.end());
+        
+        size_t lower_idx = static_cast<size_t>(alpha / 2 * n_bootstrap);
+        size_t upper_idx = static_cast<size_t>((1 - alpha / 2) * n_bootstrap);
+        
+        return {bootstrap_means[lower_idx], bootstrap_means[upper_idx]};
+    }
+};
+
+// Usage: No manual memory management needed
+int main() {
+    std::vector<double> data = {1.2, 3.4, 2.1, 5.6, 4.3};
+    Bootstrap boot(std::move(data), 42);  // Move data (efficient)
+    auto [lower, upper] = boot.confidence_interval(1000);
+    // Automatic cleanup
+}
+
+```
+
+
+---
+
+
+## RAII Patterns Summary
+
+
+| Pattern      | Use Case          | Example                                      |
+
+| ------------ | ----------------- | -------------------------------------------- |
+
+| `unique_ptr` | Single ownership  | `auto data = std::make_unique<double[]>(n);` |
+
+| `shared_ptr` | Shared ownership  | `auto cache = std::make_shared<Matrix>();`   |
+
+| `vector`     | Dynamic array     | `std::vector<double> data(n);`               |
+
+| `array`      | Fixed-size array  | `std::array<double, 3> point;`               |
+
+| Custom RAII  | Special resources | File handles, GPU memory                     |
+
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                 | Why It's Bad            | Fix                              |
+
+| ----------------------- | ----------------------- | -------------------------------- |
+
+| Raw `new`/`delete`      | Leaks, exception-unsafe | Use smart pointers or containers |
+
+| Returning raw pointers  | Unclear ownership       | Return `unique_ptr` or value     |
+
+| Copying large objects   | Performance cost        | Use move semantics               |
+
+| Forgetting Rule of Five | Broken copy/move        | Define all or delete all         |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before moving to Day 20, verify you can:
+
+- [ ] Explain RAII principle and benefits
+- [ ] Use `unique_ptr` and `shared_ptr` correctly
+- [ ] Implement move constructor and move assignment
+- [ ] Write exception-safe code (at least basic guarantee)
+- [ ] Use STL containers instead of raw arrays
+
+---
+
+
+## Deliverable
+
+
+A C++ numerical class that demonstrates:
+
+- RAII (automatic resource management)
+- Move semantics (efficient transfers)
+- Exception safety (at least basic guarantee)
+- No raw `new`/`delete` in user code
+
+---
+
+
+## Resources
+
+- [C++ Core Guidelines](127)
+- [Effective Modern C++](128)
+- [RAII and Smart Pointers](129)
+- [Exception Safety](130)
+
+## Day 20: Compilation, Optimization Flags, and Microbenchmarking
+
+## Overview
+
+
+**Focus**: Master compiler optimization flags, write effective microbenchmarks, and validate that optimizations deliver real speedups.
+
+
+**Why it matters**: Compilers can make code 10x faster with the right flags. Learn to harness optimization without breaking correctness.
+
+
+---
+
+
+## Learning Objectives
+
+
+By the end of Day 20, you will:
+
+- Understand key compiler optimization flags and their effects
+- Write robust microbenchmarks that prevent optimizer interference
+- Compare debug vs. release build performance
+- Use compiler-specific intrinsics when necessary
+- Profile optimized code to validate improvements
+
+---
+
+
+## Core Concepts
+
+
+### 1. Compiler Optimization Levels
+
+
+**GCC/Clang flags**:
+
+
+```bash
+
+# No optimization (debug builds)
+g++ -O0 -g code.cpp -o code_debug
+
+# Basic optimizations (default for most projects)
+g++ -O2 code.cpp -o code_release
+
+# Aggressive optimizations (may increase compile time)
+g++ -O3 code.cpp -o code_fast
+
+# Size optimization (for embedded systems)
+g++ -Os code.cpp -o code_small
+
+```
+
+
+**What each level does**:
+
+
+| Flag     | Optimizations    | Use Case                           |
+
+| -------- | ---------------- | ---------------------------------- |
+
+| `-O0`    | None             | Debugging (preserves all info)     |
+
+| `-O1`    | Basic            | Fast compile, some speedup         |
+
+| `-O2`    | Standard         | Production default                 |
+
+| `-O3`    | Aggressive       | Performance-critical code          |
+
+| `-Ofast` | Breaks standards | Only if you know what you're doing |
+
+
+**Key** **`-O2`** **optimizations**:
+
+- Inlining small functions
+- Loop unrolling
+- Dead code elimination
+- Constant folding
+- Common subexpression elimination
+
+**Additional** **`-O3`** **optimizations**:
+
+- Vectorization (SIMD)
+- More aggressive inlining
+- Loop transformations
+
+### 2. Architecture-Specific Flags
+
+
+**Target CPU architecture**:
+
+
+```bash
+
+# Use instructions available on this machine
+g++ -O3 -march=native code.cpp
+
+# Target specific architecture
+g++ -O3 -march=skylake code.cpp
+g++ -O3 -march=armv8-a code.cpp
+
+# Enable specific instruction sets
+g++ -O3 -mavx2 -mfma code.cpp
+
+```
+
+
+**Why it matters**:
+
+- `native`: Uses SIMD, FMA, and other extensions on your CPU
+- Can give 2-4x speedup for numerical code
+- **Caution**: Binary won't work on older CPUs
+
+### 3. Link-Time Optimization (LTO)
+
+
+**What it does**: Optimizes across compilation units
+
+
+```bash
+
+# Compile with LTO
+g++ -O3 -flto code1.cpp code2.cpp -o program
+
+# Or in two steps
+g++ -O3 -flto -c code1.cpp -o code1.o
+g++ -O3 -flto -c code2.cpp -o code2.o
+g++ -O3 -flto code1.o code2.o -o program
+
+```
+
+
+**Benefits**:
+
+- Inlines across files
+- Removes unused code globally
+- 5-15% speedup in many cases
+
+### 4. Fast Math Optimizations
+
+
+**`-ffast-math`** (breaks IEEE 754 compliance):
+
+
+```bash
+g++ -O3 -ffast-math code.cpp
+
+```
+
+
+**What it enables**:
+
+- Assumes no NaN or Inf
+- Reorders floating-point operations (breaks associativity)
+- Approximates math functions
+
+**When to use**:
+
+- ✅ Tight numerical loops with known-finite values
+- ❌ General-purpose statistical libraries (NaN handling important)
+
+**Safer alternative** (pick specific optimizations):
+
+
+```bash
+g++ -O3 -fno-math-errno -ffinite-math-only code.cpp
+
+```
+
+
+### 5. Microbenchmarking Techniques
+
+
+**Using Google Benchmark**:
+
+
+```c++
+#include <benchmark/benchmark.h>
+#include <vector>
+#include <numeric>
+
+static void BM_Sum_Naive(benchmark::State& state) {
+    std::vector<double> data(state.range(0));
+    std::iota(data.begin(), data.end(), 0.0);
+    
+    for (auto _ : state) {
+        double sum = 0.0;
+        for (auto x : data) {
+            sum += x;
+        }
+        benchmark::DoNotOptimize(sum);  // Prevent optimization away
+    }
+}
+BENCHMARK(BM_Sum_Naive)->Range(8, 8<<10);
+
+static void BM_Sum_Accumulate(benchmark::State& state) {
+    std::vector<double> data(state.range(0));
+    std::iota(data.begin(), data.end(), 0.0);
+    
+    for (auto _ : state) {
+        double sum = std::accumulate(data.begin(), data.end(), 0.0);
+        benchmark::DoNotOptimize(sum);
+    }
+}
+BENCHMARK(BM_Sum_Accumulate)->Range(8, 8<<10);
+
+BENCHMARK_MAIN();
+
+```
+
+
+**Compile and run**:
+
+
+```bash
+
+# Build with optimizations
+g++ -O3 -march=native benchmark.cpp -lbenchmark -lpthread -o benchmark
+
+# Run
+./benchmark
+
+```
+
+
+**Output**:
+
+
+```javascript
+-------------------------------------------------------------
+Benchmark                   Time             CPU   Iterations
+-------------------------------------------------------------
+BM_Sum_Naive/8           3.21 ns         3.21 ns    218475392
+BM_Sum_Naive/64          24.5 ns         24.5 ns     28594176
+BM_Sum_Naive/512          195 ns          195 ns      3589120
+BM_Sum_Accumulate/8      2.98 ns         2.98 ns    235233280
+BM_Sum_Accumulate/64     22.1 ns         22.1 ns     31664128
+BM_Sum_Accumulate/512     177 ns          177 ns      3952640
+
+```
+
+
+### 6. Preventing Optimizer Interference
+
+
+**Problem**: Compiler may optimize away benchmarked code
+
+
+```c++
+// BAD: Compiler may optimize this away entirely
+for (auto _ : state) {
+    double result = expensive_function();
+    // result never used → might be eliminated
+}
+
+// GOOD: Force use of result
+for (auto _ : state) {
+    double result = expensive_function();
+    benchmark::DoNotOptimize(result);
+}
+
+// ALSO GOOD: Prevent input from being constant-folded
+std::vector<double> data = create_test_data();
+benchmark::DoNotOptimize(data.data());
+for (auto _ : state) {
+    double result = process(data);
+    benchmark::DoNotOptimize(result);
+}
+
+```
+
+
+**`volatile`** **(last resort)**:
+
+
+```c++
+volatile double sink;
+for (auto _ : state) {
+    sink = expensive_function();
+}
+
+```
+
+
+### 7. Optimization Case Study
+
+
+**Matrix-vector multiplication**:
+
+
+```c++
+// Naive implementation
+void matvec_naive(const double* A, const double* x, double* y, int n) {
+    for (int i = 0; i < n; ++i) {
+        y[i] = 0.0;
+        for (int j = 0; j < n; ++j) {
+            y[i] += A[i * n + j] * x[j];
+        }
+    }
+}
+
+// Optimized (better cache locality)
+void matvec_blocked(const double* A, const double* x, double* y, int n) {
+    constexpr int block_size = 64;
+    for (int i = 0; i < n; ++i) {
+        y[i] = 0.0;
+    }
+    for (int i = 0; i < n; i += block_size) {
+        for (int j = 0; j < n; ++j) {
+            for (int ii = i; ii < std::min(i + block_size, n); ++ii) {
+                y[ii] += A[ii * n + j] * x[j];
+            }
+        }
+    }
+}
+
+```
+
+
+**Benchmark results** (n=1000):
+
+
+| Version | Flags               | Time (ms) |
+
+| ------- | ------------------- | --------- |
+
+| Naive   | `-O0`               | 8.2       |
+
+| Naive   | `-O2`               | 2.1       |
+
+| Naive   | `-O3 -march=native` | 1.4       |
+
+| Blocked | `-O3 -march=native` | 0.7       |
+
+
+**Key lessons**:
+
+- `-O2` vs `-O0`: 4x speedup (free lunch)
+- `-O3 -march=native`: 1.5x additional speedup
+- Algorithmic improvement: 2x on top
+
+### 8. Inspecting Compiler Output
+
+
+**View assembly**:
+
+
+```bash
+
+# Generate assembly listing
+g++ -O3 -S code.cpp -o code.s
+
+# View with Intel syntax (more readable)
+g++ -O3 -S -masm=intel code.cpp -o code.s
+
+```
+
+
+**Check vectorization**:
+
+
+```bash
+
+# GCC: Report vectorization
+g++ -O3 -march=native -fopt-info-vec-optimized code.cpp
+
+# Clang: Report vectorization
+clang++ -O3 -march=native -Rpass=loop-vectorize code.cpp
+
+```
+
+
+**Example output**:
+
+
+```javascript
+code.cpp:10:5: remark: vectorized loop (vectorization width: 4, interleaved count: 2)
+
+```
+
+
+---
+
+
+## Optimization Workflow
+
+1. **Profile first**: Find bottlenecks (don't guess)
+2. **Measure baseline**: Benchmark with `-O0`
+3. **Try** **`-O2`**: Usually 3-5x speedup
+4. **Try** **`-O3 -march=native`**: Additional 1.5-2x
+5. **Algorithmic improvements**: Often bigger than compiler opts
+6. **Validate correctness**: Optimizations can introduce bugs
+
+---
+
+
+## Build Configuration Example
+
+
+**CMakeLists.txt**:
+
+
+```javascript
+cmake_minimum_required(VERSION 3.16)
+project(numerical_library)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# Debug build
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wall -Wextra")
+
+# Release build
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG")
+
+# Profile-guided optimization (advanced)
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -flto")
+
+add_executable(my_program main.cpp)
+
+```
+
+
+**Build**:
+
+
+```bash
+
+# Debug
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+
+# Release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+
+```
+
+
+---
+
+
+## Common Pitfalls
+
+
+| Pitfall                          | Why It's Bad            | Fix                                         |
+
+| -------------------------------- | ----------------------- | ------------------------------------------- |
+
+| Using `-O0` in production        | 5-10x slower            | Always use `-O2` or `-O3`                   |
+
+| Using `-Ofast` blindly           | Breaks correctness      | Use `-O3`, test carefully if using `-Ofast` |
+
+| Not benchmarking changes         | Don't know if it helped | Always measure before/after                 |
+
+| Optimizer removes benchmark code | Invalid results         | Use `DoNotOptimize()`                       |
+
+
+---
+
+
+## Self-Assessment Checklist
+
+
+Before completing Week 3, verify you can:
+
+- [ ] Explain differences between `-O0`, `-O2`, `-O3`
+- [ ] Use `-march=native` and understand tradeoffs
+- [ ] Write microbenchmarks with Google Benchmark
+- [ ] Prevent optimizer from eliminating benchmark code
+- [ ] Compare debug vs. release build performance
+- [ ] View and interpret vectorization reports
+
+---
+
+
+## Deliverable
+
+
+A benchmark suite showing:
+
+- Performance comparison: `-O0` vs. `-O2` vs. `-O3 -march=native`
+- Speedup measurements for key functions
+- Validation that optimizations preserve correctness
+- Markdown report with conclusions
+
+---
+
+
+## Resources
+
+- [GCC Optimization Options](131)
+- [Clang Optimization Options](132)
+- [Google Benchmark](133)
+- [Optimization Guide](134)
+
 ---
 
 
 ## Quick Links
 
-- [Proficiency Standards](/2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880fc9a21ddf798b6a4d5)
-- [How to Use This Curriculum](/2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880ce8da6fa07ef7e21b5)
-- [Interview Preparation Guide](https://www.notion.so/2-Week-Python-C-Proficiency-for-Statisticians-and-Data-Scientists-2dc342cf7cc8807b9122dc79f2781d1e#2dc342cf7cc880728b71d2d1ae7a67d4)
+- Proficiency Standards (see below)
+- How to Use This Curriculum (see below)
+- Interview Preparation Guide (see below)
 
 ---
 
 
 ## Proficiency Standards
+
+
+**Validation Status**: These thresholds are based on instructor experience with similar graduate-level coursework but have not been empirically validated with pilot cohorts. They represent our best estimate of a meaningful proficiency bar. We welcome feedback from learners and institutions using this curriculum.
 
 
 To claim proficiency from this curriculum, you must meet ALL of the following:
@@ -13815,11 +11042,27 @@ To claim proficiency from this curriculum, you must meet ALL of the following:
 - Demonstrate reasoning and trade-off awareness, not just factual recall
 - Practice articulation with a partner or in writing before claiming proficiency
 
+**Self-Scoring Rubric for Oral Defense**:
+
+
+For each question, score yourself 0-2:
+
+- **0 (Weak)**: Cannot answer, or answer is factually wrong, or relies on vague statements ("it's faster", "it's better")
+- **1 (Partial)**: Answer is directionally correct but missing key details, tradeoffs, or concrete examples. Would need prompting in an interview.
+- **2 (Strong)**: Answer includes (a) precise technical explanation, (b) concrete example or use case, (c) at least one tradeoff or limitation, (d) delivered in 60-90 seconds without notes
+
+To claim proficiency, you must score ≥1.5 average across all oral defense questions in the curriculum (Algorithmic Thinking section + both capstones). This typically means: mostly 2s with a few 1s, or you can articulate most answers fully with only a few gaps.
+
+
 **4. Time Investment**
 
 - Expect 50-60 hours total (6-8 hours/day × 2 weeks)
-- If consistently exceeding 2× expected exercise times, you may need additional background preparation
+- **Time is NOT a proficiency criterion**: Proficiency is measured by rubric scores (≥1.5/2.0), not speed
+- Some learners complete in 40 hours, others in 100+ hours—both can achieve proficiency
 - Do NOT rush—proficiency requires deliberate practice, not completion speed
+
+**Interpreting Your Scores**: If you score 1.5/2.0 on an exercise rubric, you should be able to: (1) explain your design choices in 2 minutes without notes, (2) identify 2-3 alternative approaches and their tradeoffs, (3) implement a similar problem in 1.5× the original time. These observable behaviors help calibrate self-assessment.
+
 
 **What if I don't meet thresholds?**
 
@@ -13849,6 +11092,9 @@ _You CANNOT yet:_
 **Proficiency is the BEGINNING of mastery, not the end.**
 
 
+**Partial Proficiency Claims**: If you complete only one language track, you may claim: "Python Proficiency for Statistical Computing" (Week 1 + Python Capstone with ≥1.5/2.0) or "C++ Proficiency for Numerical Computing" (Week 2 + C++ Capstone with ≥1.5/2.0). The full "Statistical Computing Proficiency" requires both language tracks plus demonstrated ability to choose the appropriate language for each computational task.
+
+
 ---
 
 
@@ -13861,6 +11107,24 @@ _You CANNOT yet:_
 - Days 0-7 (Python): ~25-30 hours
 - Days 8-14 (C++): ~25-30 hours
 - If you consistently exceed 2× expected exercise times, consider extending timeline or seeking additional C++/Python prep
+
+**About Time Estimates**: The "Expected Time (Proficient)" labels are **planning tools**, not proficiency criteria. They represent target times for learners who solidly meet all prerequisites (fluent in probability, statistics, linear algebra, optimization). **These estimates have not been empirically validated.** Actual times vary by 2-5× based on prior programming experience, comfort with mathematical abstraction, and typing speed.
+
+
+**Critical: Time ≠ Proficiency**. If you:
+
+- Produce correct, well-reasoned solutions that meet rubric criteria (≥1.5/2.0)
+- Can articulate design choices and tradeoffs
+- Pass oral defense questions (≥80% at "strong answer" level)
+
+...then you have achieved proficiency, **regardless of how long it took**. Taking 2× estimated time does not indicate lack of proficiency—it may simply reflect different learning pace, more thorough exploration, or less prior exposure to these specific tools.
+
+
+**When time DOES matter**: If you consistently cannot complete exercises even after 3-4× estimated time, this may indicate prerequisite gaps (statistics, linear algebra, or basic programming concepts). In this case, consider supplementary preparation before continuing.
+
+
+**Note**: Not all exercises have explicit time estimates. Daily exercises (Days 1-14) are embedded in tutorial content without separate time labels. The Algorithmic Thinking section and capstones include explicit "Expected Time (Proficient)" labels where appropriate.
+
 
 **Exercise Priority:**
 
@@ -13979,3 +11243,6 @@ Practice with a partner using this structure (45 minutes total):
 - Connects implementation details to performance implications
 - Admits uncertainty clearly: "I'm not sure, but I would verify by..."
 - Asks clarifying questions before diving into solutions
+
+---
+
